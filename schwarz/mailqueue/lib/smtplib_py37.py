@@ -67,9 +67,10 @@ _MAXLINE = 8192 # more than 8 times larger than RFC 821, 4.5.3
 
 OLDSTYLE_AUTH = re.compile(r"auth=(.*)", re.I)
 
-# Exception classes used by this module.
-class SMTPException(OSError):
-    """Base class for all exceptions raised by this module."""
+# ensure external users can use imports from their stdlib to catch our exceptions
+from smtplib import (SMTPException, SMTPServerDisconnected, SMTPResponseException,
+    SMTPSenderRefused, SMTPRecipientsRefused, SMTPDataError, SMTPConnectError,
+    SMTPHeloError, SMTPAuthenticationError)
 
 class SMTPNotSupportedError(SMTPException):
     """The command or option is not supported by the SMTP server.
@@ -78,69 +79,6 @@ class SMTPNotSupportedError(SMTPException):
     command with an option which is not supported by the server.
     """
 
-class SMTPServerDisconnected(SMTPException):
-    """Not connected to any SMTP server.
-
-    This exception is raised when the server unexpectedly disconnects,
-    or when an attempt is made to use the SMTP instance before
-    connecting it to a server.
-    """
-
-class SMTPResponseException(SMTPException):
-    """Base class for all exceptions that include an SMTP error code.
-
-    These exceptions are generated in some instances when the SMTP
-    server returns an error code.  The error code is stored in the
-    `smtp_code' attribute of the error, and the `smtp_error' attribute
-    is set to the error message.
-    """
-
-    def __init__(self, code, msg):
-        self.smtp_code = code
-        self.smtp_error = msg
-        self.args = (code, msg)
-
-class SMTPSenderRefused(SMTPResponseException):
-    """Sender address refused.
-
-    In addition to the attributes set by on all SMTPResponseException
-    exceptions, this sets `sender' to the string that the SMTP refused.
-    """
-
-    def __init__(self, code, msg, sender):
-        self.smtp_code = code
-        self.smtp_error = msg
-        self.sender = sender
-        self.args = (code, msg, sender)
-
-class SMTPRecipientsRefused(SMTPException):
-    """All recipient addresses refused.
-
-    The errors for each recipient are accessible through the attribute
-    'recipients', which is a dictionary of exactly the same sort as
-    SMTP.sendmail() returns.
-    """
-
-    def __init__(self, recipients):
-        self.recipients = recipients
-        self.args = (recipients,)
-
-
-class SMTPDataError(SMTPResponseException):
-    """The SMTP server didn't accept the data."""
-
-class SMTPConnectError(SMTPResponseException):
-    """Error during connection establishment."""
-
-class SMTPHeloError(SMTPResponseException):
-    """The server refused our HELO reply."""
-
-class SMTPAuthenticationError(SMTPResponseException):
-    """Authentication error.
-
-    Most probably the server didn't accept the username/password
-    combination provided.
-    """
 
 def quoteaddr(addrstring):
     """Quote a subset of the email addresses defined by RFC 821.
