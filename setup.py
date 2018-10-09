@@ -18,7 +18,7 @@ def requires_from_file(filename):
 setup(
     name = 'mailqueue-runner',
     version = '0.1.20181009',
-    license = 'MIT',
+    license = 'MIT and Python',
 
     zip_safe = False,
     packages = find_packages(),
