@@ -11,11 +11,19 @@ from .lib.smtplib_py37 import (
     SMTP,
     SMTPDataError,
     SMTPRecipientsRefused,
+    SMTPResponseException,
     SMTPSenderRefused
 )
 
 
-__all__ = ['SMTPClient']
+__all__ = ['SMTPClient', 'SMTPRecipientRefused']
+
+class SMTPRecipientRefused(SMTPResponseException):
+    def __init__(self, code, msg, recipient):
+        self.smtp_code = code
+        self.smtp_error = msg
+        self.recipient = recipient
+        self.args = (code, msg, recipient)
 
 
 class SMTPClient(SMTP):
@@ -44,15 +52,12 @@ class SMTPClient(SMTP):
             to_addrs = [to_addrs]
         for each in to_addrs:
             (code, resp) = self.rcpt(each, rcpt_options)
-            if (code != 250) and (code != 251):
-                senderrs[each] = (code, resp)
             if code == 421:
                 self.close()
                 raise SMTPRecipientsRefused(senderrs)
-        if len(senderrs) == len(to_addrs):
-            # the server refused all our recipients
-            self._rset()
-            raise SMTPRecipientsRefused(senderrs)
+            elif (code != 250) and (code != 251):
+                self._rset()
+                raise SMTPRecipientRefused(code, resp, each)
         (code, resp) = self.data(msg)
         if code != 250:
             if code == 421:
