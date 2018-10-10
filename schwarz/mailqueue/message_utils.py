@@ -6,14 +6,9 @@ from __future__ import absolute_import, print_function, unicode_literals
 from email.header import decode_header
 from io import BytesIO
 import re
-import sys
 
 
 __all__ = ['parse_message_envelope']
-
-IS_PYTHON3 = (sys.version_info >= (3,0))
-if IS_PYTHON3:
-    unicode = str
 
 def parse_message_envelope(fp):
     from_addr = None
@@ -50,7 +45,7 @@ def decode_header_value(header_bytes):
     header_str = ''
     for part_bytes, charset in decode_header(encoded_str):
         if charset is None:
-            assert isinstance(part_bytes, unicode)
+            assert isinstance(part_bytes, str)
             header_str += part_bytes
         else:
             header_str += part_bytes.decode(charset)

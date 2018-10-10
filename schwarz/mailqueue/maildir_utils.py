@@ -7,15 +7,17 @@ import os
 
 from boltons.fileutils import atomic_save
 
+from .compat import os_makedirs
+
 
 __all__ = ['create_maildir_directories']
 
 def create_maildir_directories(basedir, is_folder=False):
-    os.makedirs(basedir, 0o700, exist_ok=True)
+    os_makedirs(basedir, 0o700, exist_ok=True)
     new_path = None
     for subdir_name in ('tmp', 'cur', 'new'):
         subdir_path = os.path.join(basedir, subdir_name)
-        os.makedirs(subdir_path, 0o700, exist_ok=True)
+        os_makedirs(subdir_path, 0o700, exist_ok=True)
         if subdir_name == 'new':
             new_path = subdir_path
 
