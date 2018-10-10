@@ -12,9 +12,9 @@ from schwarz.mailqueue.lib.fake_fs_utils import TempFS
 from schwarz.mailqueue.testutils import build_queued_msg, inject_message
 
 
-class QueueRunnerTest(PythonicTestCase):
+class MaildirQueueRunnerTest(PythonicTestCase):
     def setUp(self):
-        super(QueueRunnerTest, self).setUp()
+        super(MaildirQueueRunnerTest, self).setUp()
         self.tempfs = TempFS.set_up(test=self)
         self.path_maildir = os.path.join(self.tempfs.root, 'mailqueue')
         create_maildir_directories(self.path_maildir)
