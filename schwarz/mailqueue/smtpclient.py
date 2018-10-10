@@ -29,7 +29,8 @@ class SMTPRecipientRefused(SMTPResponseException):
 class SMTPClient(SMTP):
     # ,------------------------------------------------------------------------
     # copied from "smtplib" shipped with Python 3.7
-    # License: Python-2.0
+    # modified to raise SMTPRecipientRefused when ANY recipient was rejected
+    # License: Python-2.0 (my changes: public domain or CC-0 - your choice)
     def sendmail(self, from_addr, to_addrs, msg, mail_options=[], rcpt_options=[]):
         self.ehlo_or_helo_if_needed()
         esmtp_opts = []
