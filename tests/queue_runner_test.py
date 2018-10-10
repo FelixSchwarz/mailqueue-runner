@@ -31,7 +31,8 @@ class QueueRunnerTest(PythonicTestCase):
         assert_true(os.path.exists(msg_path))
 
         qr = MaildirQueueRunner(mailer, self.path_maildir)
-        qr.send_message(msg_path)
+        was_sent = qr.send_message(msg_path)
+        assert_true(was_sent)
 
         assert_length(1, mailer.sent_mails)
         fromaddr, toaddrs, sent_msg = mailer.sent_mails[0]
@@ -42,6 +43,20 @@ class QueueRunnerTest(PythonicTestCase):
         # ensure there are not left-overs/tmp files
         assert_length(0, self.list_all_files(self.path_maildir))
 
+    def test_can_handle_sending_failure(self):
+        mailer = DebugMailer(simulate_failed_sending=True)
+        msg_path = inject_message(self.path_maildir, build_queued_msg())
+        assert_true(os.path.exists(msg_path))
+
+        qr = MaildirQueueRunner(mailer, self.path_maildir)
+        was_sent = qr.send_message(msg_path)
+
+        assert_false(was_sent)
+        assert_true(os.path.exists(msg_path))
+        # no left-overs (e.g. in "tmp" folder) other than the initial message file
+        assert_length(1, self.list_all_files(self.path_maildir))
+
+    # --- internal helpers ----------------------------------------------------
     def list_all_files(self, basedir):
         files = []
         for root_dir, dirnames, filenames in os.walk(basedir):
