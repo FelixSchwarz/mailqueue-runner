@@ -4,9 +4,11 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
 from io import BytesIO
+from mailbox import Maildir
+import os
 
 
-__all__ = ['build_queued_msg']
+__all__ = ['build_queued_msg', 'inject_message']
 
 def build_queued_msg(return_path=None, envelope_to=None, msg_bytes=None):
     if return_path is None:
@@ -21,3 +23,8 @@ def build_queued_msg(return_path=None, envelope_to=None, msg_bytes=None):
         msg_bytes
     )
     return BytesIO(msg)
+
+def inject_message(path_maildir, msg_fp):
+    msg_maildir_id = Maildir(path_maildir).add(msg_fp)
+    msg_path = os.path.join(path_maildir, 'new', msg_maildir_id)
+    return msg_path
