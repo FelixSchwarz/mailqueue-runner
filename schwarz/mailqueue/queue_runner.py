@@ -5,6 +5,8 @@ from __future__ import absolute_import, print_function, unicode_literals
 
 import os
 
+from boltons.fileutils import atomic_rename
+
 from .message_utils import parse_message_envelope
 
 
@@ -39,11 +41,8 @@ class MaildirQueueRunner(object):
     def _move_message(self, file_path, target_folder):
         filename = os.path.basename(file_path)
         target_path = os.path.join(self.queue_dir, target_folder, filename)
-        # Unix-only, possible Windows compatible replacement:
-        # from boltons.fileutils import atomic_rename
-        # atomic_rename(source_path, target_path, overwrite=False)
-        os.link(file_path, target_path)
-        os.unlink(file_path)
+        # Bolton's "atomic_rename()" is compatible with Windows
+        atomic_rename(file_path, target_path, overwrite=False)
         fp = open(target_path, 'rb+')
         return fp
 
