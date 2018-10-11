@@ -32,6 +32,8 @@ Example:
   >>> s.quit()
 '''
 
+from __future__ import print_function, unicode_literals
+
 # Author: The Dragon De Monsyne <dragondm@integral.org>
 # ESMTP support, test code and doc fixes added by
 #     Eric S. Raymond <esr@thyrsus.com>
@@ -540,7 +542,7 @@ class SMTP:
                 if not (200 <= code <= 299):
                     raise SMTPHeloError(code, resp)
 
-    def auth(self, mechanism, authobject, *, initial_response_ok=True):
+    def auth(self, mechanism, authobject, initial_response_ok=True):
         """Authentication command - requires response processing.
 
         'mechanism' specifies which authentication mechanism is to
@@ -601,7 +603,7 @@ class SMTP:
         else:
             return self.password
 
-    def login(self, user, password, *, initial_response_ok=True):
+    def login(self, user, password, initial_response_ok=True):
         """Log in on an SMTP server that requires authentication.
 
         The arguments are:
@@ -883,8 +885,9 @@ class SMTP:
         del msg_copy['Bcc']
         del msg_copy['Resent-Bcc']
         international = False
+        all_addrs = [from_addr] + to_addrs
         try:
-            ''.join([from_addr, *to_addrs]).encode('ascii')
+            ''.join(all_addrs).encode('ascii')
         except UnicodeEncodeError:
             if not self.has_extn('smtputf8'):
                 raise SMTPNotSupportedError(
