@@ -1,2 +1,2 @@
-pymta
+pymta >= 0.6.0  # Python 3 support
 PythonicTestcase
