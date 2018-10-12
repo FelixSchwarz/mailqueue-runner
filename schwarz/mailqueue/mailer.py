@@ -3,6 +3,8 @@
 
 from __future__ import absolute_import, print_function, unicode_literals
 
+from smtplib import SMTPException
+
 from .smtpclient import SMTPClient
 
 
@@ -26,22 +28,27 @@ class SMTPMailer(object):
         return SMTPClient(self.hostname, self.port, timeout=self.connect_timeout)
 
     def send(self, fromaddr, toaddrs, message):
-        if self._connection is None:
-            connection = self.connect()
-        else:
-            connection = self._connection
-        connection.ehlo()
-
-        is_tls_supported = connection.has_extn('starttls')
-        if is_tls_supported:
-            connection.starttls()
+        msg_was_sent = False
+        try:
+            if self._connection is None:
+                connection = self.connect()
+            else:
+                connection = self._connection
             connection.ehlo()
-        if (self.username is not None) and (self.password is not None):
-            connection.login(self.username, self.password)
 
-        connection.sendmail(fromaddr, toaddrs, message)
-        connection.quit()
-        return True
+            is_tls_supported = connection.has_extn('starttls')
+            if is_tls_supported:
+                connection.starttls()
+                connection.ehlo()
+            if (self.username is not None) and (self.password is not None):
+                connection.login(self.username, self.password)
+
+            connection.sendmail(fromaddr, toaddrs, message)
+            msg_was_sent = True
+            connection.quit()
+        except SMTPException:
+            pass
+        return msg_was_sent
 
 
 class DebugMailer(object):

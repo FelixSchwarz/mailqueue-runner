@@ -58,10 +58,11 @@ class FakeChannel(object):
 
 class FakeSMTP(SMTPClient):
     def __init__(self, *args, **kwargs):
+        policy = kwargs.pop('policy', None)
         super(FakeSMTP, self).__init__(*args, **kwargs)
         self.deliverer = BlackholeDeliverer()
         self.channel = FakeChannel()
-        self.command_parser = SMTPCommandParser(self.channel, '127.0.0.1', 2525, self.deliverer)
+        self.command_parser = SMTPCommandParser(self.channel, '127.0.0.1', 2525, self.deliverer, policy=policy)
         self._consume_initial_greeting()
 
     @property

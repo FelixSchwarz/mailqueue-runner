@@ -3,6 +3,7 @@
 
 from __future__ import absolute_import, print_function, unicode_literals
 
+from pymta.api import IMTAPolicy
 from pythonic_testcase import *
 
 from schwarz.mailqueue import SMTPMailer
@@ -33,4 +34,24 @@ class SMTPMailerTest(PythonicTestCase):
         if not IS_PYTHON3:
             expected_message = expected_message.rstrip('\n')
         assert_equals(expected_message, received_message.msg_data)
+
+    def test_can_handle_smtp_exception_after_from(self):
+        reject_from = self._build_policy(accept_from=False)
+        connection = FakeSMTP(policy=reject_from)
+        mailer = SMTPMailer(connection=connection)
+        message = b'Header: value\n\nbody\n'
+        msg_was_sent = mailer.send('foo@site.example', 'bar@site.example', message)
+
+        assert_false(msg_was_sent)
+        assert_equals(0, connection.received_messages.qsize())
+
+    # --- internal helpers ----------------------------------------------------
+    def _build_policy(self, **method_results):
+        class TempPolicy(IMTAPolicy):
+            pass
+
+        for method_name, method_result in method_results.items():
+            method = lambda policy, *args, **kwargs: method_result
+            setattr(TempPolicy, method_name, method)
+        return TempPolicy()
 
