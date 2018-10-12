@@ -9,12 +9,15 @@ from .smtpclient import SMTPClient
 __all__ = ['DebugMailer', 'SMTPMailer']
 
 class SMTPMailer(object):
-    def __init__(self, hostname, **kwargs):
+    def __init__(self, hostname=None, **kwargs):
+        if (hostname is None) and ('connection' not in kwargs):
+            raise TypeError('not enough parameters for __init__(): please specify at least "hostname" or "connection"')
         self.hostname = hostname
         self.port = kwargs.pop('port', 25)
         self.username = kwargs.pop('username', None)
         self.password = kwargs.pop('password', None)
         self.connect_timeout = kwargs.pop('timeout', 10)
+        self._connection = kwargs.pop('connection', None)
         if kwargs:
             extra_name = tuple(kwargs)[0]
             raise TypeError("__init__() got an unexpected keyword argument '%s'" % extra_name)
@@ -23,7 +26,10 @@ class SMTPMailer(object):
         return SMTPClient(self.hostname, self.port, timeout=self.connect_timeout)
 
     def send(self, fromaddr, toaddrs, message):
-        connection = self.connect()
+        if self._connection is None:
+            connection = self.connect()
+        else:
+            connection = self._connection
         connection.ehlo()
 
         is_tls_supported = connection.has_extn('starttls')
