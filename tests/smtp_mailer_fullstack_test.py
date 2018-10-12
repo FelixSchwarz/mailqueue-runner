@@ -27,7 +27,7 @@ class SMTPMailerFullstackTest(SMTPTestCase):
         assert_none(received_message.username)
         # pymta converts this to a string automatically
         expected_message = message.decode('ASCII')
-        # in Python 2 the received message lacks the final '\n' (an unknown reason)
+        # in Python 2 the received message lacks the final '\n' (unknown reason)
         if not IS_PYTHON3:
             expected_message = expected_message.rstrip('\n')
         assert_equals(expected_message, received_message.msg_data)
