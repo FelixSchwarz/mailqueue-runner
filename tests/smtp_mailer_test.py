@@ -15,7 +15,7 @@ from schwarz.mailqueue.testutils import FakeSMTP
 class SMTPMailerTest(PythonicTestCase):
     def test_can_send_message_via_smtpmailer(self):
         connection = FakeSMTP()
-        mailer = SMTPMailer(connection=connection)
+        mailer = SMTPMailer(client=connection)
         fromaddr = 'foo@site.example'
         message = b'Header: value\n\nbody\n'
         toaddrs = ('bar@site.example', 'baz@site.example',)
@@ -38,7 +38,7 @@ class SMTPMailerTest(PythonicTestCase):
     def test_can_handle_smtp_exception_after_from(self):
         reject_from = self._build_policy(accept_from=False)
         connection = FakeSMTP(policy=reject_from)
-        mailer = SMTPMailer(connection=connection)
+        mailer = SMTPMailer(client=connection)
         message = b'Header: value\n\nbody\n'
         msg_was_sent = mailer.send('foo@site.example', 'bar@site.example', message)
 
