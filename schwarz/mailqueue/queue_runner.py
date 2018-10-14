@@ -23,6 +23,9 @@ class MaildirQueueRunner(object):
 
     def send_message(self, file_path):
         fp = self._mark_message_as_in_progress(file_path)
+        if fp is None:
+            # e.g. invalid path
+            return None
         from_addr, to_addrs, msg_fp = parse_message_envelope(fp)
         was_sent = self.mailer.send(from_addr, to_addrs, msg_fp)
         if was_sent:
@@ -41,13 +44,19 @@ class MaildirQueueRunner(object):
     def _move_message(self, file_path, target_folder):
         filename = os.path.basename(file_path)
         target_path = os.path.join(self.queue_dir, target_folder, filename)
-        # Bolton's "atomic_rename()" is compatible with Windows
-        atomic_rename(file_path, target_path, overwrite=False)
-        fp = open(target_path, 'rb+')
+        try:
+            # Bolton's "atomic_rename()" is compatible with Windows
+            atomic_rename(file_path, target_path, overwrite=False)
+            fp = open(target_path, 'rb+')
+        except (IOError, OSError):
+            fp = None
         return fp
 
     def _remove_message(self, fp):
         file_path = fp.name
-        os.unlink(file_path)
+        try:
+            os.unlink(file_path)
+        except OSError:
+            pass
         fp.close()
 

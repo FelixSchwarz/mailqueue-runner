@@ -53,13 +53,18 @@ class SMTPMailer(object):
 
 
 class DebugMailer(object):
-    def __init__(self, simulate_failed_sending=False):
+    def __init__(self, simulate_failed_sending=False, send_callback=None):
         self.simulate_failed_sending = simulate_failed_sending
+        self.send_callback = send_callback
         self.sent_mails = []
 
     def send(self, fromaddr, toaddrs, message):
+        was_sent = True
+        if self.send_callback:
+            was_sent = self.send_callback(fromaddr, toaddrs, message)
         if self.simulate_failed_sending:
-            return False
-        self.sent_mails.append((fromaddr, toaddrs, message))
-        return True
+            was_sent = False
+        if was_sent:
+            self.sent_mails.append((fromaddr, toaddrs, message))
+        return was_sent
 
