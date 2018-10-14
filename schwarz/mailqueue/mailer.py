@@ -33,6 +33,7 @@ class SMTPMailer(object):
             if self._client is None:
                 connection = self.connect()
             else:
+                self._client.connect()
                 connection = self._client
             connection.ehlo()
 

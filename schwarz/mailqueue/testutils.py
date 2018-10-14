@@ -63,14 +63,15 @@ class FakeSMTP(SMTPClient):
         self.deliverer = BlackholeDeliverer()
         self.channel = FakeChannel()
         self.command_parser = SMTPCommandParser(self.channel, '127.0.0.1', 2525, self.deliverer, policy=policy)
-        self._consume_initial_greeting()
 
     @property
     def received_messages(self):
         return self.deliverer.received_messages
 
-    def _consume_initial_greeting(self):
-        self.getreply()
+    # --- API from SMTPClient -------------------------------------------------
+    def connect(self, *args, **kwargs):
+        greeting = self.getreply()
+        return greeting
 
     def send(self, s):
         if isinstance(s, bytes):
