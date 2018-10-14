@@ -14,15 +14,15 @@ from schwarz.mailqueue.testutils import FakeSMTP
 
 class SMTPMailerTest(PythonicTestCase):
     def test_can_send_message_via_smtpmailer(self):
-        connection = FakeSMTP()
-        mailer = SMTPMailer(client=connection)
+        fake_server = FakeSMTP()
+        mailer = SMTPMailer(client=fake_server)
         fromaddr = 'foo@site.example'
         message = b'Header: value\n\nbody\n'
         toaddrs = ('bar@site.example', 'baz@site.example',)
         msg_was_sent = mailer.send(fromaddr, toaddrs, message)
         assert_true(msg_was_sent)
 
-        received_queue = connection.received_messages
+        received_queue = fake_server.received_messages
         assert_equals(1, received_queue.qsize())
         received_message = received_queue.get(block=False)
         assert_equals(fromaddr, received_message.smtp_from)
@@ -37,13 +37,13 @@ class SMTPMailerTest(PythonicTestCase):
 
     def test_can_handle_smtp_exception_after_from(self):
         reject_from = self._build_policy(accept_from=False)
-        connection = FakeSMTP(policy=reject_from)
-        mailer = SMTPMailer(client=connection)
+        fake_server = FakeSMTP(policy=reject_from)
+        mailer = SMTPMailer(client=fake_server)
         message = b'Header: value\n\nbody\n'
         msg_was_sent = mailer.send('foo@site.example', 'bar@site.example', message)
 
         assert_false(msg_was_sent)
-        assert_equals(0, connection.received_messages.qsize())
+        assert_equals(0, fake_server.received_messages.qsize())
 
     # --- internal helpers ----------------------------------------------------
     def _build_policy(self, **method_results):
