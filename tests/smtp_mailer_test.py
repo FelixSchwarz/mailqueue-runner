@@ -35,6 +35,16 @@ class SMTPMailerTest(PythonicTestCase):
             expected_message = expected_message.rstrip('\n')
         assert_equals(expected_message, received_message.msg_data)
 
+    def test_can_handle_connection_error(self):
+        overrides = self._build_overrides(connect=OSError('error on connect'))
+        fake_server = FakeSMTP(override=overrides)
+        mailer = SMTPMailer(client=fake_server)
+        message = b'Header: value\n\nbody\n'
+        msg_was_sent = mailer.send('foo@site.example', 'bar@site.example', message)
+
+        assert_false(msg_was_sent)
+        assert_equals(0, fake_server.received_messages.qsize())
+
     def test_can_handle_smtp_exception_after_from(self):
         reject_from = self._build_policy(accept_from=False)
         fake_server = FakeSMTP(policy=reject_from)
@@ -54,4 +64,12 @@ class SMTPMailerTest(PythonicTestCase):
             method = lambda policy, *args, **kwargs: method_result
             setattr(TempPolicy, method_name, method)
         return TempPolicy()
+
+    def _build_overrides(self, **overrides):
+        _overrides = {}
+        for method_name, exception in overrides.items():
+            def raise_exc():
+                raise exception
+            _overrides[method_name] = raise_exc
+        return _overrides
 

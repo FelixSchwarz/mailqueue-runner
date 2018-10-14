@@ -59,6 +59,7 @@ class FakeChannel(object):
 class FakeSMTP(SMTPClient):
     def __init__(self, *args, **kwargs):
         policy = kwargs.pop('policy', None)
+        self._overrides = kwargs.pop('override', {})
         super(FakeSMTP, self).__init__(*args, **kwargs)
         self.deliverer = BlackholeDeliverer()
         self.channel = FakeChannel()
@@ -70,6 +71,8 @@ class FakeSMTP(SMTPClient):
 
     # --- API from SMTPClient -------------------------------------------------
     def connect(self, *args, **kwargs):
+        if 'connect' in self._overrides:
+            return self._overrides['connect']()
         greeting = self.getreply()
         return greeting
 

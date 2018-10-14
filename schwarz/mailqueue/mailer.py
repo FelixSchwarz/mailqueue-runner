@@ -47,7 +47,7 @@ class SMTPMailer(object):
             connection.sendmail(fromaddr, toaddrs, message)
             msg_was_sent = True
             connection.quit()
-        except SMTPException:
+        except (SMTPException, OSError):
             pass
         return msg_was_sent
 
