@@ -17,10 +17,6 @@ class MaildirQueueRunner(object):
         self.mailer = mailer
         self.queue_dir = queue_dir
 
-    def send_messages(self, filenames):
-        for file_path in filenames:
-            self.send_message(file_path)
-
     def send_message(self, file_path):
         fp = self._mark_message_as_in_progress(file_path)
         if fp is None:
