@@ -10,9 +10,9 @@ from boltons.fileutils import atomic_rename
 from .message_utils import parse_message_envelope
 
 
-__all__ = ['MaildirQueueRunner']
+__all__ = ['MessageHandler']
 
-class MaildirQueueRunner(object):
+class MessageHandler(object):
     def __init__(self, mailer):
         self.mailer = mailer
 
