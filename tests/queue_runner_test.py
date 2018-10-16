@@ -31,7 +31,7 @@ class MaildirQueueRunnerTest(PythonicTestCase):
         msg_path = inject_message(self.path_maildir, msg_fp)
         assert_true(os.path.exists(msg_path))
 
-        qr = MaildirQueueRunner(mailer, self.path_maildir)
+        qr = MaildirQueueRunner(mailer)
         was_sent = qr.send_message(msg_path)
         assert_true(was_sent)
 
@@ -49,7 +49,7 @@ class MaildirQueueRunnerTest(PythonicTestCase):
         msg_path = inject_message(self.path_maildir, build_queued_msg())
         assert_true(os.path.exists(msg_path))
 
-        qr = MaildirQueueRunner(mailer, self.path_maildir)
+        qr = MaildirQueueRunner(mailer)
         was_sent = qr.send_message(msg_path)
 
         assert_false(was_sent)
@@ -60,7 +60,7 @@ class MaildirQueueRunnerTest(PythonicTestCase):
     def test_can_handle_non_existent_file_in_send(self):
         mailer = DebugMailer()
         invalid_path = os.path.join(self.path_maildir, 'new', 'invalid')
-        qr = MaildirQueueRunner(mailer, self.path_maildir)
+        qr = MaildirQueueRunner(mailer)
         was_sent = qr.send_message(invalid_path)
 
         assert_none(was_sent)
@@ -73,7 +73,7 @@ class MaildirQueueRunnerTest(PythonicTestCase):
             os.unlink(path_in_progress)
             return True
         mailer = DebugMailer(send_callback=delete_on_send)
-        qr = MaildirQueueRunner(mailer, self.path_maildir)
+        qr = MaildirQueueRunner(mailer)
         was_sent = qr.send_message(msg_path)
 
         assert_true(was_sent)
@@ -87,7 +87,7 @@ class MaildirQueueRunnerTest(PythonicTestCase):
             os.unlink(path_in_progress)
             return False
         mailer = DebugMailer(send_callback=delete_on_send)
-        qr = MaildirQueueRunner(mailer, self.path_maildir)
+        qr = MaildirQueueRunner(mailer)
         was_sent = qr.send_message(msg_path)
 
         assert_false(was_sent)
@@ -103,7 +103,7 @@ class MaildirQueueRunnerTest(PythonicTestCase):
         # that API.
         shutil.copy(msg_path, path_in_progress)
         mailer = DebugMailer()
-        qr = MaildirQueueRunner(mailer, self.path_maildir)
+        qr = MaildirQueueRunner(mailer)
         was_sent = qr.send_message(msg_path)
 
         assert_none(was_sent)
@@ -119,7 +119,7 @@ class MaildirQueueRunnerTest(PythonicTestCase):
             shutil.copy(path_in_progress, msg_path)
             return False
         mailer = DebugMailer(send_callback=duplicate_on_failed_send)
-        qr = MaildirQueueRunner(mailer, self.path_maildir)
+        qr = MaildirQueueRunner(mailer)
         was_sent = qr.send_message(msg_path)
 
         assert_false(was_sent)

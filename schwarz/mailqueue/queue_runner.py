@@ -13,9 +13,8 @@ from .message_utils import parse_message_envelope
 __all__ = ['MaildirQueueRunner']
 
 class MaildirQueueRunner(object):
-    def __init__(self, mailer, queue_dir):
+    def __init__(self, mailer):
         self.mailer = mailer
-        self.queue_dir = queue_dir
 
     def send_message(self, file_path):
         fp = self._mark_message_as_in_progress(file_path)
@@ -38,8 +37,10 @@ class MaildirQueueRunner(object):
         return self._move_message(source_path, target_folder='new')
 
     def _move_message(self, file_path, target_folder):
+        folder_path = os.path.dirname(file_path)
+        queue_base_dir = os.path.dirname(folder_path)
         filename = os.path.basename(file_path)
-        target_path = os.path.join(self.queue_dir, target_folder, filename)
+        target_path = os.path.join(queue_base_dir, target_folder, filename)
         try:
             # Bolton's "atomic_rename()" is compatible with Windows
             # Under Linux "atomic_rename()" ensures that the "target_path" file
