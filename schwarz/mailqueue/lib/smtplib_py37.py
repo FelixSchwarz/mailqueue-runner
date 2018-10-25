@@ -1,5 +1,5 @@
 #! /usr/bin/python3.6
-
+# SPDX-License-Identifier: Python-2.0
 '''SMTP/ESMTP client class.
 
 This should follow RFC 821 (SMTP), RFC 1869 (ESMTP), RFC 2554 (SMTP
