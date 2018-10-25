@@ -48,14 +48,13 @@ class SMTPClient(SMTP):
             else:
                 self._rset()
             raise SMTPSenderRefused(code, resp, from_addr)
-        senderrs = {}
         if isinstance(to_addrs, str):
             to_addrs = [to_addrs]
         for each in to_addrs:
             (code, resp) = self.rcpt(each, rcpt_options)
             if code == 421:
                 self.close()
-                senderrs[each] = (code, resp)
+                senderrs = {each: (code, resp)}
                 raise SMTPRecipientsRefused(senderrs)
             elif (code != 250) and (code != 251):
                 self._rset()
@@ -67,7 +66,7 @@ class SMTPClient(SMTP):
             else:
                 self._rset()
             raise SMTPDataError(code, resp)
-        #if we got here then somebody got our mail
-        return senderrs
+        #if we got here then all recipients got our mail
+        return {}
     # `------------------------------------------------------------------------
 
