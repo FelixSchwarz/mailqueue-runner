@@ -54,8 +54,7 @@ class SMTPClient(SMTP):
             (code, resp) = self.rcpt(each, rcpt_options)
             if code == 421:
                 self.close()
-                senderrs = {each: (code, resp)}
-                raise SMTPRecipientsRefused(senderrs)
+                raise SMTPRecipientRefused(code, resp, each)
             elif (code != 250) and (code != 251):
                 self._rset()
                 raise SMTPRecipientRefused(code, resp, each)
