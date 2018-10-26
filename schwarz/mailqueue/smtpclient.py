@@ -10,7 +10,6 @@ from .lib.smtplib_py37 import (
     _fix_eols,
     SMTP,
     SMTPDataError,
-    SMTPRecipientsRefused,
     SMTPResponseException,
     SMTPSenderRefused
 )
