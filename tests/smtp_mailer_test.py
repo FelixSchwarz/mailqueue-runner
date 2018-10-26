@@ -8,21 +8,21 @@ from pythonic_testcase import *
 
 from schwarz.mailqueue import SMTPMailer
 from schwarz.mailqueue.compat import IS_PYTHON3
-from schwarz.mailqueue.testutils import FakeSMTP
+from schwarz.mailqueue.testutils import fake_smtp_client, stub_socket_creation
 
 
 
 class SMTPMailerTest(PythonicTestCase):
     def test_can_send_message_via_smtpmailer(self):
-        fake_server = FakeSMTP()
-        mailer = SMTPMailer(client=fake_server)
+        fake_client = fake_smtp_client()
+        mailer = SMTPMailer(client=fake_client)
         fromaddr = 'foo@site.example'
         message = b'Header: value\n\nbody\n'
         toaddrs = ('bar@site.example', 'baz@site.example',)
         msg_was_sent = mailer.send(fromaddr, toaddrs, message)
         assert_true(msg_was_sent)
 
-        received_queue = fake_server.received_messages
+        received_queue = fake_client.server.received_messages
         assert_equals(1, received_queue.qsize())
         received_message = received_queue.get(block=False)
         assert_equals(fromaddr, received_message.smtp_from)
@@ -37,23 +37,31 @@ class SMTPMailerTest(PythonicTestCase):
 
     def test_can_handle_connection_error(self):
         overrides = self._build_overrides(connect=OSError('error on connect'))
-        fake_server = FakeSMTP(override=overrides)
-        mailer = SMTPMailer(client=fake_server)
+        fake_client = fake_smtp_client(overrides=overrides)
+        mailer = SMTPMailer(client=fake_client)
         message = b'Header: value\n\nbody\n'
-        msg_was_sent = mailer.send('foo@site.example', 'bar@site.example', message)
+        # We want to check that "SMTPMailer" is able to handle the "OSError"
+        # which is raised in ".connect()" (see "overrides" above).
+        # As we inject our "fake_client" directly into the SMTPMailer (this
+        # makes our testing code easier) "fake_smtp_client()" ensures that the
+        # actual call to ".connect()" is delayed until now.
+        # That means we need to stub out the "socket.create_connection()" call
+        # again.
+        with stub_socket_creation(fake_client.server):
+            msg_was_sent = mailer.send('foo@site.example', 'bar@site.example', message)
 
         assert_false(msg_was_sent)
-        assert_equals(0, fake_server.received_messages.qsize())
+        assert_equals(0, fake_client.server.received_messages.qsize())
 
     def test_can_handle_smtp_exception_after_from(self):
         reject_from = self._build_policy(accept_from=False)
-        fake_server = FakeSMTP(policy=reject_from)
-        mailer = SMTPMailer(client=fake_server)
+        fake_client = fake_smtp_client(policy=reject_from)
+        mailer = SMTPMailer(client=fake_client)
         message = b'Header: value\n\nbody\n'
         msg_was_sent = mailer.send('foo@site.example', 'bar@site.example', message)
 
         assert_false(msg_was_sent)
-        assert_equals(0, fake_server.received_messages.qsize())
+        assert_equals(0, fake_client.server.received_messages.qsize())
 
     # --- internal helpers ----------------------------------------------------
     def _build_policy(self, **method_results):
