@@ -39,7 +39,7 @@ class MessageHandlerTest(PythonicTestCase):
         fromaddr, toaddrs, sent_msg = mailer.sent_mails[0]
         assert_equals('foo@site.example', fromaddr)
         assert_equals(('bar@site.example',), toaddrs)
-        assert_equals(msg_bytes, sent_msg.read())
+        assert_equals(msg_bytes, sent_msg)
         assert_false(os.path.exists(msg_path))
         # ensure there are not left-overs/tmp files
         assert_length(0, self.list_all_files(self.path_maildir))

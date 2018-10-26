@@ -22,7 +22,7 @@ class MessageHandler(object):
             # e.g. invalid path
             return None
         from_addr, to_addrs, msg_fp = parse_message_envelope(fp)
-        was_sent = self.mailer.send(from_addr, to_addrs, msg_fp)
+        was_sent = self.mailer.send(from_addr, to_addrs, msg_fp.read())
         if was_sent:
             self._remove_message(fp)
         else:
