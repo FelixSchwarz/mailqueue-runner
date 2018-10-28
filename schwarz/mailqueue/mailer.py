@@ -19,13 +19,14 @@ class SMTPMailer(object):
         self.username = kwargs.pop('username', None)
         self.password = kwargs.pop('password', None)
         self.connect_timeout = kwargs.pop('timeout', 10)
+        self.smtp_log = kwargs.pop('smtp_log', None)
         self._client = kwargs.pop('client', None)
         if kwargs:
             extra_name = tuple(kwargs)[0]
             raise TypeError("__init__() got an unexpected keyword argument '%s'" % extra_name)
 
     def init_smtp_client(self):
-        smtp_client = SMTPClient(self.hostname, self.port, timeout=self.connect_timeout)
+        smtp_client = SMTPClient(self.hostname, self.port, timeout=self.connect_timeout, smtp_log=self.smtp_log)
         return smtp_client
 
     def send(self, fromaddr, toaddrs, message):

@@ -1,3 +1,4 @@
 mock; python_version < '3.0'
 pymta >= 0.6.0  # Python 3 support
 PythonicTestcase
+testfixtures

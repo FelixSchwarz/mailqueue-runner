@@ -61,7 +61,7 @@ def stub_socket_creation(socket_mock):
     return mock.patch(socket_func, new=mock_create_connection)
 
 
-def fake_smtp_client(socket_mock=None, policy=None, overrides=None):
+def fake_smtp_client(socket_mock=None, policy=None, overrides=None, **client_args):
     if socket_mock is None:
         socket_mock = SocketMock(policy=policy, overrides=overrides)
 
@@ -76,7 +76,7 @@ def fake_smtp_client(socket_mock=None, policy=None, overrides=None):
         # it is much nicer if these exceptions are raised later (even though
         # the caller must stub out the "socket.create_connection()" function
         # again).
-        client = SMTPClient(host=remote_host, port=123)
+        client = SMTPClient(host=remote_host, port=123, **client_args)
     if has_connect_override:
         client._host = hostname
     client.server = socket_mock
