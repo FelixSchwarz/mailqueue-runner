@@ -6,6 +6,7 @@
 
 from __future__ import absolute_import, print_function, unicode_literals
 
+import six
 from .lib.smtplib_py37 import (
     _fix_eols,
     SMTP,
@@ -33,7 +34,7 @@ class SMTPClient(SMTP):
     def sendmail(self, from_addr, to_addrs, msg, mail_options=[], rcpt_options=[]):
         self.ehlo_or_helo_if_needed()
         esmtp_opts = []
-        if isinstance(msg, str):
+        if isinstance(msg, six.string_types):
             msg = _fix_eols(msg).encode('ascii')
         if self.does_esmtp:
             if self.has_extn('size'):
@@ -47,7 +48,7 @@ class SMTPClient(SMTP):
             else:
                 self._rset()
             raise SMTPSenderRefused(code, resp, from_addr)
-        if isinstance(to_addrs, str):
+        if isinstance(to_addrs, six.string_types):
             to_addrs = [to_addrs]
         for each in to_addrs:
             (code, resp) = self.rcpt(each, rcpt_options)
