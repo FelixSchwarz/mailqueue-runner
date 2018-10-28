@@ -352,7 +352,7 @@ class SMTP(object):
 
         errmsg = b"\n".join(resp)
         if self.debuglevel > 0:
-            self._print_debug('reply: retcode (%s); Msg: %a' % (errcode, errmsg))
+            self._print_debug('reply: retcode (%s); Msg: %r' % (errcode, errmsg))
         return errcode, errmsg
 
     def docmd(self, cmd, args=""):
