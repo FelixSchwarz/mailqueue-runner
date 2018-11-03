@@ -33,12 +33,19 @@ solid piece of software. I wrote yet another library because I wanted
 
 
 
-## Non-goals
+### Non-goals
 
  - No code to actually generate an email (e.g. from a template, add attachments, ...)
  - Not suited for high volume message sending as every message is stored on
    the (slow) file system. I aim for maybe 100 messages per minute but if you
-   want to go way higher you need to 
+   want to go way higher you'll need to find a different solution.
+
+
+### Tested Python versions
+
+I use [Travis](https://travis-ci.com/FelixSchwarz/mailqueue-runner) to run the
+test suite. Hopefully this means all tested versions are suitable for production.
+At the moment I support Python 2.7 and Python 3.4-3.7.
 
 
 ### License
