@@ -26,6 +26,7 @@ setup(
     include_package_data = True,
     scripts = (
         'scripts/mq-run',
+        'scripts/mq-send-test',
     ),
 
     install_requires=requires_from_file('requirements.txt'),

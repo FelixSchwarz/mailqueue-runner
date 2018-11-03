@@ -3,6 +3,7 @@
 
 from __future__ import absolute_import, print_function, unicode_literals
 
+from mailbox import Maildir
 import logging
 import os
 
@@ -12,9 +13,24 @@ from .message_handler import MessageHandler
 
 
 __all__ = [
+    'enqueue_message',
     'find_new_messsages',
     'send_all_queued_messages',
 ]
+
+def enqueue_message(msg, queue_path, sender, recipient):
+    # LATER: support non-ascii addresses
+    sender_bytes = sender.encode('ascii')
+    recipient_bytes = recipient.encode('ascii')
+    msg_bytes = b'\n'.join([
+        b'Return-path: <%s>' % sender_bytes,
+        b'Envelope-to: %s' % recipient_bytes,
+        msg.as_bytes()
+    ])
+
+    mailbox = Maildir(queue_path)
+    unique_id = mailbox.add(msg_bytes)
+    return os.path.join(queue_path, 'new', unique_id)
 
 def find_new_messsages(queue_basedir, log):
     message_queue = queue.Queue()
