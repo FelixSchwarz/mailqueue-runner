@@ -25,6 +25,7 @@ setup(
     namespace_packages = ['schwarz'],
     include_package_data = True,
     scripts = (
+        'scripts/mq-run',
     ),
 
     install_requires=requires_from_file('requirements.txt'),

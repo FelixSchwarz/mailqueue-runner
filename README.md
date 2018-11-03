@@ -1,13 +1,31 @@
 
 ## mailqueue-runner
 
-Queuing system to send email messages to a SMTP server. Its main feature is
+Queuing system to send email messages to an SMTP server. Its main feature is
 to handle (temporary) errors when sending the message (e.g. interrupted network
 connection) and detailed error logging.
 
 To achieve that all messages are stored in a maildir-like queue before an
 external helper script picks them up and delivery them to a "real" SMTP server.
 The helper script must be called regularly (e.g. via cron).
+
+
+### Usage
+
+The `mq-run` script sends all queued messages to an SMTP server:
+
+    mq-run /path/to/config.ini /path/to/queue
+
+
+### Configuration
+
+The configuration file uses the traditional "ini"-like format:
+
+    [mqrunner]
+    smtp_hostname = hostname
+    smtp_port = 587
+    smtp_username = someuser@site.example
+    smtp_password = secret
 
 
 ### Motivation / related software

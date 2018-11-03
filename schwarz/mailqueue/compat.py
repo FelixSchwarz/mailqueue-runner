@@ -7,7 +7,13 @@ import os
 import sys
 
 
-__all__ = ['os_makedirs', 'IS_PYTHON3']
+__all__ = [
+    'configparser',
+    'os_makedirs',
+    'queue',
+    'FileNotFoundError',
+    'IS_PYTHON3',
+]
 
 IS_PYTHON3 = (sys.version_info >= (3,0))
 
@@ -21,4 +27,21 @@ def os_makedirs(name, mode, exist_ok=False):
         os.makedirs(name, mode)
     elif not os.path.exists(name):
         os.makedirs(name, mode)
+
+try:
+    import configparser
+except ImportError:
+    import ConfigParser as configparser
+
+try:
+    import queue
+except ImportError:
+    import Queue as queue
+
+try:
+    FileNotFoundError
+except NameError:
+    FileNotFoundError = OSError
+else:
+    FileNotFoundError = FileNotFoundError
 
