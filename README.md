@@ -12,12 +12,16 @@ The helper script must be called regularly (e.g. via cron).
 
 ### Motivation / related software
 
-Many Web applications need to send emails. Usually this works by delivering the
-message to a real SMTP server. All is fine until that SMTP server is not
-reachable (e.g. network errors) or does not accept the message due to temporary
-errors (e.g. DNS failure, unable to verify the sender).
-This codes implements a (persistent) message queue and provides a script which
-help sending emails reliably (assuming you have sufficiently free disk space).
+Many web applications need to send emails. Usually this works by delivering the
+message to a real SMTP server which then distributes the messages to remote
+mailservers all over the net (well, mostly Gmail these days ;-).
+All is fine until your SMTP server is not reachable (e.g. network errors) or
+does not accept the message due to temporary errors (e.g. DNS failure, unable
+to verify the sender).
+
+"mailqueue-runner" implements a (persistent) message queue and provides a
+script which helps sending emails reliably (assuming you have sufficiently
+free disk space).
 
 [repoze.sendmail](https://github.com/repoze/repoze.sendmail) is similar and a
 solid piece of software. I wrote yet another library because I wanted
@@ -38,14 +42,16 @@ solid piece of software. I wrote yet another library because I wanted
  - No code to actually generate an email (e.g. from a template, add attachments, ...)
  - Not suited for high volume message sending as every message is stored on
    the (slow) file system. I aim for maybe 100 messages per minute but if you
-   want to go way higher you'll need to find a different solution.
+   want to go way higher you'll need to find a different solution (see issue #5).
 
 
 ### Tested Python versions
 
 I use [Travis](https://travis-ci.com/FelixSchwarz/mailqueue-runner) to run the
 test suite. Hopefully this means all tested versions are suitable for production.
-At the moment I support Python 2.7 and Python 3.4-3.7.
+At the moment I test Python 2.7 and Python 3.4-3.7 on Linux.
+The code won't work on Windows right now but in the future Windows might work
+at least for development (see issue #12).
 
 
 ### License
