@@ -28,8 +28,8 @@ def serialize_message_with_queue_data(msg, sender, recipient):
     sender_bytes = _email_address_as_bytes(sender)
     recipient_bytes = _email_address_as_bytes(recipient)
     queue_bytes = b'\n'.join([
-        b'Return-path: <%s>' % sender_bytes,
-        b'Envelope-to: %s' % recipient_bytes,
+        b'Return-path: <' + sender_bytes + b'>',
+        b'Envelope-to: ' + recipient_bytes,
         _msg_as_bytes(msg)
     ])
     return queue_bytes
