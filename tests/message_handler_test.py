@@ -8,9 +8,9 @@ import shutil
 
 from pythonic_testcase import *
 
-from schwarz.mailqueue import create_maildir_directories, DebugMailer, MessageHandler
+from schwarz.mailqueue import (create_maildir_directories, enqueue_message,
+     testutils, DebugMailer, MessageHandler)
 from schwarz.mailqueue.lib.fake_fs_utils import TempFS
-from schwarz.mailqueue.testutils import build_queued_msg, inject_message
 
 
 class MessageHandlerTest(PythonicTestCase):
@@ -23,12 +23,12 @@ class MessageHandlerTest(PythonicTestCase):
     def test_can_send_message(self):
         mailer = DebugMailer()
         msg_bytes = b'Header: somevalue\n\nMsgBody\n'
-        msg_fp = build_queued_msg(
-            return_path=b'foo@site.example',
-            envelope_to=b'bar@site.example',
-            msg_bytes=msg_bytes,
+        msg_path = enqueue_message(
+            msg_bytes,
+            self.path_maildir,
+            sender=b'foo@site.example',
+            recipient=b'bar@site.example'
         )
-        msg_path = inject_message(self.path_maildir, msg_fp)
         assert_true(os.path.exists(msg_path))
 
         mh = MessageHandler(mailer)
@@ -46,7 +46,7 @@ class MessageHandlerTest(PythonicTestCase):
 
     def test_can_handle_sending_failure(self):
         mailer = DebugMailer(simulate_failed_sending=True)
-        msg_path = inject_message(self.path_maildir, build_queued_msg())
+        msg_path = inject_example_message(self.path_maildir)
         assert_true(os.path.exists(msg_path))
 
         mh = MessageHandler(mailer)
@@ -67,7 +67,7 @@ class MessageHandlerTest(PythonicTestCase):
         assert_length(0, mailer.sent_mails)
 
     def test_can_handle_vanished_file_after_successful_send(self):
-        msg_path = inject_message(self.path_maildir, build_queued_msg())
+        msg_path = inject_example_message(self.path_maildir)
         path_in_progress = msg_path.replace('new', 'cur')
         def delete_on_send(*args):
             os.unlink(path_in_progress)
@@ -81,7 +81,7 @@ class MessageHandlerTest(PythonicTestCase):
         assert_length(0, self.list_all_files(self.path_maildir))
 
     def test_can_handle_vanished_file_after_failed_send(self):
-        msg_path = inject_message(self.path_maildir, build_queued_msg())
+        msg_path = inject_example_message(self.path_maildir)
         path_in_progress = msg_path.replace('new', 'cur')
         def delete_on_send(*args):
             os.unlink(path_in_progress)
@@ -95,7 +95,7 @@ class MessageHandlerTest(PythonicTestCase):
         assert_length(0, self.list_all_files(self.path_maildir))
 
     def test_can_handle_duplicate_file_in_cur_before_send(self):
-        msg_path = inject_message(self.path_maildir, build_queued_msg())
+        msg_path = inject_example_message(self.path_maildir)
         path_in_progress = msg_path.replace('new', 'cur')
         # this can happen on Unix/Posix because Python does not provide an
         # atomic "move without overwrite". Linux provides the "renameat2"
@@ -111,7 +111,7 @@ class MessageHandlerTest(PythonicTestCase):
         assert_length(2, self.list_all_files(self.path_maildir))
 
     def test_can_handle_duplicate_file_in_new_after_failed_send(self):
-        msg_path = inject_message(self.path_maildir, build_queued_msg())
+        msg_path = inject_example_message(self.path_maildir)
         path_in_progress = msg_path.replace('new', 'cur')
         # again: can happen because Python provides not atomic "move without
         # overwrite" on Linux (see also "renameat2" system call)
@@ -134,3 +134,9 @@ class MessageHandlerTest(PythonicTestCase):
                 path = os.path.join(root_dir, filename)
                 files.append(path)
         return files
+
+
+def inject_example_message(queue_path, sender=b'foo@site.example', recipient=b'bar@site.example', msg_bytes=None):
+    if msg_bytes is None:
+        msg_bytes = testutils.message()
+    return enqueue_message(msg_bytes, queue_path, sender, recipient)

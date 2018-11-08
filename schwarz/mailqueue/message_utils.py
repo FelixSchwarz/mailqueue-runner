@@ -21,7 +21,7 @@ def parse_message_envelope(fp):
         header_name = match.group(1)
         header_value = match.group(2)
         if header_name == b'Return-path':
-            from_addr = strip_brackets(decode_header_value(header_value))
+            from_addr = decode_header_value(strip_brackets(header_value))
         elif header_name == b'Envelope-to':
             to_addrs = parse_envelope_addrs(decode_header_value(header_value))
         else:
@@ -34,7 +34,7 @@ def parse_message_envelope(fp):
 
 
 _re_header = re.compile(b'^(\S+):\s*(\S+)\s*$')
-_re_angle_brackets = re.compile('^<?(.+?)>?$')
+_re_angle_brackets = re.compile(b'^<?(.+?)>?$')
 _re_header_list = re.compile('\s*,\s*')
 
 def read_header_line(fp):
@@ -51,8 +51,8 @@ def decode_header_value(header_bytes):
             header_str += part_bytes.decode(charset)
     return header_str
 
-def strip_brackets(addr_str):
-    match = _re_angle_brackets.search(addr_str)
+def strip_brackets(addr_bytes):
+    match = _re_angle_brackets.search(addr_bytes)
     return match.group(1)
 
 def parse_envelope_addrs(header_str):

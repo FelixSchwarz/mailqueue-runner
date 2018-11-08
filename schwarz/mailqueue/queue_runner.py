@@ -19,18 +19,38 @@ __all__ = [
 ]
 
 def enqueue_message(msg, queue_path, sender, recipient):
-    # LATER: support non-ascii addresses
-    sender_bytes = sender.encode('ascii')
-    recipient_bytes = recipient.encode('ascii')
-    msg_bytes = b'\n'.join([
-        b'Return-path: <%s>' % sender_bytes,
-        b'Envelope-to: %s' % recipient_bytes,
-        msg.as_bytes()
-    ])
-
+    msg_bytes = serialize_message_with_queue_data(msg, sender=sender, recipient=recipient)
     mailbox = Maildir(queue_path)
     unique_id = mailbox.add(msg_bytes)
     return os.path.join(queue_path, 'new', unique_id)
+
+def serialize_message_with_queue_data(msg, sender, recipient):
+    sender_bytes = _email_address_as_bytes(sender)
+    recipient_bytes = _email_address_as_bytes(recipient)
+    queue_bytes = b'\n'.join([
+        b'Return-path: <%s>' % sender_bytes,
+        b'Envelope-to: %s' % recipient_bytes,
+        _msg_as_bytes(msg)
+    ])
+    return queue_bytes
+
+def _email_address_as_bytes(address):
+    if isinstance(address, bytes):
+        return address
+    # LATER: support non-ascii addresses
+    return address.encode('ascii')
+
+def _msg_as_bytes(msg):
+    if hasattr(msg, 'as_bytes'):
+        msg_bytes = msg.as_bytes()
+    elif hasattr(msg, 'read'):
+        msg_bytes = msg.read()
+    elif hasattr(msg, 'as_string'):
+        # email.message.Message in Python 2
+        msg_bytes = msg.as_string().encode('ascii')
+    else:
+        msg_bytes = msg
+    return msg_bytes
 
 def find_new_messsages(queue_basedir, log):
     message_queue = queue.Queue()
