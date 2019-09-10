@@ -7,10 +7,10 @@ import os
 import shutil
 
 from pythonic_testcase import *
+from schwarz.fakefs_helpers import TempFS
 
 from schwarz.mailqueue import (create_maildir_directories, enqueue_message,
      testutils, DebugMailer, MessageHandler)
-from schwarz.mailqueue.lib.fake_fs_utils import TempFS
 
 
 class MessageHandlerTest(PythonicTestCase):
