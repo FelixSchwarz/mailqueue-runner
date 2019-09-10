@@ -3,7 +3,7 @@
 
 import re
 
-from setuptools import setup, find_packages
+from setuptools import setup
 
 
 def requires_from_file(filename):
@@ -16,18 +16,6 @@ def requires_from_file(filename):
     return requirements
 
 setup(
-    name = 'mailqueue-runner',
-    version = '0.1.20181009',
-    license = 'MIT and Python',
-
-    zip_safe = False,
-    packages = find_packages(),
-    namespace_packages = ['schwarz'],
-    include_package_data = True,
-    scripts = (
-        'scripts/mq-run',
-        'scripts/mq-send-test',
-    ),
-
-    install_requires=requires_from_file('requirements.txt'),
+    install_requires = requires_from_file('requirements.txt'),
+    tests_requires = requires_from_file('dev_requirements.txt'),
 )
