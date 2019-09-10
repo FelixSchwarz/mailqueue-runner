@@ -3,26 +3,7 @@ language: python
 python:
   - "2.7"
   - "3.6"
-
-# Ubuntu 14.04 (Trusty) ships an old version of openssl which is
-# not compatible with Python 3.7+:
-#   https://github.com/travis-ci/travis-ci/issues/9069
-# However Travis only uses Ubuntu 14.04 (Trusty):
-#   https://github.com/travis-ci/travis-ci/issues/5821
-#
-# That means we can not simply add "3.7" to the list of Python versions
-# above. It is possible to switch to "xenial" (Ubuntu 16.04) which is a
-# Travis "beta" feature.
-# This requires the "sudo" option (-> slower builds). We can avoid the
-# performance penalty for other versions of Python by using Travis'
-# "matrix" feature:
-#   https://github.com/travis-ci/travis-ci/issues/9815#issue-336465122
-matrix:
-  include:
-    - python: 3.7
-      dist: xenial
-      sudo: true
-
+  - "3.7"
 
 install:
   - pip install -r requirements.txt
