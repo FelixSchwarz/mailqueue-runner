@@ -7,6 +7,8 @@ from datetime import datetime as DateTime
 from email.message import Message
 import email.utils
 
+from boltons.timeutils import LocalTZ
+
 from .app_helpers import init_app, init_smtp_mailer
 from .message_handler import MessageHandler
 from .queue_runner import enqueue_message
@@ -19,7 +21,7 @@ def build_check_message(recipient, sender=None):
     sender = sender or recipient
     mail['From'] = sender
     mail['To'] = recipient
-    mail['Date'] = email.utils.format_datetime(DateTime.now())
+    mail['Date'] = email.utils.format_datetime(DateTime.now(tz=LocalTZ))
     # if no domain is specified for ".make_msgid()" the function can take
     # a long time in case "socket.getfqdn()" must make some network
     # requests (e.g. flaky network connection).
