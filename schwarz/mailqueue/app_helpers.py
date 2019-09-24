@@ -24,12 +24,13 @@ def init_app(config_path, options=None):
     return settings
 
 
-def init_smtp_mailer(settings):
+def init_smtp_mailer(settings, smtp_log=None):
     smtp_settings = _subdict(settings, prefix='smtp_')
     if 'hostname' not in smtp_settings:
         log = logging.getLogger('mailqueue')
         log.error('No SMTP host configured ("smtp_hostname = ...")')
         sys.exit(30)
+    smtp_settings['smtp_log'] = smtp_log or logging.getLogger('mailqueue.smtp')
     mailer = SMTPMailer(**smtp_settings)
     return mailer
 
