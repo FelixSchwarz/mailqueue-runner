@@ -3,6 +3,7 @@
 
 from __future__ import absolute_import, print_function, unicode_literals
 
+import logging
 import os
 
 from boltons.fileutils import atomic_rename
@@ -13,8 +14,9 @@ from .message_utils import parse_message_envelope
 __all__ = ['MessageHandler']
 
 class MessageHandler(object):
-    def __init__(self, mailer):
+    def __init__(self, mailer, delivery_log=None):
         self.mailer = mailer
+        self.delivery_log = delivery_log or logging.getLogger('mailqueue.delivery_log')
 
     def send_message(self, file_path):
         fp = self._mark_message_as_in_progress(file_path)
@@ -25,6 +27,8 @@ class MessageHandler(object):
         was_sent = self.mailer.send(from_addr, to_addrs, msg_fp.read())
         if was_sent:
             self._remove_message(fp)
+            msg = '%s => %s' % (from_addr, ', '.join(to_addrs))
+            self.delivery_log.info(msg)
         else:
             self._move_message_back_to_new(fp.name)
         return was_sent

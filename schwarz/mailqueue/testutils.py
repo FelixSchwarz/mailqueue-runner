@@ -4,15 +4,22 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
 from io import BytesIO
+import logging
 import os
 
 from pymta import SMTPCommandParser
 from pymta.test_util import BlackholeDeliverer
+from schwarz.log_utils import ForwardingLogger
 
 from .smtpclient import SMTPClient
 
 
-__all__ = ['fake_smtp_client', 'SocketMock']
+__all__ = [
+    'assert_did_log_message',
+    'fake_smtp_client',
+    'info_logger',
+    'SocketMock',
+]
 
 def message():
     from email.message import Message
@@ -20,6 +27,45 @@ def message():
     msg['Header'] = 'somevalue'
     msg.set_payload('MsgBody')
     return msg
+
+
+# --- helpers to capture/check logged messages --------------------------------
+def info_logger(log_capture):
+    return get_capture_logger(log_capture, level=logging.INFO)
+
+def get_capture_logger(log_capture, level):
+    logger = logging.Logger('__dummy__')
+    connect_to_log_capture(logger, log_capture)
+    return ForwardingLogger(forward_to=logger, forward_minlevel=level)
+
+def connect_to_log_capture(logger, log_capture):
+    lc = log_capture
+    name = logger.name
+    # -------------------------------------------------------------------------
+    # code copied (with small adaptations) from Simplistix/testfixtures (MIT)
+    #    LogCapture.install() in testfixtures/logcapture.py (git 61683a80)
+    lc.old['levels'][name] = logger.level
+    lc.old['handlers'][name] = logger.handlers
+    lc.old['disabled'][name] = logger.disabled
+    lc.old['progagate'][name] = logger.propagate
+    logger.setLevel(lc.level)
+    logger.handlers = [lc]
+    logger.disabled = False
+    if lc.propagate is not None:
+        logger.propagate = lc.propagate
+    lc.instances.add(lc)
+    # -------------------------------------------------------------------------
+
+def assert_did_log_message(log_capture, expected_msg):
+    lc = log_capture
+    if not lc.records:
+        raise AssertionError('no messages logged')
+
+    log_messages = [log_record.msg for log_record in lc.records]
+    if expected_msg in log_messages:
+        return
+    raise AssertionError('message not logged: "%s" - did log %s' % (expected_msg, log_messages))
+
 
 # --- test helpers to simulate a SMTP server ----------------------------------
 try:

@@ -1,4 +1,5 @@
 git+https://github.com/FelixSchwarz/fakefs_helpers.git#egg=FakeFSHelpers
+git+https://github.com/FelixSchwarz/log_utils#egg=LogUtils
 mock; python_version < '3.0'
 pymta >= 0.6.0  # Python 3 support
 PythonicTestcase

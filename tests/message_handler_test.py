@@ -8,9 +8,11 @@ import shutil
 
 from pythonic_testcase import *
 from schwarz.fakefs_helpers import TempFS
+from testfixtures import LogCapture
 
 from schwarz.mailqueue import (create_maildir_directories, enqueue_message,
      testutils, DebugMailer, MessageHandler)
+from schwarz.mailqueue.testutils import assert_did_log_message, info_logger
 
 
 class MessageHandlerTest(PythonicTestCase):
@@ -31,9 +33,12 @@ class MessageHandlerTest(PythonicTestCase):
         )
         assert_true(os.path.exists(msg_path))
 
-        mh = MessageHandler(mailer)
-        was_sent = mh.send_message(msg_path)
+        with LogCapture() as lc:
+            mh = MessageHandler(mailer, info_logger(lc))
+            was_sent = mh.send_message(msg_path)
         assert_true(was_sent)
+        assert_did_log_message(lc,
+            expected_msg='%s => %s' % ('foo@site.example', 'bar@site.example'))
 
         assert_length(1, mailer.sent_mails)
         fromaddr, toaddrs, sent_msg = mailer.sent_mails[0]
