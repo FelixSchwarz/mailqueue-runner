@@ -35,6 +35,8 @@ class MessageHandler(object):
     # --- internal functionality ----------------------------------------------
     def _log_successful_delivery(self, msg):
         log_msg = '%s => %s' % (msg.from_addr, ', '.join(msg.to_addrs))
+        if msg.msg_id:
+            log_msg += ' <%s>' % msg.msg_id
         self.delivery_log.info(log_msg)
 
     def _mark_message_as_in_progress(self, source_path):

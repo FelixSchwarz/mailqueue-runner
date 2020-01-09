@@ -5,7 +5,9 @@ from __future__ import absolute_import, print_function, unicode_literals
 
 import os
 import shutil
+import uuid
 
+from ddt import ddt as DataDrivenTestCase, data as ddt_data
 from pythonic_testcase import *
 from schwarz.fakefs_helpers import TempFS
 from testfixtures import LogCapture
@@ -15,16 +17,22 @@ from schwarz.mailqueue import (create_maildir_directories, enqueue_message,
 from schwarz.mailqueue.testutils import assert_did_log_message, info_logger
 
 
+@DataDrivenTestCase
 class MessageHandlerTest(PythonicTestCase):
     def setUp(self):
-        super(MessageHandlerTest, self).setUp()
         self.tempfs = TempFS.set_up(test=self)
         self.path_maildir = os.path.join(self.tempfs.root, 'mailqueue')
         create_maildir_directories(self.path_maildir)
 
-    def test_can_send_message(self):
+    @ddt_data(True, False)
+    def test_can_send_message(self, with_msg_id):
         mailer = DebugMailer()
-        msg_bytes = b'Header: somevalue\n\nMsgBody\n'
+        msg_header = b'X-Header: somevalue\n'
+        if with_msg_id:
+            msg_id = '%s@host.example' % uuid.uuid4()
+            msg_header += b'Message-ID: <%s>\n' % msg_id.encode('ascii')
+        msg_body = b'MsgBody\n'
+        msg_bytes = msg_header + b'\n' + msg_body
         msg_path = enqueue_message(
             msg_bytes,
             self.path_maildir,
@@ -37,8 +45,10 @@ class MessageHandlerTest(PythonicTestCase):
             mh = MessageHandler(mailer, info_logger(lc))
             was_sent = mh.send_message(msg_path)
         assert_true(was_sent)
-        assert_did_log_message(lc,
-            expected_msg='%s => %s' % ('foo@site.example', 'bar@site.example'))
+        expected_log_msg = '%s => %s' % ('foo@site.example', 'bar@site.example')
+        if with_msg_id:
+            expected_log_msg += ' <%s>' % msg_id
+        assert_did_log_message(lc, expected_msg=expected_log_msg)
 
         assert_length(1, mailer.sent_mails)
         fromaddr, toaddrs, sent_msg = mailer.sent_mails[0]
