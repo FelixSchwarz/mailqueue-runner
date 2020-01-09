@@ -23,12 +23,12 @@ class MessageHandler(object):
         if fp is None:
             # e.g. invalid path
             return None
-        from_addr, to_addrs, msg_fp = parse_message_envelope(fp)
-        was_sent = self.mailer.send(from_addr, to_addrs, msg_fp.read())
+        msg = parse_message_envelope(fp)
+        was_sent = self.mailer.send(msg.from_addr, msg.to_addrs, msg.msg_bytes)
         if was_sent:
             self._remove_message(fp)
-            msg = '%s => %s' % (from_addr, ', '.join(to_addrs))
-            self.delivery_log.info(msg)
+            log_msg = '%s => %s' % (msg.from_addr, ', '.join(msg.to_addrs))
+            self.delivery_log.info(log_msg)
         else:
             self._move_message_back_to_new(fp.name)
         return was_sent

@@ -18,17 +18,17 @@ class MessageParsingTest(PythonicTestCase):
             recipient='bar@site.example',
             msg=b'RFC-821 MESSAGE',
         )
-        (from_addr, to_addrs, msg_fp) = parse_message_envelope(queue_fp)
-        assert_equals('foo@site.example', from_addr)
-        assert_equals(('bar@site.example',), to_addrs)
-        assert_equals(b'RFC-821 MESSAGE', msg_fp.read())
+        msg_info = parse_message_envelope(queue_fp)
+        assert_equals('foo@site.example', msg_info.from_addr)
+        assert_equals(('bar@site.example',), msg_info.to_addrs)
+        assert_equals(b'RFC-821 MESSAGE', msg_info.msg_fp.read())
 
     def test_can_parse_return_path_with_angle_brackets(self):
         # Exim puts angle brackets around the return path
         queue_fp = build_queued_message(sender='foo@site.example')
         self._assert_return_path_has_angle_brackets(queue_fp)
-        (from_addr, to_addrs, msg_fp) = parse_message_envelope(queue_fp)
-        assert_equals('foo@site.example', from_addr)
+        msg_info = parse_message_envelope(queue_fp)
+        assert_equals('foo@site.example', msg_info.from_addr)
 
     def _assert_return_path_has_angle_brackets(self, queue_fp):
         sender_line = queue_fp.readline()
@@ -41,9 +41,9 @@ class MessageParsingTest(PythonicTestCase):
             sender='=?utf-8?q?foo=40site=2Eexample?=',
             recipient='=?utf-8?q?foo=2Ebar=40site=2Eexample?=',
         )
-        (from_addr, to_addrs, msg_fp) = parse_message_envelope(queue_fp)
-        assert_equals('foo@site.example', from_addr)
-        assert_equals(('foo.bar@site.example',), to_addrs)
+        msg_info = parse_message_envelope(queue_fp)
+        assert_equals('foo@site.example', msg_info.from_addr)
+        assert_equals(('foo.bar@site.example',), msg_info.to_addrs)
 
 
 def build_queued_message(sender='foo@site.example', recipient='bar@site.example', msg=None):

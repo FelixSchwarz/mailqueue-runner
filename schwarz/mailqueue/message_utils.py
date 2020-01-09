@@ -30,7 +30,26 @@ def parse_message_envelope(fp):
             break
 
     msg_fp = BytesIO(msg_bytes + fp.read())
-    return (from_addr, tuple(to_addrs), msg_fp)
+    msg_fp.seek(0)
+    msg_info = MsgInfo(from_addr, tuple(to_addrs), msg_fp)
+    return msg_info
+
+
+
+class MsgInfo(object):
+    def __init__(self, from_addr, to_addrs, msg_fp):
+        self.from_addr = from_addr
+        self.to_addrs = to_addrs
+        self.msg_fp = msg_fp
+
+    @property
+    def msg_bytes(self):
+        old_pos = self.msg_fp.tell()
+        self.msg_fp.seek(0)
+        data = self.msg_fp.read()
+        self.msg_fp.seek(old_pos)
+        return data
+
 
 
 _re_header = re.compile(b'^(\S+):\s*(\S+)\s*$')
