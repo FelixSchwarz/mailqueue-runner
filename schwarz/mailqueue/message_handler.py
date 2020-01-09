@@ -27,13 +27,16 @@ class MessageHandler(object):
         was_sent = self.mailer.send(msg.from_addr, msg.to_addrs, msg.msg_bytes)
         if was_sent:
             self._remove_message(fp)
-            log_msg = '%s => %s' % (msg.from_addr, ', '.join(msg.to_addrs))
-            self.delivery_log.info(log_msg)
+            self._log_successful_delivery(msg)
         else:
             self._move_message_back_to_new(fp.name)
         return was_sent
 
     # --- internal functionality ----------------------------------------------
+    def _log_successful_delivery(self, msg):
+        log_msg = '%s => %s' % (msg.from_addr, ', '.join(msg.to_addrs))
+        self.delivery_log.info(log_msg)
+
     def _mark_message_as_in_progress(self, source_path):
         return self._move_message(source_path, target_folder='cur')
 
