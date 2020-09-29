@@ -11,6 +11,7 @@ from pymta import SMTPCommandParser
 from pymta.test_util import BlackholeDeliverer
 from schwarz.log_utils import ForwardingLogger
 
+from .queue_runner import enqueue_message
 from .smtpclient import SMTPClient
 
 
@@ -18,6 +19,7 @@ __all__ = [
     'assert_did_log_message',
     'fake_smtp_client',
     'info_logger',
+    'inject_example_message',
     'SocketMock',
 ]
 
@@ -28,6 +30,10 @@ def message():
     msg.set_payload('MsgBody')
     return msg
 
+def inject_example_message(queue_path, sender=b'foo@site.example', recipient=b'bar@site.example', msg_bytes=None):
+    if msg_bytes is None:
+        msg_bytes = message()
+    return enqueue_message(msg_bytes, queue_path, sender, recipient)
 
 # --- helpers to capture/check logged messages --------------------------------
 def info_logger(log_capture):

@@ -13,8 +13,9 @@ from schwarz.fakefs_helpers import TempFS
 from testfixtures import LogCapture
 
 from schwarz.mailqueue import (create_maildir_directories, enqueue_message,
-     testutils, DebugMailer, MessageHandler)
-from schwarz.mailqueue.testutils import assert_did_log_message, info_logger
+     DebugMailer, MessageHandler)
+from schwarz.mailqueue.testutils import (assert_did_log_message, info_logger,
+    inject_example_message)
 
 
 @DataDrivenTestCase
@@ -150,8 +151,3 @@ class MessageHandlerTest(PythonicTestCase):
                 files.append(path)
         return files
 
-
-def inject_example_message(queue_path, sender=b'foo@site.example', recipient=b'bar@site.example', msg_bytes=None):
-    if msg_bytes is None:
-        msg_bytes = testutils.message()
-    return enqueue_message(msg_bytes, queue_path, sender, recipient)
