@@ -6,9 +6,11 @@ from __future__ import absolute_import, print_function, unicode_literals
 import logging
 from mailbox import Maildir
 import os
+import time
 
 from .app_helpers import init_app, init_smtp_mailer
 from .compat import queue, FileNotFoundError
+from .maildir_utils import move_message
 from .message_handler import MessageHandler
 
 
@@ -52,6 +54,32 @@ def _msg_as_bytes(msg):
         msg_bytes = msg
     return msg_bytes
 
+def is_stale_msg(msg_path):
+    stat = os.stat(msg_path)
+    # Unix:
+    #  - mtime: last modification of file contents
+    #  - ctime: last modification of file metadata
+    # Windows:
+    #  - ctime: file creation
+    timestamp = max([stat.st_mtime, stat.st_ctime])
+    now = time.time()
+    STALE_TIMEOUT_s = 30 * 60
+    is_stale = (timestamp + STALE_TIMEOUT_s < now)
+    return is_stale
+
+def unblock_stale_messages(queue_basedir, log):
+    path_cur = os.path.join(queue_basedir, 'cur')
+    try:
+        filenames = os.listdir(path_cur)
+    except FileNotFoundError:
+        log.error('Queue directory %s does not exist.', path_cur)
+        return
+    for filename in filenames:
+        msg_path = os.path.join(path_cur, filename)
+        if is_stale_msg(msg_path):
+            log.warning('stale message detected, moving back to "new": %s', filename)
+            move_message(msg_path, target_folder='new', open_file=False)
+
 def find_new_messsages(queue_basedir, log):
     message_queue = queue.Queue()
     path_new = os.path.join(queue_basedir, 'new')
@@ -67,6 +95,7 @@ def find_new_messsages(queue_basedir, log):
 
 def send_all_queued_messages(queue_dir, mailer):
     log = logging.getLogger('mailqueue.sending')
+    unblock_stale_messages(queue_dir, log)
     message_queue = find_new_messsages(queue_dir, log)
     if message_queue.qsize() == 0:
         log.info('no unsent messages in queue dir')

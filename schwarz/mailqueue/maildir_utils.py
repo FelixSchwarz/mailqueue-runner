@@ -34,7 +34,7 @@ def create_maildir_directories(basedir, is_folder=False):
     return new_path
 
 
-def move_message(file_path, target_folder):
+def move_message(file_path, target_folder, open_file=True):
     folder_path = os.path.dirname(file_path)
     queue_base_dir = os.path.dirname(folder_path)
     filename = os.path.basename(file_path)
@@ -59,7 +59,7 @@ def move_message(file_path, target_folder):
         # - added in Linux 3.15 - we can not use that syscall in CentOS 7
         #   (ships with kernel 3.10) which is pretty much a showstopper for me.
         atomic_rename(file_path, target_path, overwrite=False)
-        fp = open(target_path, 'rb+')
+        fp = open(target_path, 'rb+') if open_file else None
     except (IOError, OSError):
         fp = None
     return fp
