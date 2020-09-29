@@ -57,7 +57,7 @@ class MessageHandlerTest(PythonicTestCase):
         assert_equals(('bar@site.example',), toaddrs)
         assert_equals(msg_bytes, sent_msg)
         assert_false(os.path.exists(msg_path))
-        # ensure there are not left-overs/tmp files
+        # ensure there are no left-overs/tmp files
         assert_length(0, self.list_all_files(self.path_maildir))
 
     def test_can_handle_sending_failure(self):
