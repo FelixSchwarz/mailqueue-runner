@@ -78,10 +78,10 @@ class UnclosableWrapper(object):
 
 
 
-_re_header = re.compile(b'^(\S+):\s*(\S+)\s*$')
-_re_angle_brackets = re.compile(b'^<?(.+?)>?$')
+_re_header = re.compile(br'^(\S+):\s*(\S+)\s*$')
+_re_angle_brackets = re.compile(br'^<?(.+?)>?$')
 _re_angle_brackets_str = re.compile('^<?(.+?)>?$')
-_re_header_list = re.compile('\s*,\s*')
+_re_header_list = re.compile(r'\s*,\s*')
 
 def read_header_line(fp):
     return fp.readline()
