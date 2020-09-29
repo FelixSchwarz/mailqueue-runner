@@ -3,8 +3,8 @@
 
 from __future__ import absolute_import, print_function, unicode_literals
 
-from mailbox import Maildir
 import logging
+from mailbox import Maildir
 import os
 
 from .app_helpers import init_app, init_smtp_mailer
