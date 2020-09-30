@@ -6,11 +6,34 @@ from __future__ import absolute_import, print_function, unicode_literals
 import os
 
 from boltons.fileutils import atomic_rename, atomic_save
+import portalocker
 
 from .compat import os_makedirs
 
 
-__all__ = ['create_maildir_directories', 'move_message']
+__all__ = ['create_maildir_directories', 'lock_file', 'move_message']
+
+
+class LockedFile(object):
+    __slots__ = ('fp', 'lock', 'name')
+    def __init__(self, fp, lock=None):
+        self.fp = fp
+        self.lock = lock
+        self.name = fp.name
+
+    def is_locked(self):
+        return (self.lock and (self.lock.fh is not None))
+
+    def read(self, *args, **kwargs):
+        return self.fp.read(*args, **kwargs)
+
+    def readline(self):
+        return self.fp.readline()
+
+    def close(self):
+        self.fp.close()
+        self.lock = None
+
 
 def create_maildir_directories(basedir, is_folder=False):
     os_makedirs(basedir, 0o700, exist_ok=True)
@@ -33,12 +56,57 @@ def create_maildir_directories(basedir, is_folder=False):
             pass
     return new_path
 
+def lock_file(path, timeout=None):
+    try:
+        previous_inode = os.stat(path).st_ino
+    except OSError:
+        # <path> does not exist at all
+        return None
+    lock = portalocker.Lock(path, mode='rb+', timeout=timeout)
 
-def move_message(file_path, target_folder, open_file=True):
+    # prevent race condition when trying to lock file which is deleted by
+    # another process (Linux/Unix):
+    # https://stackoverflow.com/questions/17708885/flock-removing-locked-file-without-race-condition
+    nr_tries = 3
+    for i in range(nr_tries):
+        try:
+            fp = lock.acquire()
+        except portalocker.LockException:
+            continue
+        # Need to check that the inodes of the opened file and the current file
+        # in the file system are the same.
+        try:
+            current_inode = os.stat(path).st_ino
+        except OSError:
+            return None
+        if current_inode == previous_inode:
+            break
+        previous_inode = current_inode
+        lock.release()
+    else:
+        return None
+    return LockedFile(fp, lock)
+
+def move_message(file_, target_folder, open_file=True):
+    if hasattr(file_, 'lock') and file_.is_locked():
+        locked_file = file_
+        file_path = file_.name
+    else:
+        locked_file = None
+        file_path = file_
     folder_path = os.path.dirname(file_path)
     queue_base_dir = os.path.dirname(folder_path)
     filename = os.path.basename(file_path)
     target_path = os.path.join(queue_base_dir, target_folder, filename)
+    if not locked_file:
+        # acquire lock to ensure that no other process is handling this message
+        # currently.
+        locked_file = lock_file(file_path, timeout=0)
+        did_open_file = True
+    else:
+        did_open_file = False
+    if locked_file is None:
+        return None
     try:
         # Bolton's "atomic_rename()" is compatible with Windows.
         # Under Linux "atomic_rename()" ensures that the "target_path" file
@@ -59,7 +127,15 @@ def move_message(file_path, target_folder, open_file=True):
         # - added in Linux 3.15 - we can not use that syscall in CentOS 7
         #   (ships with kernel 3.10) which is pretty much a showstopper for me.
         atomic_rename(file_path, target_path, overwrite=False)
-        fp = open(target_path, 'rb+') if open_file else None
+        if open_file:
+            # reflect the new location in LockedFile wrapper
+            locked_file.name = target_path
+            return locked_file
+        elif did_open_file:
+            # Closing the "LockedFile" will also release locks.
+            # Only close the file if we actually opened it.
+            locked_file.close()
     except (IOError, OSError):
-        fp = None
-    return fp
+        pass
+    return None
+

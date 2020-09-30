@@ -11,7 +11,7 @@ from pythonic_testcase import *
 from schwarz.fakefs_helpers import TempFS
 from testfixtures import LogCapture
 
-from schwarz.mailqueue import (create_maildir_directories,
+from schwarz.mailqueue import (create_maildir_directories, lock_file,
     send_all_queued_messages, DebugMailer)
 from schwarz.mailqueue.testutils import inject_example_message
 
@@ -38,6 +38,20 @@ class QueueRunnerTest(PythonicTestCase):
                 send_all_queued_messages(self.path_maildir, mailer)
         assert_is_empty(self.msg_files(folder='new'))
         assert_is_empty(self.msg_files(folder='cur'))
+        assert_length(1, mailer.sent_mails)
+
+    def test_can_handle_concurrent_sends(self):
+        mailer = DebugMailer()
+        msg_path = inject_example_message(self.path_maildir)
+        locked_msg = lock_file(msg_path, timeout=0.1)
+
+        send_all_queued_messages(self.path_maildir, mailer)
+        assert_length(1, self.msg_files(folder='new'))
+        assert_is_empty(mailer.sent_mails)
+
+        locked_msg.close()
+        send_all_queued_messages(self.path_maildir, mailer)
+        assert_is_empty(self.msg_files(folder='new'))
         assert_length(1, mailer.sent_mails)
 
     def msg_files(self, folder='new'):

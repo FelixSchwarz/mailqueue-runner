@@ -28,7 +28,7 @@ class MessageHandler(object):
             self._remove_message(fp)
             self._log_successful_delivery(msg)
         else:
-            self._move_message_back_to_new(fp.name)
+            self._move_message_back_to_new(fp)
         return was_sent
 
     # --- internal functionality ----------------------------------------------
@@ -41,8 +41,11 @@ class MessageHandler(object):
     def _mark_message_as_in_progress(self, source_path):
         return move_message(source_path, target_folder='cur')
 
-    def _move_message_back_to_new(self, source_path):
-        return move_message(source_path, target_folder='new')
+    def _move_message_back_to_new(self, fp):
+        move_message(fp, target_folder='new', open_file=False)
+        # this ensures all locks will be released and we don't keep open files
+        # around for no reason.
+        fp.close()
 
     def _remove_message(self, fp):
         file_path = fp.name
@@ -50,5 +53,6 @@ class MessageHandler(object):
             os.unlink(file_path)
         except OSError:
             pass
+        # This will also release the lock
         fp.close()
 

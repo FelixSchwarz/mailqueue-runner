@@ -1,3 +1,6 @@
 boltons
 docopt
+# portalocker 2.0 dropped Python 2 support
+portalocker < 2.0; python_version < '3.0'
+portalocker; python_version > '3.0'
 six

@@ -13,7 +13,7 @@ from schwarz.fakefs_helpers import TempFS
 from testfixtures import LogCapture
 
 from schwarz.mailqueue import (create_maildir_directories, enqueue_message,
-     DebugMailer, MessageHandler)
+     lock_file, DebugMailer, MessageHandler)
 from schwarz.mailqueue.testutils import (assert_did_log_message, info_logger,
     inject_example_message)
 
@@ -142,6 +142,23 @@ class MessageHandlerTest(PythonicTestCase):
         assert_length(0, mailer.sent_mails)
         assert_length(2, self.list_all_files(self.path_maildir))
 
+    def test_tries_to_lock_message_while_sending(self):
+        mailer = DebugMailer()
+        msg_path = inject_example_message(self.path_maildir)
+        locked_msg = lock_file(msg_path, timeout=0.1)
+        mh = MessageHandler(mailer)
+
+        was_sent = mh.send_message(msg_path)
+        assert_none(was_sent)
+        assert_length(1, self.msg_files(folder='new'))
+        assert_is_empty(mailer.sent_mails)
+
+        locked_msg.close()
+        was_sent = mh.send_message(msg_path)
+        assert_true(was_sent)
+        assert_is_empty(self.msg_files(folder='new'))
+        assert_length(1, mailer.sent_mails)
+
     # --- internal helpers ----------------------------------------------------
     def list_all_files(self, basedir):
         files = []
@@ -149,5 +166,13 @@ class MessageHandlerTest(PythonicTestCase):
             for filename in filenames:
                 path = os.path.join(root_dir, filename)
                 files.append(path)
+        return files
+
+    def msg_files(self, folder='new'):
+        path = os.path.join(self.path_maildir, folder)
+        files = []
+        for filename in os.listdir(path):
+            file_path = os.path.join(path, filename)
+            files.append(file_path)
         return files
 
