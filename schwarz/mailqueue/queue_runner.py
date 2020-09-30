@@ -11,20 +11,22 @@ import time
 from .app_helpers import init_app, init_smtp_mailer
 from .compat import queue, FileNotFoundError
 from .maildir_utils import move_message
-from .message_handler import MessageHandler
+from .message_handler import MaildirBackedMsg, MessageHandler
 
 
 __all__ = [
     'enqueue_message',
-    'find_new_messsages',
     'send_all_queued_messages',
 ]
 
-def enqueue_message(msg, queue_path, sender, recipient):
+def enqueue_message(msg, queue_path, sender, recipient, return_msg=False):
     msg_bytes = serialize_message_with_queue_data(msg, sender=sender, recipient=recipient)
     mailbox = Maildir(queue_path)
     unique_id = mailbox.add(msg_bytes)
-    return os.path.join(queue_path, 'new', unique_id)
+    msg_path = os.path.join(queue_path, 'new', unique_id)
+    if return_msg:
+        return MaildirBackedMsg(msg_path)
+    return msg_path
 
 def serialize_message_with_queue_data(msg, sender, recipient):
     sender_bytes = _email_address_as_bytes(sender)
@@ -101,14 +103,15 @@ def send_all_queued_messages(queue_dir, mailer):
         log.info('no unsent messages in queue dir')
         return
     log.debug('%d unsent messages in queue dir', message_queue.qsize())
-    mh = MessageHandler(mailer)
+    mh = MessageHandler([mailer])
     while True:
         try:
             message_path = message_queue.get(block=False)
         except queue.Empty:
             break
         else:
-            mh.send_message(message_path)
+            msg = MaildirBackedMsg(message_path)
+            mh.send_message(msg)
 
 # --------------------------------------------
 

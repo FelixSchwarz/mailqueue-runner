@@ -3,34 +3,37 @@
 
 from __future__ import absolute_import, print_function, unicode_literals
 
+from io import BytesIO
 import logging
 import os
 
 from .compat import IS_WINDOWS
 from .maildir_utils import move_message
-from .message_utils import parse_message_envelope
+from .message_utils import parse_message_envelope, MsgInfo
 
 
 __all__ = ['MessageHandler']
 
 class MessageHandler(object):
-    def __init__(self, mailer, delivery_log=None):
-        self.mailer = mailer
+    def __init__(self, transports, delivery_log=None):
+        self.transports = transports
         self.delivery_log = delivery_log or logging.getLogger('mailqueue.delivery_log')
 
-    def send_message(self, file_path):
-        fp = self._mark_message_as_in_progress(file_path)
-        if fp is None:
-            # e.g. invalid path
+    def send_message(self, msg):
+        result = msg.start_delivery()
+        if not result:
             return None
-        msg = parse_message_envelope(fp)
-        was_sent = self.mailer.send(msg.from_addr, msg.to_addrs, msg.msg_bytes)
-        if was_sent:
-            self._remove_message(fp)
-            self._log_successful_delivery(msg)
-        else:
-            self._move_message_back_to_new(fp)
-        return was_sent
+        was_sent = False
+        for transport in self.transports:
+            was_sent = transport.send(msg.from_addr, msg.to_addrs, msg.msg_bytes)
+            if was_sent:
+                msg.delivery_successful()
+                self._log_successful_delivery(msg)
+                break
+        if not was_sent:
+            msg.delivery_failed()
+            return False
+        return True
 
     # --- internal functionality ----------------------------------------------
     def _log_successful_delivery(self, msg):
@@ -39,6 +42,54 @@ class MessageHandler(object):
             log_msg += ' <%s>' % msg.msg_id
         self.delivery_log.info(log_msg)
 
+
+
+class MaildirBackedMsg(object):
+    def __init__(self, file_path):
+        self.file_path = file_path
+        self.fp = None
+        self._msg = None
+
+    def start_delivery(self):
+        self.fp = self._mark_message_as_in_progress(self.file_path)
+        if self.fp is None:
+            # e.g. invalid path
+            return None
+        return True
+
+    def delivery_failed(self):
+        self._move_message_back_to_new(self.fp)
+
+    def delivery_successful(self):
+        self._remove_message(self.fp)
+
+    @property
+    def msg(self):
+        if self._msg is None:
+            self._msg = parse_message_envelope(self.fp)
+        return self._msg
+
+    @property
+    def path(self):
+        return self.file_path
+
+    @property
+    def from_addr(self):
+        return self.msg.from_addr
+
+    @property
+    def to_addrs(self):
+        return self.msg.to_addrs
+
+    @property
+    def msg_bytes(self):
+        return self.msg.msg_bytes
+
+    @property
+    def msg_id(self):
+        return self.msg.msg_id
+
+    # --- internal helpers ----------------------------------------------------
     def _mark_message_as_in_progress(self, source_path):
         return move_message(source_path, target_folder='cur')
 

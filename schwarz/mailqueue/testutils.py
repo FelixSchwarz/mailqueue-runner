@@ -14,6 +14,7 @@ from schwarz.log_utils import ForwardingLogger
 from .maildir_utils import move_message
 from .queue_runner import enqueue_message
 from .smtpclient import SMTPClient
+from schwarz.mailqueue.message_handler import MaildirBackedMsg
 
 
 __all__ = [
@@ -36,8 +37,8 @@ def inject_example_message(queue_path, sender=b'foo@site.example', recipient=b'b
         msg_bytes = message()
     msg_path = enqueue_message(msg_bytes, queue_path, sender, recipient)
     if target_folder != 'new':
-        move_message(msg_path, target_folder=target_folder, open_file=False)
-    return msg_path
+        msg_path = move_message(msg_path, target_folder=target_folder, open_file=False)
+    return MaildirBackedMsg(msg_path)
 
 # --- helpers to capture/check logged messages --------------------------------
 def info_logger(log_capture):

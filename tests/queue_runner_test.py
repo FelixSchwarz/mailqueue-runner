@@ -42,8 +42,8 @@ class QueueRunnerTest(PythonicTestCase):
 
     def test_can_handle_concurrent_sends(self):
         mailer = DebugMailer()
-        msg_path = inject_example_message(self.path_maildir)
-        locked_msg = lock_file(msg_path, timeout=0.1)
+        msg = inject_example_message(self.path_maildir)
+        locked_msg = lock_file(msg.path, timeout=0.1)
 
         send_all_queued_messages(self.path_maildir, mailer)
         assert_length(1, self.msg_files(folder='new'))

@@ -142,6 +142,7 @@ def move_message(file_, target_folder, open_file=True):
             # Closing the "LockedFile" will also release locks.
             # Only close the file if we actually opened it.
             locked_file.close()
+        return target_path
     except (IOError, OSError):
         pass
     return None
