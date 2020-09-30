@@ -11,7 +11,7 @@ from pythonic_testcase import *
 from schwarz.fakefs_helpers import TempFS
 from testfixtures import LogCapture
 
-from schwarz.mailqueue import (create_maildir_directories, move_message,
+from schwarz.mailqueue import (create_maildir_directories,
     send_all_queued_messages, DebugMailer)
 from schwarz.mailqueue.testutils import inject_example_message
 
@@ -24,8 +24,7 @@ class QueueRunnerTest(PythonicTestCase):
 
     def test_can_move_stale_messages_back_to_new(self):
         mailer = DebugMailer()
-        msg_path = inject_example_message(self.path_maildir)
-        move_message(msg_path, target_folder='cur', open_file=False)
+        inject_example_message(self.path_maildir, target_folder='cur')
 
         send_all_queued_messages(self.path_maildir, mailer)
         assert_is_empty(mailer.sent_mails)

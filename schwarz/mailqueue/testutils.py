@@ -11,6 +11,7 @@ from pymta import SMTPCommandParser
 from pymta.test_util import BlackholeDeliverer
 from schwarz.log_utils import ForwardingLogger
 
+from .maildir_utils import move_message
 from .queue_runner import enqueue_message
 from .smtpclient import SMTPClient
 
@@ -30,10 +31,13 @@ def message():
     msg.set_payload('MsgBody')
     return msg
 
-def inject_example_message(queue_path, sender=b'foo@site.example', recipient=b'bar@site.example', msg_bytes=None):
+def inject_example_message(queue_path, sender=b'foo@site.example', recipient=b'bar@site.example', msg_bytes=None, target_folder='new'):
     if msg_bytes is None:
         msg_bytes = message()
-    return enqueue_message(msg_bytes, queue_path, sender, recipient)
+    msg_path = enqueue_message(msg_bytes, queue_path, sender, recipient)
+    if target_folder != 'new':
+        move_message(msg_path, target_folder=target_folder, open_file=False)
+    return msg_path
 
 # --- helpers to capture/check logged messages --------------------------------
 def info_logger(log_capture):
