@@ -13,9 +13,11 @@ __all__ = [
     'queue',
     'FileNotFoundError',
     'IS_PYTHON3',
+    'IS_WINDOWS',
 ]
 
 IS_PYTHON3 = (sys.version_info >= (3,0))
+IS_WINDOWS = (os.name == 'nt')
 
 def os_makedirs(name, mode, exist_ok=False):
     if IS_PYTHON3:

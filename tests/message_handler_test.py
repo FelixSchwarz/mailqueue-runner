@@ -14,6 +14,7 @@ from testfixtures import LogCapture
 
 from schwarz.mailqueue import (create_maildir_directories, enqueue_message,
      lock_file, DebugMailer, MessageHandler)
+from schwarz.mailqueue.compat import IS_WINDOWS
 from schwarz.mailqueue.testutils import (assert_did_log_message, info_logger,
     inject_example_message)
 
@@ -55,7 +56,7 @@ class MessageHandlerTest(PythonicTestCase):
         fromaddr, toaddrs, sent_msg = mailer.sent_mails[0]
         assert_equals('foo@site.example', fromaddr)
         assert_equals(('bar@site.example',), toaddrs)
-        assert_equals(msg_bytes, sent_msg)
+        assert_equals(msg_nl(msg_bytes), sent_msg)
         assert_false(os.path.exists(msg_path))
         # ensure there are no left-overs/tmp files
         assert_length(0, self.list_all_files(self.path_maildir))
@@ -83,6 +84,8 @@ class MessageHandlerTest(PythonicTestCase):
         assert_length(0, mailer.sent_mails)
 
     def test_can_handle_vanished_file_after_successful_send(self):
+        if IS_WINDOWS:
+            self.skipTest('unable to unlink open file on Windows')
         msg_path = inject_example_message(self.path_maildir)
         path_in_progress = msg_path.replace('new', 'cur')
         def delete_on_send(*args):
@@ -97,6 +100,8 @@ class MessageHandlerTest(PythonicTestCase):
         assert_length(0, self.list_all_files(self.path_maildir))
 
     def test_can_handle_vanished_file_after_failed_send(self):
+        if IS_WINDOWS:
+            self.skipTest('unable to unlink open file on Windows')
         msg_path = inject_example_message(self.path_maildir)
         path_in_progress = msg_path.replace('new', 'cur')
         def delete_on_send(*args):
@@ -175,4 +180,8 @@ class MessageHandlerTest(PythonicTestCase):
             file_path = os.path.join(path, filename)
             files.append(file_path)
         return files
+
+
+def msg_nl(msg_bytes):
+    return msg_bytes if (not IS_WINDOWS) else msg_bytes.replace(b'\n', b'\r\n')
 

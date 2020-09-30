@@ -6,6 +6,7 @@ from __future__ import absolute_import, print_function, unicode_literals
 import logging
 import os
 
+from .compat import IS_WINDOWS
 from .maildir_utils import move_message
 from .message_utils import parse_message_envelope
 
@@ -42,17 +43,26 @@ class MessageHandler(object):
         return move_message(source_path, target_folder='cur')
 
     def _move_message_back_to_new(self, fp):
+        if IS_WINDOWS:
+            fp.close()
         move_message(fp, target_folder='new', open_file=False)
-        # this ensures all locks will be released and we don't keep open files
-        # around for no reason.
-        fp.close()
+        if not IS_WINDOWS:
+            # this ensures all locks will be released and we don't keep open files
+            # around for no reason.
+            fp.close()
 
     def _remove_message(self, fp):
         file_path = fp.name
+        if IS_WINDOWS:
+            # On Windows we can not unlink files while they are opened. Keep
+            # the file open on Linux until after the unlink to keep the lock on
+            # that file until everything is done (to prevent concurrent access).
+            fp.close()
         try:
             os.unlink(file_path)
         except OSError:
             pass
-        # This will also release the lock
-        fp.close()
+        if not IS_WINDOWS:
+            # This will also release the lock
+            fp.close()
 

@@ -8,7 +8,7 @@ import os
 from boltons.fileutils import atomic_rename, atomic_save
 import portalocker
 
-from .compat import os_makedirs
+from .compat import os_makedirs, IS_WINDOWS
 
 
 __all__ = ['create_maildir_directories', 'lock_file', 'move_message']
@@ -91,22 +91,27 @@ def move_message(file_, target_folder, open_file=True):
     if hasattr(file_, 'lock') and file_.is_locked():
         locked_file = file_
         file_path = file_.name
+        assert (not IS_WINDOWS)
     else:
         locked_file = None
-        file_path = file_
+        # on Windows we don't use the LockedFile wrapper so we might get plain
+        # file-like object here.
+        file_path = file_ if (not hasattr(file_, 'name')) else file_.name
     folder_path = os.path.dirname(file_path)
     queue_base_dir = os.path.dirname(folder_path)
     filename = os.path.basename(file_path)
     target_path = os.path.join(queue_base_dir, target_folder, filename)
-    if not locked_file:
-        # acquire lock to ensure that no other process is handling this message
-        # currently.
-        locked_file = lock_file(file_path, timeout=0)
-        did_open_file = True
-    else:
-        did_open_file = False
-    if locked_file is None:
-        return None
+
+    did_open_file = False
+    # no locking on Windows as you can not unlink/move open files there.
+    if not IS_WINDOWS:
+        if not locked_file:
+            # acquire lock to ensure that no other process is handling this message
+            # currently.
+            locked_file = lock_file(file_path, timeout=0)
+            did_open_file = True
+        if locked_file is None:
+            return None
     try:
         # Bolton's "atomic_rename()" is compatible with Windows.
         # Under Linux "atomic_rename()" ensures that the "target_path" file
@@ -128,6 +133,8 @@ def move_message(file_, target_folder, open_file=True):
         #   (ships with kernel 3.10) which is pretty much a showstopper for me.
         atomic_rename(file_path, target_path, overwrite=False)
         if open_file:
+            if IS_WINDOWS:
+                return open(target_path, 'rb+')
             # reflect the new location in LockedFile wrapper
             locked_file.name = target_path
             return locked_file
