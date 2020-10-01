@@ -3,6 +3,7 @@
 
 from __future__ import absolute_import, print_function, unicode_literals
 
+from collections import namedtuple
 from email.header import decode_header
 from email.parser import HeaderParser
 from io import BytesIO, TextIOWrapper
@@ -37,12 +38,9 @@ def parse_message_envelope(fp):
 
 
 
-class MsgInfo(object):
-    def __init__(self, from_addr, to_addrs, msg_fp):
-        self.from_addr = from_addr
-        self.to_addrs = to_addrs
-        self.msg_fp = msg_fp
+_MsgInfo = namedtuple('_MsgInfo', ('from_addr', 'to_addrs', 'msg_fp'))
 
+class MsgInfo(_MsgInfo):
     @property
     def msg_id(self):
         old_pos = self.msg_fp.tell()

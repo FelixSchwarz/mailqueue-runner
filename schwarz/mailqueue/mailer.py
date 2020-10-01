@@ -3,8 +3,10 @@
 
 from __future__ import absolute_import, print_function, unicode_literals
 
+from io import BytesIO
 from smtplib import SMTPException
 
+from .message_utils import MsgInfo
 from .smtpclient import SMTPClient
 
 
@@ -70,6 +72,7 @@ class DebugMailer(object):
         if self.simulate_failed_sending:
             was_sent = False
         if was_sent:
-            self.sent_mails.append((fromaddr, toaddrs, message))
+            msg_info = MsgInfo(fromaddr, toaddrs, BytesIO(message))
+            self.sent_mails.append(msg_info)
         return was_sent
 
