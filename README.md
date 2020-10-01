@@ -1,14 +1,17 @@
 
 ## mailqueue-runner
 
-Queuing system to send email messages to an SMTP server. Its main feature is
-to handle (temporary) errors when sending the message (e.g. interrupted network
-connection) and detailed error logging.
+This library helps sending email messages to an SMTP server. Its main feature
+is a queuing system to handle (temporary) errors when sending the message
+(e.g. interrupted network connection) and detailed error logging.
 
-To achieve that all messages are stored in a maildir-like queue before an
-external helper script picks them up and delivery them to a "real" SMTP server.
-The helper script must be called regularly (e.g. via cron).
+When a message can not be sent via SMTP it can be stored in a maildir-like queue
+on disk. An external helper script (`mq-run`) picks them up at a later time and
+tries to deliver these messages again. The helper script must be called
+regularly (e.g. via cron).
 
+As a nice bonus the library is pretty modular so you can plug in custom code and
+adapt the library to your needs.
 
 ### Usage
 
@@ -48,23 +51,25 @@ free disk space).
 [repoze.sendmail](https://github.com/repoze/repoze.sendmail) is similar and a
 solid piece of software. I wrote yet another library because I wanted
 
- - better error logging (including the ability to log the complete SMTP dialog)
- - avoid data loss if the SMTP server rejects one (but not all) recipients
+ - avoid data loss if the SMTP server does not accepts messages due to (temporary)
+   errors without delaying messages while everything is working fine (i.e. most
+   of the time)
+ - avoid nasty surprises if the SMTP server rejects one (but not all) recipients
    in a message to multiple recipients
  - different error handling/better integration into custom web applications
    (delivery logs, error handling)
+ - better error logging (including the ability to log the complete SMTP dialog)
  - only minimal modification to queued messages (repoze.sendmail uses Python's
    email module to manipulate message headers required for delivery)
- - a daemon with near-realtime message sending to avoid unnecessary delays
 
 
 
 ### Non-goals
 
  - No code to actually generate an email (e.g. from a template, add attachments, ...)
- - Not suited for high volume message sending as every message is stored on
-   the (slow) file system. I aim for maybe 100 messages per minute but if you
-   want to go way higher you'll need to find a different solution (see issue #5).
+ - Probably not suited for high volume message sending (>> 100 messages per second)
+   when your SMTP server is not available as messages will be stored on the
+   (slow) file system.
 
 
 ### Tested Python versions

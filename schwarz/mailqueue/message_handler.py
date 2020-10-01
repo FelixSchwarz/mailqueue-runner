@@ -9,7 +9,7 @@ import os
 
 from .compat import IS_WINDOWS
 from .maildir_utils import move_message
-from .message_utils import parse_message_envelope, MsgInfo
+from .message_utils import msg_as_bytes, parse_message_envelope, MsgInfo
 
 
 __all__ = ['MessageHandler']
@@ -41,6 +41,43 @@ class MessageHandler(object):
         if msg.msg_id:
             log_msg += ' <%s>' % msg.msg_id
         self.delivery_log.info(log_msg)
+
+
+
+class BaseMsg(object):
+    def start_delivery(self):
+        raise NotImplementedError('subclasses must override this method')
+
+    def delivery_failed(self):
+        pass
+
+    def delivery_successful(self):
+        pass
+
+    @property
+    def from_addr(self):
+        return self.msg.from_addr
+
+    @property
+    def to_addrs(self):
+        return self.msg.to_addrs
+
+    @property
+    def msg_bytes(self):
+        return self.msg.msg_bytes
+
+    @property
+    def msg_id(self):
+        return self.msg.msg_id
+
+
+class InMemoryMsg(BaseMsg):
+    def __init__(self, from_addr, to_addrs, msg_bytes):
+        msg_fp = BytesIO(msg_as_bytes(msg_bytes))
+        self.msg = MsgInfo(from_addr, to_addrs, msg_fp)
+
+    def start_delivery(self):
+        return True
 
 
 

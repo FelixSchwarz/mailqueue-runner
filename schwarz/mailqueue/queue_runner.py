@@ -12,11 +12,13 @@ from .app_helpers import init_app, init_smtp_mailer
 from .compat import queue, FileNotFoundError
 from .maildir_utils import move_message
 from .message_handler import MaildirBackedMsg, MessageHandler
+from .message_utils import msg_as_bytes
 
 
 __all__ = [
     'enqueue_message',
     'send_all_queued_messages',
+    'MaildirBackend',
 ]
 
 def enqueue_message(msg, queue_path, sender, recipient, return_msg=False):
@@ -28,13 +30,14 @@ def enqueue_message(msg, queue_path, sender, recipient, return_msg=False):
         return MaildirBackedMsg(msg_path)
     return msg_path
 
+
 def serialize_message_with_queue_data(msg, sender, recipient):
     sender_bytes = _email_address_as_bytes(sender)
     recipient_bytes = _email_address_as_bytes(recipient)
     queue_bytes = b'\n'.join([
         b'Return-path: <' + sender_bytes + b'>',
         b'Envelope-to: ' + recipient_bytes,
-        _msg_as_bytes(msg)
+        msg_as_bytes(msg)
     ])
     return queue_bytes
 
@@ -44,17 +47,19 @@ def _email_address_as_bytes(address):
     # LATER: support non-ascii addresses
     return address.encode('ascii')
 
-def _msg_as_bytes(msg):
-    if hasattr(msg, 'as_bytes'):
-        msg_bytes = msg.as_bytes()
-    elif hasattr(msg, 'read'):
-        msg_bytes = msg.read()
-    elif hasattr(msg, 'as_string'):
-        # email.message.Message in Python 2
-        msg_bytes = msg.as_string().encode('ascii')
-    else:
-        msg_bytes = msg
-    return msg_bytes
+
+
+class MaildirBackend(object):
+    def __init__(self, queue_path):
+        self.queue_path = queue_path
+
+    def send(self, from_addr, to_addrs, msg_bytes):
+        assert len(to_addrs) == 1
+        recipient = to_addrs[0]
+        enqueue_message(msg_bytes, self.queue_path, from_addr, recipient)
+        return True
+
+
 
 def is_stale_msg(msg_path):
     stat = os.stat(msg_path)

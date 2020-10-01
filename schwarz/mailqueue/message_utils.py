@@ -105,3 +105,15 @@ def strip_brackets(value):
 def parse_envelope_addrs(header_str):
     return _re_header_list.split(header_str)
 
+def msg_as_bytes(msg):
+    if hasattr(msg, 'as_bytes'):
+        msg_bytes = msg.as_bytes()
+    elif hasattr(msg, 'read'):
+        msg_bytes = msg.read()
+    elif hasattr(msg, 'as_string'):
+        # email.message.Message in Python 2
+        msg_bytes = msg.as_string().encode('ascii')
+    else:
+        msg_bytes = msg
+    return msg_bytes
+
