@@ -19,28 +19,59 @@ class MessageHandler(object):
         self.transports = transports
         self.delivery_log = delivery_log or logging.getLogger('mailqueue.delivery_log')
 
-    def send_message(self, msg):
-        result = msg.start_delivery()
+    def send_message(self, msg, **kwargs):
+        msg_wrapper = self._wrap_msg(msg)
+        result = msg_wrapper.start_delivery()
         if not result:
             return None
+        sender, recipients = self._msg_metadata(msg_wrapper, **kwargs)
+        msg_bytes = msg_wrapper.msg_bytes
+
         was_sent = False
         for transport in self.transports:
-            was_sent = transport.send(msg.from_addr, msg.to_addrs, msg.msg_bytes)
+            was_sent = transport.send(sender, recipients, msg_bytes)
             if was_sent:
-                msg.delivery_successful()
-                self._log_successful_delivery(msg)
+                msg_wrapper.delivery_successful()
+                self._log_successful_delivery(msg_wrapper, sender, recipients)
                 break
         if not was_sent:
-            msg.delivery_failed()
+            msg_wrapper.delivery_failed()
             return False
         return True
 
     # --- internal functionality ----------------------------------------------
-    def _log_successful_delivery(self, msg):
-        log_msg = '%s => %s' % (msg.from_addr, ', '.join(msg.to_addrs))
+    def _log_successful_delivery(self, msg, sender, recipients):
+        log_msg = '%s => %s' % (sender, ', '.join(recipients))
         if msg.msg_id:
             log_msg += ' <%s>' % msg.msg_id
         self.delivery_log.info(log_msg)
+
+    def _wrap_msg(self, msg):
+        if hasattr(msg, 'start_delivery'):
+            return msg
+        msg_bytes = msg_as_bytes(msg)
+        return InMemoryMsg(None, None, msg_bytes)
+
+    def _msg_metadata(self, msg, **kwargs):
+        sender = kwargs.pop('sender', None)
+        if not sender:
+            sender = msg.from_addr
+
+        recipient = kwargs.pop('recipient', None)
+        recipients = None
+        if recipient:
+            recipients = (recipient,)
+        if not recipients:
+            recipients = msg.to_addrs
+
+        if not sender:
+            raise ValueError('__init__(): missing keyword parameter "sender"')
+        if not recipients:
+            raise ValueError('__init__(): missing keyword parameter "recipient"')
+        if kwargs:
+            extra_name = tuple(kwargs)[0]
+            raise TypeError("__init__() got an unexpected keyword argument '%s'" % extra_name)
+        return (sender, recipients)
 
 
 

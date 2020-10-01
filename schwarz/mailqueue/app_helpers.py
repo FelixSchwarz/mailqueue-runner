@@ -13,9 +13,8 @@ from .mailer import SMTPMailer
 
 
 __all__ = [
-    'configure_logging',
     'init_app',
-    'parse_config'
+    'init_smtp_mailer',
 ]
 
 def init_app(config_path, options=None):

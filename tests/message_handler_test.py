@@ -15,7 +15,7 @@ from testfixtures import LogCapture
 from schwarz.mailqueue import (create_maildir_directories, lock_file,
     DebugMailer, MessageHandler)
 from schwarz.mailqueue.compat import IS_WINDOWS
-from schwarz.mailqueue.message_handler import MaildirBackedMsg, InMemoryMsg
+from schwarz.mailqueue.message_handler import MaildirBackedMsg
 from schwarz.mailqueue.message_utils import parse_message_envelope
 from schwarz.mailqueue.queue_runner import MaildirBackend
 from schwarz.mailqueue.testutils import (assert_did_log_message, info_logger,
@@ -162,10 +162,11 @@ class MessageHandlerTest(PythonicTestCase):
 
     def test_can_enqueue_message_after_failed_sending(self):
         mailer = DebugMailer(simulate_failed_sending=True)
-        msg = InMemoryMsg('foo@site.example', ('bar@site.example',), example_message())
         maildir_fallback = MaildirBackend(self.path_maildir)
+        msg = example_message()
 
-        was_sent = MessageHandler([mailer, maildir_fallback]).send_message(msg)
+        mh = MessageHandler([mailer, maildir_fallback])
+        was_sent = mh.send_message(msg, sender='foo@site.example', recipient='bar@site.example')
         assert_true(was_sent)
         assert_is_empty(mailer.sent_mails)
         msg_path, = self.msg_files(folder='new')

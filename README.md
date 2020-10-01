@@ -13,7 +13,24 @@ regularly (e.g. via cron).
 As a nice bonus the library is pretty modular so you can plug in custom code and
 adapt the library to your needs.
 
-### Usage
+### Usage (mail submission)
+
+    from schwarz.mailqueue import init_smtp_mailer, MaildirBackend, MessageHandler
+    # settings: a dict-like instance with keys as shown below in the "Configuration" section
+    settings = {}
+    # Adapt the list of transports as you like (ordering matters):
+    # - always enqueue: use "MaildirBackend()" only
+    # - never enqueue: use "init_smtp_mailer()" only
+    transports = [
+        init_smtp_mailer(settings),
+        MaildirBackend('/path/to/queue-dir'),
+    ]
+    handler = MessageHandler(transports)
+    msg = b'…' # RFC-822/RFC-5322 message as bytes or email.Message instance
+    was_sent = handler.send_message(msg, sender='foo@site.example', recipient='bar@site.example')
+
+
+### Usage (mq-run)
 
 The `mq-run` script sends all queued messages to an SMTP server:
 
@@ -24,7 +41,7 @@ the mail flow is set up correctly:
 
     mq-send-test /path/to/config.ini /path/to/queue --to=recipient@site.example
 
-### Configuration
+### Configuration (mq-run)
 
 The configuration file uses the traditional "ini"-like format:
 
