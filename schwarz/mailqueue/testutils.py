@@ -3,6 +3,7 @@
 
 from __future__ import absolute_import, print_function, unicode_literals
 
+from email.message import Message
 from io import BytesIO
 import logging
 import os
@@ -26,7 +27,6 @@ __all__ = [
 ]
 
 def message():
-    from email.message import Message
     msg = Message()
     msg['Header'] = 'somevalue'
     msg.set_payload('MsgBody')
