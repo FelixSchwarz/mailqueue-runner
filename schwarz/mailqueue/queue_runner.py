@@ -21,8 +21,8 @@ __all__ = [
     'MaildirBackend',
 ]
 
-def enqueue_message(msg, queue_path, sender, recipient, return_msg=False):
-    msg_bytes = serialize_message_with_queue_data(msg, sender=sender, recipient=recipient)
+def enqueue_message(msg, queue_path, sender, recipients, return_msg=False):
+    msg_bytes = serialize_message_with_queue_data(msg, sender=sender, recipients=recipients)
     mailbox = Maildir(queue_path)
     unique_id = mailbox.add(msg_bytes)
     msg_path = os.path.join(queue_path, 'new', unique_id)
@@ -31,12 +31,12 @@ def enqueue_message(msg, queue_path, sender, recipient, return_msg=False):
     return msg_path
 
 
-def serialize_message_with_queue_data(msg, sender, recipient):
+def serialize_message_with_queue_data(msg, sender, recipients):
     sender_bytes = _email_address_as_bytes(sender)
-    recipient_bytes = _email_address_as_bytes(recipient)
+    b_recipients = [_email_address_as_bytes(recipient) for recipient in recipients]
     queue_bytes = b'\n'.join([
         b'Return-path: <' + sender_bytes + b'>',
-        b'Envelope-to: ' + recipient_bytes,
+        b'Envelope-to: ' + b','.join(b_recipients),
         msg_as_bytes(msg)
     ])
     return queue_bytes
@@ -54,9 +54,7 @@ class MaildirBackend(object):
         self.queue_path = queue_path
 
     def send(self, from_addr, to_addrs, msg_bytes):
-        assert len(to_addrs) == 1
-        recipient = to_addrs[0]
-        enqueue_message(msg_bytes, self.queue_path, from_addr, recipient)
+        enqueue_message(msg_bytes, self.queue_path, from_addr, to_addrs)
         return True
 
 

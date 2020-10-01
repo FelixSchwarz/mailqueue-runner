@@ -32,10 +32,16 @@ def message():
     msg.set_payload('MsgBody')
     return msg
 
-def inject_example_message(queue_path, sender=b'foo@site.example', recipient=b'bar@site.example', msg_bytes=None, target_folder='new'):
+def inject_example_message(queue_path, sender=b'foo@site.example', recipient=None, recipients=None, msg_bytes=None, target_folder='new'):
     if msg_bytes is None:
         msg_bytes = message()
-    msg_path = enqueue_message(msg_bytes, queue_path, sender, recipient)
+    if recipient and recipients:
+        raise ValueError('inject_example_message() got conflicting parameters: recipient=%r, recipients=%r' % (recipient, recipients))
+    if (recipient is None) and (recipients is None):
+        recipients = (b'bar@site.example',)
+    elif recipient:
+        recipients = (recipient,)
+    msg_path = enqueue_message(msg_bytes, queue_path, sender, recipients)
     if target_folder != 'new':
         msg_path = move_message(msg_path, target_folder=target_folder, open_file=False)
     return MaildirBackedMsg(msg_path)

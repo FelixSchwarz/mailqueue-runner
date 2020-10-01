@@ -175,6 +175,18 @@ class MessageHandlerTest(PythonicTestCase):
         assert_equals('foo@site.example', stored_msg.from_addr)
         assert_equals(('bar@site.example',), stored_msg.to_addrs)
 
+    def test_can_enqueue_message_with_multiple_recipients_after_failed_sending(self):
+        mailer = DebugMailer(simulate_failed_sending=True)
+        mh = MessageHandler([mailer, MaildirBackend(self.path_maildir)])
+        msg = example_message()
+        recipients = ('r1@foo.example', 'r2@bar.example')
+
+        mh.send_message(msg, sender='foo@site.example', recipients=recipients)
+        msg_path, = self.msg_files(folder='new')
+        with open(msg_path, 'rb') as msg_fp:
+            stored_msg = parse_message_envelope(msg_fp)
+        assert_equals(recipients, stored_msg.to_addrs)
+
     # --- internal helpers ----------------------------------------------------
     def list_all_files(self, basedir):
         files = []

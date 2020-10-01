@@ -58,7 +58,9 @@ class MessageHandler(object):
             sender = msg.from_addr
 
         recipient = kwargs.pop('recipient', None)
-        recipients = None
+        recipients = kwargs.pop('recipients', None)
+        if recipient and recipients:
+            raise ValueError('__init__() got conflicting parameters: recipient=%r, recipients=%r' % (recipient, recipients))
         if recipient:
             recipients = (recipient,)
         if not recipients:

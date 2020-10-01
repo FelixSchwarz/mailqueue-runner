@@ -52,7 +52,7 @@ def build_queued_message(sender='foo@site.example', recipient='bar@site.example'
     msg_bytes = serialize_message_with_queue_data(
         msg=msg,
         sender=sender,
-        recipient=recipient,
+        recipients=(recipient,),
     )
     return BytesIO(msg_bytes)
 

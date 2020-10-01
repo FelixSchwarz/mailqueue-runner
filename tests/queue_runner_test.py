@@ -54,6 +54,17 @@ class QueueRunnerTest(PythonicTestCase):
         assert_is_empty(self.msg_files(folder='new'))
         assert_length(1, mailer.sent_mails)
 
+    def test_can_send_queued_message_to_multiple_recipients(self):
+        mailer = DebugMailer()
+        recipients = (b'r1@foo.example', b'r2@bar.example')
+        inject_example_message(self.path_maildir, recipients=recipients)
+
+        send_all_queued_messages(self.path_maildir, mailer)
+        assert_is_empty(self.msg_files(folder='new'))
+        sent_msg, = mailer.sent_mails
+        _as_str = lambda values: tuple([v.decode('ascii') for v in values])
+        assert_equals(_as_str(recipients), sent_msg.to_addrs)
+
     def msg_files(self, folder='new'):
         path = os.path.join(self.path_maildir, folder)
         files = []
