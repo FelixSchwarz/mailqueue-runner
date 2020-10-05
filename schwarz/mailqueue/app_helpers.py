@@ -62,7 +62,10 @@ def parse_config(config_path, section_name=None):
     exc_msg = None
     try:
         parser.read(config_path)
-        parser.items()
+        # ConfigParser in Python 2 has no ".items()" (without parameters)
+        sections = (section_name, ) if section_name else parser.sections()
+        for section in sections:
+            parser.items(section)
     except configparser.Error as e:
         line_detail = ''
         if hasattr(e, 'errors') and len(e.errors) > 0:
@@ -110,8 +113,14 @@ def configure_logging(settings, options):
     else:
         logging.basicConfig()
 
-    if options.get('verbose'):
+    verbose = options.get('verbose')
+    quiet = options.get('quiet')
+    assert not (verbose and quiet)
+
+    if verbose:
         ui_logging = logging.DEBUG
+    elif quiet:
+        ui_logging = logging.FATAL
     else:
         ui_logging = logging.INFO
     # This logger is responsible for user output

@@ -3,12 +3,16 @@
 
 from __future__ import absolute_import, print_function, unicode_literals
 
+import email.utils
 import os
 import sys
+import time
 
 
 __all__ = [
     'configparser',
+    'format_datetime_rfc2822',
+    'make_msgid',
     'os_makedirs',
     'queue',
     'FileNotFoundError',
@@ -46,4 +50,25 @@ except NameError:
     FileNotFoundError = OSError
 else:
     FileNotFoundError = FileNotFoundError
+
+
+def format_datetime_rfc2822(dt):
+    try:
+        date_str = email.utils.format_datetime(dt)
+    except AttributeError:
+        # Python 2
+        now_time = time.mktime(dt.timetuple())
+        date_str = email.utils.formatdate(now_time)
+    return date_str
+
+
+def make_msgid(domain=None):
+    if not domain:
+        return email.utils.make_msgid()
+    if sys.version_info >= (3, 2):
+        return email.utils.make_msgid(domain=domain)
+
+    msg_id_str = email.utils.make_msgid('@'+domain)
+    msg_id = msg_id_str.rsplit('@', 1)[0] + '>'
+    return msg_id
 
