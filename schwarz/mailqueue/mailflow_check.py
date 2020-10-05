@@ -10,8 +10,8 @@ from boltons.timeutils import LocalTZ
 
 from .app_helpers import init_app, init_smtp_mailer
 from .compat import format_datetime_rfc2822, make_msgid
-from .message_handler import MaildirBackedMsg, MessageHandler
-from .queue_runner import enqueue_message
+from .message_handler import InMemoryMsg, MessageHandler
+from .message_utils import msg_as_bytes
 
 
 __all__ = ['build_check_message', 'send_test_message']
@@ -32,19 +32,19 @@ def build_check_message(recipient, sender=None):
     return mail
 
 
-def send_test_message(queue_path, config_path, options):
+def send_test_message(config_path, options):
     sender = options['sender']
     recipient = options['recipient']
 
     settings = init_app(config_path, options=options)
     mailer = init_smtp_mailer(settings)
 
-    msg = build_check_message(recipient, sender=sender)
-    msg_sender = msg['From']
-    msg_path = enqueue_message(msg, queue_path, sender=msg_sender, recipients=(recipient,))
+    check_msg = build_check_message(recipient, sender=sender)
+    msg_sender = check_msg['From']
+    msg_bytes = msg_as_bytes(check_msg)
+    msg = InMemoryMsg(msg_sender, (recipient,), msg_bytes)
 
-    _msg = MaildirBackedMsg(msg_path)
     mh = MessageHandler(transports=(mailer,))
-    was_sent = mh.send_message(_msg)
+    was_sent = mh.send_message(msg)
     return was_sent
 

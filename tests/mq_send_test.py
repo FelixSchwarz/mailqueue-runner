@@ -4,14 +4,12 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
 import email
-import os
 import re
 
 from pymta.test_util import SMTPTestCase
 from pythonic_testcase import *
 from schwarz.fakefs_helpers import TempFS
 
-from schwarz.mailqueue import create_maildir_directories
 from schwarz.mailqueue.cli import send_test_message_main
 # prevent nosetests from running this imported function as "test"
 send_test_message_main.__test__ = False
@@ -24,10 +22,8 @@ class MQSendTest(SMTPTestCase):
 
     def test_can_send_test_message(self):
         config_path = self._create_ini()
-        path_maildir = os.path.join(self.tempfs.root, 'mailqueue')
-        create_maildir_directories(path_maildir)
 
-        cmd = ['mq-send-test', config_path, path_maildir, '--quiet', '--from=bar@site.example', '--to=foo@site.example']
+        cmd = ['mq-send-test', config_path, '--quiet', '--from=bar@site.example', '--to=foo@site.example']
         rc = send_test_message_main(argv=cmd, return_rc_code=True)
         assert_equals(0, rc)
 
