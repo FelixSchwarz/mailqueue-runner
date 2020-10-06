@@ -153,7 +153,7 @@ class FakeChannel(object):
 
 
 class SocketMock(object):
-    def __init__(self, policy=None, overrides=None):
+    def __init__(self, policy=None, overrides=None, authenticator=None):
         self.command_parser = None
         self.deliverer = BlackholeDeliverer()
         self.channel = FakeChannel()
@@ -164,6 +164,7 @@ class SocketMock(object):
         # "override" default behaviors.
         # Instead of adding yet another "state" variable just keep it here.
         self._overrides = overrides or {}
+        self._authenticator = authenticator
 
     @property
     def received_messages(self):
@@ -175,7 +176,8 @@ class SocketMock(object):
             self.channel,
             '127.0.0.1', 2525,
             self.deliverer,
-            policy=self.policy
+            policy=self.policy,
+            authenticator=self._authenticator,
         )
         self.reply_data = BytesIO()
         return self

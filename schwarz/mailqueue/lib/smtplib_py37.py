@@ -43,6 +43,7 @@ from __future__ import print_function, unicode_literals
 #
 # This was modified from the Python 1.5 library HTTP lib.
 
+from binascii import b2a_base64, a2b_base64
 import socket
 import io
 import re
@@ -573,7 +574,7 @@ class SMTP(object):
             (code, resp) = self.docmd("AUTH", mechanism)
         # If server responds with a challenge, send the response.
         if code == 334:
-            challenge = base64.decodebytes(resp)
+            challenge = a2b_base64(resp)
             response = encode_base64(
                 authobject(challenge).encode('ascii'), eol='')
             (code, resp) = self.docmd(response)

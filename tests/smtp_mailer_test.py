@@ -3,15 +3,19 @@
 
 from __future__ import absolute_import, print_function, unicode_literals
 
+from ddt import ddt as DataDrivenTestCase, data as ddt_data
 from pymta.api import IMTAPolicy
+from pymta.test_util import DummyAuthenticator
 from pythonic_testcase import *
 
 from schwarz.mailqueue import SMTPMailer
 from schwarz.mailqueue.compat import IS_PYTHON3
-from schwarz.mailqueue.testutils import fake_smtp_client, stub_socket_creation
+from schwarz.mailqueue.testutils import (fake_smtp_client, stub_socket_creation,
+    SocketMock)
 
 
 
+@DataDrivenTestCase
 class SMTPMailerTest(PythonicTestCase):
     def test_can_send_message_via_smtpmailer(self):
         fake_client = fake_smtp_client()
@@ -62,6 +66,22 @@ class SMTPMailerTest(PythonicTestCase):
 
         assert_false(msg_was_sent)
         assert_equals(0, fake_client.server.received_messages.qsize())
+
+    @ddt_data('PLAIN', 'LOGIN')
+    def test_can_use_smtp_auth(self, auth_type):
+        class AuthPolicy(IMTAPolicy):
+            def auth_methods(self, peer):
+                return (auth_type,)
+        socket_mock = SocketMock(policy=AuthPolicy(), authenticator=DummyAuthenticator())
+
+        fake_client = fake_smtp_client(socket_mock=socket_mock)
+        mailer = SMTPMailer(client=fake_client, username='foo', password='foo')
+        message = b'Header: value\n\nbody\n'
+        msg_was_sent = mailer.send('foo@site.example', 'bar@site.example', message)
+
+        assert_true(msg_was_sent)
+        received_queue = fake_client.server.received_messages
+        assert_equals(1, received_queue.qsize())
 
     # --- internal helpers ----------------------------------------------------
     def _build_policy(self, **method_results):

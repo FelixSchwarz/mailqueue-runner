@@ -5,6 +5,7 @@ ddt
 freezegun < 1.0; python_version < '3.0'
 freezegun; python_version > '3.0'
 mock; python_version < '3.0'
-pymta >= 0.6.0  # Python 3 support
+# >= 0.6.99: AUTH LOGIN
+pymta >= 0.6.99
 PythonicTestcase
 testfixtures
