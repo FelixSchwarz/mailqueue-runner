@@ -49,6 +49,8 @@ def _contains_duplicate_section(e):
     return isinstance(e, configparser.DuplicateSectionError)
 
 def _contains_duplicate_option(e):
+    # ConfigParser in Python 2 raises an Exception for duplicate options so
+    # we don't have to care about the missing "DuplicateOptionError".
     return isinstance(e, configparser.DuplicateOptionError)
 
 
