@@ -3,6 +3,8 @@
 
 from __future__ import absolute_import, print_function, unicode_literals
 
+import socket
+
 from ddt import ddt as DataDrivenTestCase, data as ddt_data
 from pymta.api import IMTAPolicy
 from pymta.test_util import DummyAuthenticator
@@ -39,8 +41,14 @@ class SMTPMailerTest(PythonicTestCase):
             expected_message = expected_message.rstrip('\n')
         assert_equals(expected_message, received_message.msg_data)
 
-    def test_can_handle_connection_error(self):
-        overrides = self._build_overrides(connect=OSError('error on connect'))
+    @ddt_data(
+        OSError('error on connect'),
+        # with Python 3 socket.error is a subclass of OSError but we need to
+        # catch it separately in Python 2.
+        socket.error(101, 'Network is unreachable'),
+    )
+    def test_can_handle_connection_error(self, exc):
+        overrides = self._build_overrides(connect=exc)
         fake_client = fake_smtp_client(overrides=overrides)
         mailer = SMTPMailer(client=fake_client)
         message = b'Header: value\n\nbody\n'

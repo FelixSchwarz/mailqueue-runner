@@ -5,6 +5,7 @@ from __future__ import absolute_import, print_function, unicode_literals
 
 from io import BytesIO
 from smtplib import SMTPException
+import socket
 
 from .message_utils import MsgInfo
 from .smtpclient import SMTPClient
@@ -54,7 +55,7 @@ class SMTPMailer(object):
             connection.sendmail(fromaddr, toaddrs, message)
             msg_was_sent = True
             connection.quit()
-        except (SMTPException, OSError):
+        except (SMTPException, OSError, socket.error):
             pass
         return msg_was_sent
 
