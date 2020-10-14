@@ -15,9 +15,8 @@ from testfixtures import LogCapture
 from schwarz.mailqueue import (create_maildir_directories, lock_file,
     DebugMailer, MessageHandler)
 from schwarz.mailqueue.compat import IS_WINDOWS
-from schwarz.mailqueue.message_handler import MaildirBackedMsg
 from schwarz.mailqueue.message_utils import parse_message_envelope
-from schwarz.mailqueue.queue_runner import MaildirBackend
+from schwarz.mailqueue.queue_runner import MaildirBackedMsg, MaildirBackend
 from schwarz.mailqueue.testutils import (assert_did_log_message, info_logger,
     inject_example_message, message as example_message)
 

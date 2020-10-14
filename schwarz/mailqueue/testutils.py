@@ -13,9 +13,8 @@ from pymta.test_util import BlackholeDeliverer
 from schwarz.log_utils import ForwardingLogger
 
 from .maildir_utils import move_message
-from .queue_runner import enqueue_message
+from .queue_runner import enqueue_message, MaildirBackedMsg
 from .smtpclient import SMTPClient
-from schwarz.mailqueue.message_handler import MaildirBackedMsg
 
 
 __all__ = [
