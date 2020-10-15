@@ -18,7 +18,9 @@ class SMTPMailer(object):
         if (hostname is None) and ('client' not in kwargs):
             raise TypeError('not enough parameters for __init__(): please specify at least "hostname" or "client"')
         self.hostname = hostname
-        self.port = kwargs.pop('port', 25)
+        # ensure "port" is numeric as "socket.connect()" in Python 2 only
+        # accepts ints (in Python 3 '25' works as well).
+        self.port = int(kwargs.pop('port', 25))
         self.username = kwargs.pop('username', None)
         self.password = kwargs.pop('password', None)
         self.connect_timeout = kwargs.pop('timeout', 10)
