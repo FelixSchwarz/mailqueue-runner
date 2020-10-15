@@ -16,6 +16,8 @@ install:
   # I could only remove the problem by switching to nose2 (even though I still
   # dislike its configuration bloat).
   - pip install --upgrade nose2
+  # required so nose2 can execute tests inside the source tree
+  - python setup.py develop
 
 script:
   - nose2
