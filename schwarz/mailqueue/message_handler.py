@@ -29,7 +29,9 @@ class MessageHandler(object):
             send_result = transport.send(sender, recipients, msg_bytes)
             if send_result:
                 msg_wrapper.delivery_successful()
-                self._log_successful_delivery(msg_wrapper, sender, recipients)
+                was_queued = (getattr(send_result, 'queued', None) is not False)
+                if not was_queued:
+                    self._log_successful_delivery(msg_wrapper, sender, recipients)
                 break
 
         if not send_result:

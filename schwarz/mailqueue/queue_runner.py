@@ -50,11 +50,16 @@ def _email_address_as_bytes(address):
 
 
 class MaildirBackend(object):
-    def __init__(self, queue_path):
+    def __init__(self, queue_path, log=None):
         self.queue_path = queue_path
+        self.log = log or logging.getLogger('mailqueue.queue_log')
 
     def send(self, from_addr, to_addrs, msg_bytes):
-        enqueue_message(msg_bytes, self.queue_path, from_addr, to_addrs)
+        msg = enqueue_message(msg_bytes, self.queue_path, from_addr, to_addrs, return_msg=True)
+        log_msg = '%s => %s' % (from_addr, ', '.join(to_addrs))
+        if msg.msg_id:
+            log_msg += ' <%s>' % msg.msg_id
+        self.log.info(log_msg)
         return SendResult(True, queued=True, transport='maildir')
 
 
@@ -81,7 +86,17 @@ class MaildirBackedMsg(object):
     @property
     def msg(self):
         if self._msg is None:
-            self._msg = parse_message_envelope(self.fp)
+            if self.fp is None:
+                fp = open(self.file_path, 'rb')
+                close_fp = True
+            else:
+                fp = self.fp
+                close_fp = False
+            try:
+                self._msg = parse_message_envelope(fp)
+            finally:
+                if close_fp:
+                    fp.close()
         return self._msg
 
     @property

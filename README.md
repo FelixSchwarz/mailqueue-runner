@@ -53,7 +53,18 @@ The configuration file uses the traditional "ini"-like format:
     smtp_port = 587
     smtp_username = someuser@site.example
     smtp_password = secret
+    # optional, format as described in
+    # https://docs.python.org/3/library/logging.config.html#logging-config-fileformat
+    logging_conf = /path/to/logging.conf
 
+
+### Logging
+
+Logs can help you monitoring the mail processing. The library uses two separate
+loggers depending on the type of delivery:
+
+- `mailqueue.delivery_log`: message was delivered to the SMTP server
+- `mailqueue.queue_log`: message was queued and will be delivered later by `mq-run`
 
 ### Motivation / related software
 
