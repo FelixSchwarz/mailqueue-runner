@@ -15,8 +15,8 @@ install:
   #    RuntimeError: 'path' must be None or a list, not <class '_frozen_importlib_external._NamespacePath'>
   # I could only remove the problem by switching to nose2 (even though I still
   # dislike its configuration bloat).
- - pip install --upgrade nose2
- - echo "always-on = True" >> nose2.cfg
+  - pip install --upgrade nose2
+  - echo "always-on = True" >> nose2.cfg
 
 script:
   - nose2
