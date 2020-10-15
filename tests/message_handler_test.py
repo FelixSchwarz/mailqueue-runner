@@ -47,7 +47,7 @@ class MessageHandlerTest(PythonicTestCase):
         with LogCapture() as lc:
             mh = MessageHandler([mailer], info_logger(lc))
             was_sent = mh.send_message(msg)
-        assert_true(was_sent)
+        assert_trueish(was_sent)
         expected_log_msg = '%s => %s' % ('foo@site.example', 'bar@site.example')
         if with_msg_id:
             expected_log_msg += ' <%s>' % msg_id
@@ -68,7 +68,7 @@ class MessageHandlerTest(PythonicTestCase):
         assert_true(os.path.exists(msg.path))
 
         was_sent = MessageHandler([mailer]).send_message(msg)
-        assert_false(was_sent)
+        assert_falseish(was_sent)
         assert_true(os.path.exists(msg.path))
         # no left-overs (e.g. in "tmp" folder) other than the initial message file
         assert_length(1, self.list_all_files(self.path_maildir))
@@ -155,7 +155,7 @@ class MessageHandlerTest(PythonicTestCase):
 
         locked_msg.close()
         was_sent = mh.send_message(msg)
-        assert_true(was_sent)
+        assert_trueish(was_sent)
         assert_is_empty(self.msg_files(folder='new'))
         assert_length(1, mailer.sent_mails)
 
@@ -166,7 +166,7 @@ class MessageHandlerTest(PythonicTestCase):
 
         mh = MessageHandler([mailer, maildir_fallback])
         was_sent = mh.send_message(msg, sender='foo@site.example', recipient='bar@site.example')
-        assert_true(was_sent)
+        assert_trueish(was_sent)
         assert_is_empty(mailer.sent_mails)
         msg_path, = self.msg_files(folder='new')
         with open(msg_path, 'rb') as msg_fp:

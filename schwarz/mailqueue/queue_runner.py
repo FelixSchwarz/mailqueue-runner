@@ -12,7 +12,7 @@ from .app_helpers import init_app, init_smtp_mailer
 from .compat import queue, FileNotFoundError, IS_WINDOWS
 from .maildir_utils import move_message
 from .message_handler import MessageHandler
-from .message_utils import msg_as_bytes, parse_message_envelope
+from .message_utils import msg_as_bytes, parse_message_envelope, SendResult
 
 
 __all__ = [
@@ -55,7 +55,7 @@ class MaildirBackend(object):
 
     def send(self, from_addr, to_addrs, msg_bytes):
         enqueue_message(msg_bytes, self.queue_path, from_addr, to_addrs)
-        return True
+        return SendResult(True, queued=True, transport='maildir')
 
 
 

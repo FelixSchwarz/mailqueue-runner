@@ -9,8 +9,14 @@ from email.parser import HeaderParser
 from io import BytesIO, TextIOWrapper
 import re
 
+from .lib import Result
 
-__all__ = ['parse_message_envelope']
+
+__all__ = ['parse_message_envelope', 'MsgInfo', 'SendResult']
+
+def SendResult(was_sent, queued=None, transport=None):
+    return Result(was_sent, queued=queued, transport=transport)
+
 
 def parse_message_envelope(fp):
     from_addr = None

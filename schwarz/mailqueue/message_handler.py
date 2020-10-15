@@ -6,7 +6,7 @@ from __future__ import absolute_import, print_function, unicode_literals
 from io import BytesIO
 import logging
 
-from .message_utils import msg_as_bytes, MsgInfo
+from .message_utils import msg_as_bytes, MsgInfo, SendResult
 
 
 __all__ = ['MessageHandler']
@@ -24,17 +24,19 @@ class MessageHandler(object):
         sender, recipients = self._msg_metadata(msg_wrapper, **kwargs)
         msg_bytes = msg_wrapper.msg_bytes
 
-        was_sent = False
+        send_result = False
         for transport in self.transports:
-            was_sent = transport.send(sender, recipients, msg_bytes)
-            if was_sent:
+            send_result = transport.send(sender, recipients, msg_bytes)
+            if send_result:
                 msg_wrapper.delivery_successful()
                 self._log_successful_delivery(msg_wrapper, sender, recipients)
                 break
-        if not was_sent:
+
+        if not send_result:
             msg_wrapper.delivery_failed()
-            return False
-        return True
+        if send_result in (True, False):
+            send_result = SendResult(send_result)
+        return send_result
 
     # --- internal functionality ----------------------------------------------
     def _log_successful_delivery(self, msg, sender, recipients):

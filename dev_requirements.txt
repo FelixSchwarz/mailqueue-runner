@@ -7,5 +7,6 @@ freezegun; python_version > '3.0'
 mock; python_version < '3.0'
 # >= 0.6.99: AUTH LOGIN
 pymta >= 0.6.99
-PythonicTestcase
+# >= 1.4.0: assert_is()
+PythonicTestcase >= 1.4.0
 testfixtures

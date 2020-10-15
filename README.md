@@ -28,6 +28,9 @@ adapt the library to your needs.
     handler = MessageHandler(transports)
     msg = b'…' # RFC-822/RFC-5322 message as bytes or email.Message instance
     was_sent = handler.send_message(msg, sender='foo@site.example', recipient='bar@site.example')
+    # "was_sent" evaluates to True if the message was sent via SMTP or queued
+    # for later delivery.
+    was_queued = (getattr(send_result, 'queued', None) is not False)
 
 
 ### Usage (mq-run)

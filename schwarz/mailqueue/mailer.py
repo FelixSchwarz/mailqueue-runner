@@ -7,7 +7,7 @@ from io import BytesIO
 from smtplib import SMTPException
 import socket
 
-from .message_utils import MsgInfo
+from .message_utils import MsgInfo, SendResult
 from .smtpclient import SMTPClient
 
 
@@ -33,7 +33,7 @@ class SMTPMailer(object):
         return smtp_client
 
     def send(self, fromaddr, toaddrs, message):
-        msg_was_sent = False
+        msg_was_sent = SendResult(False, queued=False, transport='smtp')
         try:
             if self._client is None:
                 connection = self.init_smtp_client()
@@ -53,7 +53,7 @@ class SMTPMailer(object):
                 connection.login(self.username, self.password)
 
             connection.sendmail(fromaddr, toaddrs, message)
-            msg_was_sent = True
+            msg_was_sent.value = True
             connection.quit()
         except (SMTPException, OSError, socket.error):
             pass
@@ -67,11 +67,11 @@ class DebugMailer(object):
         self.sent_mails = []
 
     def send(self, fromaddr, toaddrs, message):
-        was_sent = True
+        was_sent = SendResult(True, queued=False, transport='debug')
         if self.send_callback:
             was_sent = self.send_callback(fromaddr, toaddrs, message)
         if self.simulate_failed_sending:
-            was_sent = False
+            was_sent.value = False
         if was_sent:
             msg_info = MsgInfo(fromaddr, toaddrs, BytesIO(message))
             self.sent_mails.append(msg_info)
