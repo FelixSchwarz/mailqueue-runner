@@ -82,7 +82,7 @@ free disk space).
 [repoze.sendmail](https://github.com/repoze/repoze.sendmail) is similar and a
 solid piece of software. I wrote yet another library because I wanted
 
- - avoid data loss if the SMTP server does not accepts messages due to (temporary)
+ - avoid data loss if the SMTP server does not accept messages due to (temporary)
    errors without delaying messages while everything is working fine (i.e. most
    of the time)
  - avoid nasty surprises if the SMTP server rejects one (but not all) recipients
@@ -92,7 +92,6 @@ solid piece of software. I wrote yet another library because I wanted
  - better error logging (including the ability to log the complete SMTP dialog)
  - only minimal modification to queued messages (repoze.sendmail uses Python's
    email module to manipulate message headers required for delivery)
-
 
 
 ### Non-goals
