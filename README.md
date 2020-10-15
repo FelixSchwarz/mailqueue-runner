@@ -93,7 +93,7 @@ solid piece of software. I wrote yet another library because I wanted
 
 I use [Travis](https://travis-ci.com/FelixSchwarz/mailqueue-runner) to run the
 test suite. Hopefully this means all tested versions are suitable for production.
-At the moment I test Python 2.7 and Python 3.6/3.7 on Linux.
+At the moment I test Python 2.7 and Python 3.6-3.8 as well as pypy3 on Linux.
 Deployment on Windows is not recommended as all locking will be disabled on
 Windows (due to its inability to delete/move open files) but development on
 a Windows machine should be fine.
