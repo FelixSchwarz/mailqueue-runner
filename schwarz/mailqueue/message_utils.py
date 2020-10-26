@@ -5,7 +5,7 @@ from __future__ import absolute_import, print_function, unicode_literals
 
 from collections import namedtuple
 from email.header import decode_header
-from email.parser import HeaderParser
+from email.parser import FeedParser, HeaderParser
 from io import BytesIO, TextIOWrapper
 import re
 
@@ -19,25 +19,34 @@ def SendResult(was_sent, queued=None, transport=None):
 
 
 def parse_message_envelope(fp):
-    from_addr = None
-    to_addrs = None
-    msg_bytes = b''
+    known_meta_headers = {
+        'Return-path',
+        'Envelope-to',
+        'X-Queue-Meta-End',
+    }
 
+    parser = FeedParser()
+    parser._headersonly = True
     while True:
         line = read_header_line(fp)
-        match = _re_header.search(line)
-        header_name = match.group(1)
-        header_value = match.group(2)
-        if header_name == b'Return-path':
-            from_addr = decode_header_value(strip_brackets(header_value))
-        elif header_name == b'Envelope-to':
-            to_addrs = parse_envelope_addrs(decode_header_value(header_value))
-        else:
-            msg_bytes += line
-        if (from_addr is not None) and (to_addrs is not None):
+        if line == b'':
+            raise ValueError('Header "X-Queue-Meta-End" not found.')
+        # similar to Python's BytesFeedParser (Python 3.3+)
+        line_str = line.decode('ascii', 'surrogateescape')
+        parser.feed(line_str)
+        if 'X-Queue-Meta-End' in line_str:
             break
+    meta_msg = parser.close()
+    queue_meta = dict(meta_msg.items())
+    unknown_headers = set(queue_meta).difference(known_meta_headers)
+    assert len(unknown_headers) == 0, unknown_headers
 
-    msg_fp = BytesIO(msg_bytes + fp.read())
+    b_return_path = queue_meta.pop('Return-path')
+    from_addr = decode_header_value(strip_brackets(b_return_path))
+    b_envelope_to = queue_meta.pop('Envelope-to')
+    to_addrs = parse_envelope_addrs(decode_header_value(b_envelope_to))
+
+    msg_fp = BytesIO(fp.read())
     msg_fp.seek(0)
     msg_info = MsgInfo(from_addr, tuple(to_addrs), msg_fp)
     return msg_info
@@ -82,7 +91,6 @@ class UnclosableWrapper(object):
 
 
 
-_re_header = re.compile(br'^(\S+):\s*(\S+)\s*$')
 _re_angle_brackets = re.compile(br'^<?(.+?)>?$')
 _re_angle_brackets_str = re.compile('^<?(.+?)>?$')
 _re_header_list = re.compile(r'\s*,\s*')
@@ -90,8 +98,7 @@ _re_header_list = re.compile(r'\s*,\s*')
 def read_header_line(fp):
     return fp.readline()
 
-def decode_header_value(header_bytes):
-    encoded_str = header_bytes.decode('ASCII')
+def decode_header_value(encoded_str):
     header_str = ''
     for part_bytes, charset in decode_header(encoded_str):
         if charset is None:

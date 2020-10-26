@@ -31,12 +31,13 @@ def enqueue_message(msg, queue_path, sender, recipients, return_msg=False):
     return msg_path
 
 
-def serialize_message_with_queue_data(msg, sender, recipients):
+def serialize_message_with_queue_data(msg, sender, recipients, queue_date=None, last=None, retries=None):
     sender_bytes = _email_address_as_bytes(sender)
     b_recipients = [_email_address_as_bytes(recipient) for recipient in recipients]
     queue_bytes = b'\n'.join([
         b'Return-path: <' + sender_bytes + b'>',
         b'Envelope-to: ' + b','.join(b_recipients),
+        b'X-Queue-Meta-End: end',
         msg_as_bytes(msg)
     ])
     return queue_bytes
