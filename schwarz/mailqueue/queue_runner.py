@@ -9,8 +9,8 @@ import os
 import time
 
 from .app_helpers import init_app, init_smtp_mailer
-from .compat import queue, FileNotFoundError, IS_WINDOWS
-from .maildir_utils import move_message
+from .compat import queue, IS_WINDOWS
+from .maildir_utils import find_messages, move_message
 from .message_handler import BaseMsg, MessageHandler
 from .message_utils import msg_as_bytes, parse_message_envelope, SendResult
 
@@ -164,35 +164,22 @@ def is_stale_msg(msg_path):
     return is_stale
 
 def unblock_stale_messages(queue_basedir, log):
-    path_cur = os.path.join(queue_basedir, 'cur')
-    try:
-        filenames = os.listdir(path_cur)
-    except FileNotFoundError:
-        log.error('Queue directory %s does not exist.', path_cur)
-        return
-    for filename in filenames:
-        msg_path = os.path.join(path_cur, filename)
+    for msg_path in find_messages(queue_basedir, queue_folder='cur', log=log):
         if is_stale_msg(msg_path):
+            filename = os.path.basename(msg_path)
             log.warning('stale message detected, moving back to "new": %s', filename)
             move_message(msg_path, target_folder='new', open_file=False)
 
-def find_new_messsages(queue_basedir, log):
+def assemble_queue_with_new_messages(queue_basedir, log):
     message_queue = queue.Queue()
-    path_new = os.path.join(queue_basedir, 'new')
-    try:
-        filenames = os.listdir(path_new)
-    except FileNotFoundError:
-        log.error('Queue directory %s does not exist.', path_new)
-    else:
-        for filename in filenames:
-            path = os.path.join(path_new, filename)
-            message_queue.put(path)
+    for path in find_messages(queue_basedir, queue_folder='new', log=log):
+        message_queue.put(path)
     return message_queue
 
 def send_all_queued_messages(queue_dir, mailer):
     log = logging.getLogger('mailqueue.sending')
     unblock_stale_messages(queue_dir, log)
-    message_queue = find_new_messsages(queue_dir, log)
+    message_queue = assemble_queue_with_new_messages(queue_dir, log)
     if message_queue.qsize() == 0:
         log.info('no unsent messages in queue dir')
         return

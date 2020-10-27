@@ -8,7 +8,7 @@ import os
 from boltons.fileutils import atomic_rename, atomic_save
 import portalocker
 
-from .compat import os_makedirs, IS_WINDOWS
+from .compat import os_makedirs, FileNotFoundError, IS_WINDOWS
 
 
 __all__ = ['create_maildir_directories', 'lock_file', 'move_message']
@@ -55,6 +55,19 @@ def create_maildir_directories(basedir, is_folder=False):
         with atomic_save(maildirfolder_path, overwrite=False) as fp:
             pass
     return new_path
+
+
+def find_messages(queue_basedir, log, queue_folder='new'):
+    path_new = os.path.join(queue_basedir, queue_folder)
+    try:
+        filenames = os.listdir(path_new)
+    except FileNotFoundError:
+        log.error('Queue directory %s does not exist.', path_new)
+    else:
+        for filename in filenames:
+            path = os.path.join(path_new, filename)
+            yield path
+
 
 def lock_file(path, timeout=None):
     try:
