@@ -24,20 +24,20 @@ class MessageHandler(object):
         sender, recipients = self._msg_metadata(msg_wrapper, **kwargs)
         msg_bytes = msg_wrapper.msg_bytes
 
-        send_result = False
+        send_result = SendResult(False)
         for transport in self.transports:
             send_result = transport.send(sender, recipients, msg_bytes)
+            if (send_result is True) or (send_result is False):
+                send_result = SendResult(send_result)
             if send_result:
                 msg_wrapper.delivery_successful()
-                was_queued = (getattr(send_result, 'queued', None) is not False)
+                was_queued = (send_result.queued is not False)
                 if not was_queued:
                     self._log_successful_delivery(msg_wrapper, sender, recipients)
                 break
 
         if not send_result:
             msg_wrapper.delivery_failed()
-        if send_result in (True, False):
-            send_result = SendResult(send_result)
         return send_result
 
     # --- internal functionality ----------------------------------------------
