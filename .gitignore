@@ -1,3 +1,10 @@
 *.pyc
 *.egg-info
-venv*
+/venv*
+/*.ini
+/*.log
+/*.sh
+/logging.conf
+/mailqueue
+/TODO.txt
+/verify-commits.py
