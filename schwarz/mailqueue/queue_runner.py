@@ -11,7 +11,7 @@ import time
 from .app_helpers import init_app, init_smtp_mailer
 from .compat import queue, FileNotFoundError, IS_WINDOWS
 from .maildir_utils import move_message
-from .message_handler import MessageHandler
+from .message_handler import BaseMsg, MessageHandler
 from .message_utils import msg_as_bytes, parse_message_envelope, SendResult
 
 
@@ -64,8 +64,9 @@ class MaildirBackend(object):
 
 
 
-class MaildirBackedMsg(object):
+class MaildirBackedMsg(BaseMsg):
     def __init__(self, file_path):
+        super(MaildirBackedMsg, self).__init__()
         self.file_path = file_path
         self.fp = None
         self._msg = None

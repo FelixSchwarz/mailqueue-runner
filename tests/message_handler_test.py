@@ -5,17 +5,23 @@ from __future__ import absolute_import, print_function, unicode_literals
 
 import os
 import shutil
+try:
+    from unittest.mock import MagicMock
+except ImportError:
+    from mock import MagicMock
 import uuid
 
 from ddt import ddt as DataDrivenTestCase, data as ddt_data
 from pythonic_testcase import *
 from schwarz.fakefs_helpers import TempFS
+from schwarz.puzzle_plugins import connect_signals, SignalRegistry
 from testfixtures import LogCapture
 
 from schwarz.mailqueue import (create_maildir_directories, lock_file,
     DebugMailer, MessageHandler)
 from schwarz.mailqueue.compat import IS_WINDOWS
 from schwarz.mailqueue.message_utils import parse_message_envelope
+from schwarz.mailqueue.plugins import MQSignal
 from schwarz.mailqueue.queue_runner import MaildirBackedMsg, MaildirBackend
 from schwarz.mailqueue.testutils import (assert_did_log_message, info_logger,
     inject_example_message, message as example_message)
@@ -185,6 +191,36 @@ class MessageHandlerTest(PythonicTestCase):
         with open(msg_path, 'rb') as msg_fp:
             stored_msg = parse_message_envelope(msg_fp)
         assert_equals(recipients, stored_msg.to_addrs)
+
+    @ddt_data(True, False)
+    def test_can_notify_plugin_after_delivery(self, delivery_successful):
+        if delivery_successful:
+            signal = MQSignal.delivery_successful
+            mailer = DebugMailer()
+        else:
+            signal = MQSignal.delivery_failed
+            mailer = DebugMailer(simulate_failed_sending=True)
+        registry = SignalRegistry()
+        plugin = MagicMock(return_value=None, spec={})
+        connect_signals({signal: plugin}, registry.namespace)
+
+        mh = MessageHandler([mailer], plugins=registry)
+        mh.send_message(example_message(), sender='foo@site.example', recipient='bar@site.example')
+
+        plugin.assert_called_once()
+        # would be able to simplify this with Python 3 only:
+        # call_kwargs = plugin.call_args.kwargs
+        call_kwargs = plugin.call_args[-1]
+        send_result = call_kwargs['send_result']
+        if delivery_successful:
+            assert_length(1, mailer.sent_mails)
+            assert_trueish(send_result)
+        else:
+            assert_length(0, mailer.sent_mails)
+            assert_falseish(send_result)
+        assert_false(send_result.queued)
+        assert_equals('debug', send_result.transport)
+
 
     # --- internal helpers ----------------------------------------------------
     def list_all_files(self, basedir):
