@@ -6,6 +6,7 @@ from __future__ import absolute_import, print_function, unicode_literals
 from datetime import datetime as DateTime, timedelta as TimeDelta
 import os
 
+from boltons.timeutils import UTC
 from freezegun import freeze_time
 from pythonic_testcase import *
 from schwarz.fakefs_helpers import TempFS
@@ -13,6 +14,7 @@ from testfixtures import LogCapture
 
 from schwarz.mailqueue import (create_maildir_directories, lock_file,
     send_all_queued_messages, DebugMailer)
+from schwarz.mailqueue.queue_runner import MaildirBackedMsg
 from schwarz.mailqueue.testutils import inject_example_message
 
 
@@ -64,6 +66,21 @@ class QueueRunnerTest(PythonicTestCase):
         sent_msg, = mailer.sent_mails
         _as_str = lambda values: tuple([v.decode('ascii') for v in values])
         assert_equals(_as_str(recipients), sent_msg.to_addrs)
+
+    def test_can_handle_failures_and_update_metadata(self):
+        mailer = DebugMailer(simulate_failed_sending=True)
+        queue_date = DateTime(2020, 2, 4, hour=14, minute=32, tzinfo=UTC)
+        inject_example_message(self.path_maildir, queue_date=queue_date)
+
+        send_all_queued_messages(self.path_maildir, mailer)
+        assert_is_empty(mailer.sent_mails)
+
+        msg_file, = self.msg_files(folder='new')
+        msg = MaildirBackedMsg(msg_file)
+        assert_equals(queue_date, msg.queue_date)
+        assert_equals(1, msg.retries)
+        assert_not_none(msg.last_delivery_attempt)
+        assert_almost_now(msg.last_delivery_attempt)
 
     def msg_files(self, folder='new'):
         path = os.path.join(self.path_maildir, folder)

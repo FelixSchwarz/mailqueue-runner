@@ -21,6 +21,10 @@ class LockedFile(object):
         self.lock = lock
         self.name = fp.name
 
+    def close(self):
+        self.fp.close()
+        self.lock = None
+
     def is_locked(self):
         return (self.lock and (self.lock.fh is not None))
 
@@ -30,9 +34,16 @@ class LockedFile(object):
     def readline(self):
         return self.fp.readline()
 
-    def close(self):
-        self.fp.close()
-        self.lock = None
+    def seek(self, pos):
+        self.fp.seek(pos)
+
+    def truncate(self):
+        assert self.is_locked()
+        self.fp.truncate()
+
+    def write(self, data):
+        assert self.is_locked()
+        self.fp.write(data)
 
 
 def create_maildir_directories(basedir, is_folder=False):

@@ -6,7 +6,7 @@ from __future__ import absolute_import, print_function, unicode_literals
 from io import BytesIO
 import logging
 
-from .message_utils import msg_as_bytes, MsgInfo, SendResult
+from .message_utils import dt_now, msg_as_bytes, MsgInfo, SendResult
 from .plugins import MQSignal
 
 
@@ -44,6 +44,8 @@ class MessageHandler(object):
                 break
 
         if not send_result:
+            msg_wrapper.retries += 1
+            msg_wrapper.last_delivery_attempt = dt_now()
             self._notify_plugins(MQSignal.delivery_failed, msg_wrapper, send_result)
             msg_wrapper.delivery_failed()
         return send_result
@@ -95,6 +97,9 @@ class BaseMsg(object):
     def __init__(self):
         self._from = None
         self._to_addrs = None
+        self._retries = None
+        self._last = None
+
 
     def start_delivery(self):
         raise NotImplementedError('subclasses must override this method')
@@ -132,6 +137,15 @@ class BaseMsg(object):
     @property
     def msg_id(self):
         return self.msg.msg_id
+
+    @property
+    def retries(self):
+        return self._retries or 0
+
+    @retries.setter
+    def retries(self, value):
+        self._retries = value
+
 
 
 class InMemoryMsg(BaseMsg):

@@ -3,8 +3,10 @@
 
 from __future__ import absolute_import, print_function, unicode_literals
 
+from datetime import datetime as DateTime
 from io import BytesIO
 
+from boltons.timeutils import LocalTZ
 from pythonic_testcase import *
 
 from schwarz.mailqueue import parse_message_envelope, testutils
@@ -45,14 +47,38 @@ class MessageParsingTest(PythonicTestCase):
         assert_equals('foo@site.example', msg_info.from_addr)
         assert_equals(('foo.bar@site.example',), msg_info.to_addrs)
 
+    def test_can_parse_queue_metadata(self):
+        queue_date = DateTime(2020, 10, 1, hour=15, minute=42, second=21, tzinfo=LocalTZ)
+        last_attempt = DateTime(2020, 10, 1, hour=16, minute=0, tzinfo=LocalTZ)
+        retry_attempts = 3
 
-def build_queued_message(sender='foo@site.example', recipient='bar@site.example', msg=None):
+        queue_fp = build_queued_message(
+            sender='foo@site.example',
+            recipient  = 'bar@site.example',
+            queue_date = queue_date,
+            last       = last_attempt,
+            retries    = retry_attempts,
+            msg=b'RFC-821 MESSAGE',
+        )
+        msg_info = parse_message_envelope(queue_fp)
+        assert_equals('foo@site.example', msg_info.from_addr)
+        assert_equals(('bar@site.example',), msg_info.to_addrs)
+        assert_equals(queue_date, msg_info.queue_date)
+        assert_equals(last_attempt, msg_info.last)
+        assert_equals(retry_attempts, msg_info.retries)
+        assert_equals(b'RFC-821 MESSAGE', msg_info.msg_fp.read())
+
+
+def build_queued_message(sender='foo@site.example', recipient='bar@site.example', msg=None, queue_date=None, last=None, retries=None):
     if msg is None:
         msg = testutils.message()
     msg_bytes = serialize_message_with_queue_data(
-        msg=msg,
-        sender=sender,
-        recipients=(recipient,),
+        msg        = msg,
+        sender     = sender,
+        recipients = (recipient,),
+        queue_date = queue_date,
+        last       = last,
+        retries    = retries,
     )
     return BytesIO(msg_bytes)
 

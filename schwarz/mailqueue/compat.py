@@ -6,7 +6,6 @@ from __future__ import absolute_import, print_function, unicode_literals
 import email.utils
 import os
 import sys
-import time
 
 
 __all__ = [
@@ -57,9 +56,33 @@ def format_datetime_rfc2822(dt):
         date_str = email.utils.format_datetime(dt)
     except AttributeError:
         # Python 2
-        now_time = time.mktime(dt.timetuple())
-        date_str = email.utils.formatdate(now_time)
+        # email.utils.formatdate() in Python always uses UTC timezone ("-0000")
+        # so the resulting string points to the same time but possibly in a
+        # different timezone.
+        # The naive version might something like
+        #   now_time = time.mktime(dt.timetuple())
+        #   date_str = email.utils.formatdate(now_time)
+        date_str = format_datetime_py2(dt)
     return date_str
+
+
+WEEKDAYS = ('Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun')
+MONTHS = (None, 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec')
+
+def format_datetime_py2(dt):
+    tt = dt.timetuple()
+    utc_offset_str = dt.strftime('%z')
+    pattern = '%s, %02d %s %d %02d:%02d:%02d %s'
+    return  pattern % (
+        WEEKDAYS[tt.tm_wday],
+        tt.tm_mday,
+        MONTHS[tt.tm_mon],
+        tt.tm_year,
+        tt.tm_hour,
+        tt.tm_min,
+        tt.tm_sec,
+        utc_offset_str
+    )
 
 
 def make_msgid(domain=None):

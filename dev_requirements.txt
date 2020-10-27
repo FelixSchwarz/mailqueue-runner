@@ -8,6 +8,6 @@ mock; python_version < '3.0'
 PuzzlePluginSystem
 # >= 0.6.99: AUTH LOGIN
 pymta >= 0.6.99
-# >= 1.4.0: assert_is()
-PythonicTestcase >= 1.4.0
+# >= 1.4.1: assert_almost_now()
+PythonicTestcase >= 1.4.1
 testfixtures

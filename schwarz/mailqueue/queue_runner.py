@@ -3,16 +3,19 @@
 
 from __future__ import absolute_import, print_function, unicode_literals
 
+import email.utils
 import logging
 from mailbox import Maildir
 import os
 import time
 
+from boltons.timeutils import dt_to_timestamp
+
 from .app_helpers import init_app, init_smtp_mailer
 from .compat import queue, IS_WINDOWS
 from .maildir_utils import find_messages, move_message
 from .message_handler import BaseMsg, MessageHandler
-from .message_utils import msg_as_bytes, parse_message_envelope, SendResult
+from .message_utils import dt_now, msg_as_bytes, parse_message_envelope, SendResult
 
 
 __all__ = [
@@ -21,8 +24,8 @@ __all__ = [
     'MaildirBackend',
 ]
 
-def enqueue_message(msg, queue_path, sender, recipients, return_msg=False):
-    msg_bytes = serialize_message_with_queue_data(msg, sender=sender, recipients=recipients)
+def enqueue_message(msg, queue_path, sender, recipients, return_msg=False, **queue_args):
+    msg_bytes = serialize_message_with_queue_data(msg, sender=sender, recipients=recipients, **queue_args)
     mailbox = Maildir(queue_path)
     unique_id = mailbox.add(msg_bytes)
     msg_path = os.path.join(queue_path, 'new', unique_id)
@@ -34,12 +37,22 @@ def enqueue_message(msg, queue_path, sender, recipients, return_msg=False):
 def serialize_message_with_queue_data(msg, sender, recipients, queue_date=None, last=None, retries=None):
     sender_bytes = _email_address_as_bytes(sender)
     b_recipients = [_email_address_as_bytes(recipient) for recipient in recipients]
-    queue_bytes = b'\n'.join([
+    queue_lines = [
         b'Return-path: <' + sender_bytes + b'>',
         b'Envelope-to: ' + b','.join(b_recipients),
+        b'X-Queue-Date: ' + _dt_to_str(queue_date or dt_now()).encode('ASCII'),
+    ]
+    if last:
+        last_attempt_b = b'X-Last-Attempt: ' + _dt_to_str(last).encode('ASCII')
+        queue_lines.append(last_attempt_b)
+    if retries:
+        retries_b = b'X-Retries: ' + str(retries).encode('ASCII')
+        queue_lines.append(retries_b)
+    queue_lines.extend([
         b'X-Queue-Meta-End: end',
         msg_as_bytes(msg)
     ])
+    queue_bytes = b'\n'.join(queue_lines)
     return queue_bytes
 
 def _email_address_as_bytes(address):
@@ -47,6 +60,15 @@ def _email_address_as_bytes(address):
         return address
     # LATER: support non-ascii addresses
     return address.encode('ascii')
+
+def _dt_to_str(dt):
+    if hasattr(email.utils, 'format_datetime'):
+        # Python 3.3+
+        return email.utils.format_datetime(dt)
+    # (Python 2)
+    # localtime=True means formatdate() will not convert the DateTime instance
+    # to UTC timezone but use the provided timezone.
+    return email.utils.formatdate(dt_to_timestamp(dt), localtime=True)
 
 
 
@@ -80,6 +102,20 @@ class MaildirBackedMsg(BaseMsg):
         return True
 
     def delivery_failed(self):
+        msg_bytes = self.msg_bytes
+        queue_bytes = serialize_message_with_queue_data(
+            msg_bytes,
+            self.from_addr,
+            self.to_addrs,
+            queue_date = self.queue_date,
+            last       = self.last_delivery_attempt,
+            retries    = self.retries,
+        )
+        self.fp.seek(0)
+        self.fp.write(queue_bytes)
+        self.fp.truncate()
+        self.fp.seek(0)
+        self._msg = None
         self._move_message_back_to_new(self.fp)
 
     def delivery_successful(self):
@@ -120,6 +156,30 @@ class MaildirBackedMsg(BaseMsg):
     @property
     def msg_id(self):
         return self.msg.msg_id
+
+    @property
+    def queue_date(self):
+        return self.msg.queue_date
+
+    @property
+    def last_delivery_attempt(self):
+        if self._last is not None:
+            return self._last
+        return self.msg.last
+
+    @last_delivery_attempt.setter
+    def last_delivery_attempt(self, value):
+        self._last = value
+
+    @property
+    def retries(self):
+        if self._retries is not None:
+            return self._retries
+        return self.msg.retries
+
+    @retries.setter
+    def retries(self, value):
+        self._retries = value
 
     # --- internal helpers ----------------------------------------------------
     def _mark_message_as_in_progress(self, source_path):

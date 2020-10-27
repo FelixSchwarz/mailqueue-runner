@@ -31,7 +31,7 @@ def message():
     msg.set_payload('MsgBody')
     return msg
 
-def inject_example_message(queue_path, sender=b'foo@site.example', recipient=None, recipients=None, msg_bytes=None, target_folder='new'):
+def inject_example_message(queue_path, sender=b'foo@site.example', recipient=None, recipients=None, msg_bytes=None, target_folder='new', queue_date=None):
     if msg_bytes is None:
         msg_bytes = message()
     if recipient and recipients:
@@ -40,7 +40,7 @@ def inject_example_message(queue_path, sender=b'foo@site.example', recipient=Non
         recipients = (b'bar@site.example',)
     elif recipient:
         recipients = (recipient,)
-    msg_path = enqueue_message(msg_bytes, queue_path, sender, recipients)
+    msg_path = enqueue_message(msg_bytes, queue_path, sender, recipients, queue_date=queue_date)
     if target_folder != 'new':
         msg_path = move_message(msg_path, target_folder=target_folder, open_file=False)
     return MaildirBackedMsg(msg_path)
