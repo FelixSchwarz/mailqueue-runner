@@ -4,9 +4,12 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
 
-__all__ = ['MQSignal']
+__all__ = ['MQAction', 'MQSignal']
 
 class MQSignal(object):
     delivery_successful = 'mq:delivery_successful'  # (msg, send_result)
     delivery_failed     = 'mq:delivery_failed'      # (msg, send_result)
+
+class MQAction(object):
+    DISCARD = 'discard'
 

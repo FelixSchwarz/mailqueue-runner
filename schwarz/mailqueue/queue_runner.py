@@ -101,7 +101,11 @@ class MaildirBackedMsg(BaseMsg):
             return None
         return True
 
-    def delivery_failed(self):
+    def delivery_failed(self, discard=False):
+        if discard:
+            self._delete_message(self.fp)
+            return
+
         msg_bytes = self.msg_bytes
         queue_bytes = serialize_message_with_queue_data(
             msg_bytes,
@@ -184,6 +188,12 @@ class MaildirBackedMsg(BaseMsg):
     # --- internal helpers ----------------------------------------------------
     def _mark_message_as_in_progress(self, source_path):
         return move_message(source_path, target_folder='cur')
+
+    def _delete_message(self, fp):
+        if IS_WINDOWS:
+            fp.close()
+        file_path = fp if (not hasattr(fp, 'name')) else fp.name
+        os.unlink(file_path)
 
     def _move_message_back_to_new(self, fp):
         if IS_WINDOWS:

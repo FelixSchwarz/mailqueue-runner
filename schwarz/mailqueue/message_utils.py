@@ -20,7 +20,7 @@ from .lib import Result
 __all__ = ['dt_now', 'parse_message_envelope', 'MsgInfo', 'SendResult']
 
 def SendResult(was_sent, queued=None, transport=None):
-    return Result(was_sent, queued=queued, transport=transport)
+    return Result(was_sent, queued=queued, transport=transport, discarded=None)
 
 
 def parse_message_envelope(fp):

@@ -7,7 +7,7 @@ from io import BytesIO
 import logging
 
 from .message_utils import dt_now, msg_as_bytes, MsgInfo, SendResult
-from .plugins import MQSignal
+from .plugins import MQAction, MQSignal
 
 
 __all__ = ['MessageHandler']
@@ -46,8 +46,9 @@ class MessageHandler(object):
         if not send_result:
             msg_wrapper.retries += 1
             msg_wrapper.last_delivery_attempt = dt_now()
-            self._notify_plugins(MQSignal.delivery_failed, msg_wrapper, send_result)
-            msg_wrapper.delivery_failed()
+            discard_message = self._notify_plugins(MQSignal.delivery_failed, msg_wrapper, send_result)
+            msg_wrapper.delivery_failed(discard=discard_message)
+            send_result.discarded = discard_message
         return send_result
 
     # --- internal functionality ----------------------------------------------
@@ -60,7 +61,16 @@ class MessageHandler(object):
     def _notify_plugins(self, signal, msg, send_result):
         if self.plugins is None:
             return
-        self.plugins.call_plugins(signal, signal_kwargs={'msg': msg, 'send_result': send_result})
+        results = self.plugins.call_plugins(signal, signal_kwargs={'msg': msg, 'send_result': send_result})
+
+        if not results:
+            return None
+        decisions = set()
+        for handler, result in results:
+            if result is not None:
+                decisions.add(result)
+        discard_message = (MQAction.DISCARD in decisions)
+        return discard_message
 
     def _wrap_msg(self, msg):
         if hasattr(msg, 'start_delivery'):
@@ -104,7 +114,7 @@ class BaseMsg(object):
     def start_delivery(self):
         raise NotImplementedError('subclasses must override this method')
 
-    def delivery_failed(self):
+    def delivery_failed(self, discard=False):
         pass
 
     def delivery_successful(self):

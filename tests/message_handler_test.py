@@ -14,14 +14,16 @@ import uuid
 from ddt import ddt as DataDrivenTestCase, data as ddt_data
 from pythonic_testcase import *
 from schwarz.fakefs_helpers import TempFS
+from schwarz.log_utils import l_
 from schwarz.puzzle_plugins import connect_signals, SignalRegistry
 from testfixtures import LogCapture
 
 from schwarz.mailqueue import (create_maildir_directories, lock_file,
     DebugMailer, MessageHandler)
 from schwarz.mailqueue.compat import IS_WINDOWS
+from schwarz.mailqueue.maildir_utils import find_messages
 from schwarz.mailqueue.message_utils import parse_message_envelope
-from schwarz.mailqueue.plugins import MQSignal
+from schwarz.mailqueue.plugins import MQAction, MQSignal
 from schwarz.mailqueue.queue_runner import MaildirBackedMsg, MaildirBackend
 from schwarz.mailqueue.testutils import (assert_did_log_message, info_logger,
     inject_example_message, message as example_message)
@@ -220,6 +222,46 @@ class MessageHandlerTest(PythonicTestCase):
             assert_falseish(send_result)
         assert_false(send_result.queued)
         assert_equals('debug', send_result.transport)
+
+    def test_plugin_can_discard_message_after_failed_delivery(self):
+        mailer = DebugMailer(simulate_failed_sending=True)
+        sender = 'foo@site.example'
+        recipient = 'bar@site.example'
+
+        def discard_message(event_sender, msg, send_result):
+            assert_falseish(send_result)
+            assert_none(send_result.discarded)
+            assert_equals(sender, msg.from_addr)
+            assert_equals({recipient}, set(msg.to_addrs))
+            return MQAction.DISCARD
+
+        registry = SignalRegistry()
+        connect_signals({MQSignal.delivery_failed: discard_message}, registry.namespace)
+        msg = example_message()
+        mh = MessageHandler([mailer], plugins=registry)
+        send_result = mh.send_message(msg, sender=sender, recipient=recipient)
+
+        assert_falseish(send_result)
+        assert_false(send_result.queued)
+        assert_true(send_result.discarded)
+
+    def test_plugin_can_access_number_of_failed_deliveries(self):
+        registry = SignalRegistry()
+        def discard_after_two_attempts(sender, msg, send_result):
+            return MQAction.DISCARD if (msg.retries > 1) else None
+        connect_signals({MQSignal.delivery_failed: discard_after_two_attempts}, registry.namespace)
+
+        msg = inject_example_message(self.path_maildir)
+        mailer = DebugMailer(simulate_failed_sending=True)
+        mh = MessageHandler([mailer], plugins=registry)
+
+        mh.send_message(msg)
+        assert_length(1, find_messages(self.path_maildir, log=l_(None)))
+
+        send_result = mh.send_message(msg)
+        assert_length(0, find_messages(self.path_maildir, log=l_(None)))
+        assert_falseish(send_result)
+        assert_true(send_result.discarded)
 
 
     # --- internal helpers ----------------------------------------------------
