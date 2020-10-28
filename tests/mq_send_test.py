@@ -11,6 +11,7 @@ from pythonic_testcase import *
 from schwarz.fakefs_helpers import TempFS
 
 from schwarz.mailqueue.cli import send_test_message_main
+from schwarz.mailqueue.testutils import create_ini
 # prevent nosetests from running this imported function as "test"
 send_test_message_main.__test__ = False
 
@@ -21,7 +22,7 @@ class MQSendTest(SMTPTestCase):
         self.tempfs = TempFS.set_up(test=self)
 
     def test_can_send_test_message(self):
-        config_path = self._create_ini()
+        config_path = create_ini(self.hostname, self.listen_port, fs=self.tempfs)
 
         cmd = ['mq-send-test', config_path, '--quiet', '--from=bar@site.example', '--to=foo@site.example']
         rc = send_test_message_main(argv=cmd, return_rc_code=True)
@@ -38,14 +39,6 @@ class MQSendTest(SMTPTestCase):
         assert_matches('^<[^@>]+@mqrunner.example>$', msg['Message-ID'],
             message='test message should use custom Msg-ID domain (with correct brackets)')
 
-    def _create_ini(self):
-        config_str = '\n'.join([
-            '[mqrunner]',
-            'smtp_hostname = %s' % self.hostname,
-            'smtp_port = %d' % self.listen_port,
-        ])
-        config_path = self.tempfs.create_file('config.ini', contents=config_str.encode('ascii'))
-        return str(config_path.path)
 
 
 def assert_startswith(substr, full_str):

@@ -19,6 +19,7 @@ from .smtpclient import SMTPClient
 
 __all__ = [
     'assert_did_log_message',
+    'create_ini',
     'fake_smtp_client',
     'info_logger',
     'inject_example_message',
@@ -44,6 +45,19 @@ def inject_example_message(queue_path, sender=b'foo@site.example', recipient=Non
     if target_folder != 'new':
         msg_path = move_message(msg_path, target_folder=target_folder, open_file=False)
     return MaildirBackedMsg(msg_path)
+
+def create_ini(hostname, port, fs=None):
+    config_str = '\n'.join([
+        '[mqrunner]',
+        'smtp_hostname = %s' % hostname,
+        'smtp_port = %d' % port,
+    ])
+    if not fs:
+        return config_str
+    config_path = fs.create_file('config.ini', contents=config_str.encode('ascii'))
+    return str(config_path.path)
+
+
 
 # --- helpers to capture/check logged messages --------------------------------
 def info_logger(log_capture):
