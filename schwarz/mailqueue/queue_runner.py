@@ -16,6 +16,7 @@ from .compat import queue, IS_WINDOWS
 from .maildir_utils import find_messages, move_message
 from .message_handler import BaseMsg, MessageHandler
 from .message_utils import dt_now, msg_as_bytes, parse_message_envelope, SendResult
+from .plugins import registry
 
 
 __all__ = [
@@ -247,7 +248,7 @@ def assemble_queue_with_new_messages(queue_basedir, log):
         message_queue.put(path)
     return message_queue
 
-def send_all_queued_messages(queue_dir, mailer):
+def send_all_queued_messages(queue_dir, mailer, plugins=None):
     log = logging.getLogger('mailqueue.sending')
     unblock_stale_messages(queue_dir, log)
     message_queue = assemble_queue_with_new_messages(queue_dir, log)
@@ -255,7 +256,7 @@ def send_all_queued_messages(queue_dir, mailer):
         log.info('no unsent messages in queue dir')
         return
     log.debug('%d unsent messages in queue dir', message_queue.qsize())
-    mh = MessageHandler([mailer])
+    mh = MessageHandler([mailer], plugins=plugins)
     while True:
         try:
             message_path = message_queue.get(block=False)
@@ -270,5 +271,7 @@ def send_all_queued_messages(queue_dir, mailer):
 def one_shot_queue_run(queue_dir, config_path, options=None):
     settings = init_app(config_path, options=options)
     mailer = init_smtp_mailer(settings)
-    send_all_queued_messages(queue_dir, mailer)
+    plugin_loader = settings['plugin_loader']
+    send_all_queued_messages(queue_dir, mailer, plugins=registry)
+    plugin_loader.terminate_all_activated_plugins()
 

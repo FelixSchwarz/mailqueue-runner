@@ -8,8 +8,11 @@ import logging.config
 import os
 import sys
 
+from schwarz.puzzle_plugins import parse_list_str, PluginLoader
+
 from .compat import configparser
 from .mailer import SMTPMailer
+from .plugins import registry
 
 
 __all__ = [
@@ -17,9 +20,24 @@ __all__ = [
     'init_smtp_mailer',
 ]
 
+# tests can override the working set to test plugin functionality
+_working_set = None
+
 def init_app(config_path, options=None):
     settings = parse_config(config_path, section_name='mqrunner')
     configure_logging(settings, options or {})
+
+    log = logging.getLogger('mailqueue')
+    enabled_plugins = parse_list_str(settings.get('plugins', '*'))
+    plugin_loader = PluginLoader(
+        'mailqueue.plugins',
+        enabled_plugins = enabled_plugins,
+        working_set     = _working_set,
+        log             = log,
+    )
+    plugin_loader.initialize_plugins(registry)
+    settings['plugin_loader'] = plugin_loader
+
     return settings
 
 

@@ -66,6 +66,72 @@ loggers depending on the type of delivery:
 - `mailqueue.delivery_log`: message was delivered to the SMTP server
 - `mailqueue.queue_log`: message was queued and will be delivered later by `mq-run`
 
+
+### Plugins
+
+The library allows customization of message handling via plugins. Plugins are built
+with the [Puzzle Plugin System](https://github.com/FelixSchwarz/puzzle-plugin-system) ([blinker](https://github.com/jek/blinker)+setuptools).
+
+Features which can be implemented by plugins:
+
+- notification about successful/failed deliveries (e.g. additional logging, storing some data in external databases, ...)
+- discarding queued messages after failed delivery attempts (e.g. give up after 10 failed attempts)
+
+To learn more about plugin discovery/plugin development please head of to the [Puzzle Plugin project](https://github.com/FelixSchwarz/puzzle-plugin-system).
+
+
+CLI tools like `mq-run` will load your plugin if it is added to the
+extension point `mailqueue.plugins`, e.g.
+
+```
+# setup.cfg (of your custom app)
+[options.entry_points]
+mailqueue.plugins =
+    myplugin = example.app.mqplugin
+```
+
+Example plugin code:
+
+```python
+# example/app/mqplugin.py
+from schwarz.puzzle_plugins import connect_signals, disconnect_signals
+from schwarz.mailqueue import registry, MQAction, MQSignal
+
+class MyPlugin:
+    def __init__(self, registry):
+        self._connected_signals = None
+        self._registry = registry
+
+    def signal_map(self):
+        return {
+            MQSignal.delivery_successful: self.delivery_successful,
+            MQSignal.delivery_failed: self.delivery_failed,
+        }
+
+    def delivery_successful(self, _, msg, send_result):
+        # called when a message was delivered successfully
+        pass
+
+    def delivery_failed(self, _, msg, send_result):
+        # called when message delivery failed
+        if msg.retries > 10:
+            # discard messsage after 10 failed delivery attempts
+            return MQAction.DISCARD
+        return None
+
+def initialize(context, registry):
+    plugin = MyPlugin(registry)
+    plugin._connected_signals = connect_signals(plugin.signal_map(), registry)
+    context['plugin'] = plugin
+
+def terminate(context):
+    plugin = context['plugin']
+    disconnect_signals(plugin._connected_signals, plugin._registry)
+    plugin._registry = None
+    plugin._connected_signals = None
+```
+
+
 ### Motivation / related software
 
 Many web applications need to send emails. Usually this works by delivering the
