@@ -10,7 +10,7 @@ from .message_utils import dt_now, msg_as_bytes, MsgInfo, SendResult
 from .plugins import MQAction, MQSignal
 
 
-__all__ = ['MessageHandler']
+__all__ = ['BaseMsg', 'InMemoryMsg', 'MessageHandler']
 
 class MessageHandler(object):
     def __init__(self, transports, delivery_log=None, plugins=None):

@@ -22,6 +22,7 @@ from .plugins import registry
 __all__ = [
     'enqueue_message',
     'send_all_queued_messages',
+    'serialize_message_with_queue_data',
     'MaildirBackend',
 ]
 
