@@ -42,7 +42,7 @@ class MQRunTest(PythonicTestCase):
         inject_plugin_into_working_set('testplugin', fake_plugin)
         config_path = create_ini('host.example', port=12345, fs=self.fs)
 
-        cmd = ['mq-send-test', config_path, queue_basedir]
+        cmd = ['mq-run', config_path, queue_basedir]
         mailer = DebugMailer(simulate_failed_sending=True)
         with mock.patch('schwarz.mailqueue.queue_runner.init_smtp_mailer', new=lambda s: mailer):
             rc = one_shot_queue_run_main(argv=cmd, return_rc_code=True)
@@ -59,7 +59,7 @@ class MQRunTest(PythonicTestCase):
         inject_example_message(queue_basedir)
         config_path = create_ini('host.example', port=12345, fs=self.fs)
 
-        cmd = ['mq-send-test', config_path, queue_basedir]
+        cmd = ['mq-run', config_path, queue_basedir]
         mailer = DebugMailer(simulate_failed_sending=True)
         with mock.patch('schwarz.mailqueue.queue_runner.init_smtp_mailer', new=lambda s: mailer):
             rc = one_shot_queue_run_main(argv=cmd, return_rc_code=True)
