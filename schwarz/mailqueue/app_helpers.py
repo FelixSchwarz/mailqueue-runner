@@ -23,8 +23,10 @@ __all__ = [
 # tests can override the working set to test plugin functionality
 _working_set = None
 
-def init_app(config_path, options=None):
-    settings = parse_config(config_path, section_name='mqrunner')
+def init_app(config_path, options=None, settings=None):
+    assert (config_path is not None) ^ (settings is not None)
+    if settings is None:
+        settings = parse_config(config_path, section_name='mqrunner')
     configure_logging(settings, options or {})
 
     log = logging.getLogger('mailqueue')
@@ -121,6 +123,7 @@ def parse_config(config_path, section_name=None):
 
 def configure_logging(settings, options):
     log_path = settings.get('logging_config')
+    basic_logging_configured = settings.get('basic_logging_configured', False)
     if log_path:
         if not os.path.exists(log_path):
             sys.stderr.write('No log configuration file "%s".\n' % log_path)
@@ -130,7 +133,7 @@ def configure_logging(settings, options):
         except Exception as e:
             sys.stderr.write('Malformed logging configuration file "%s": %s\n' % (log_path, e))
             sys.exit(26)
-    else:
+    elif not basic_logging_configured:
         logging.basicConfig()
 
     verbose = options.get('verbose')

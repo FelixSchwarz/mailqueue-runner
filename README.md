@@ -57,6 +57,8 @@ The configuration file uses the traditional "ini"-like format:
     # https://docs.python.org/3/library/logging.config.html#logging-config-fileformat
     logging_conf = /path/to/logging.conf
 
+For more information about wrapping `mq-run` (e.g. to reuse an existing configuration format) please read [Cookbook: Custom wrapper for mq-run](#cookbook-custom-wrapper-for-mq-run).
+
 
 ### Logging
 
@@ -131,6 +133,36 @@ def terminate(context):
     plugin._connected_signals = None
 ```
 
+
+### Cookbook: Custom wrapper for mq-run
+
+While `mq-run` usually works great, sometimes you might want more control. For example you might not want to duplicate your configuration (once for your actual application and once for `mq-run`). The good news is that you can write a pretty minimal wrapper to leverage your existing code without duplicating `mq-run`'s functionaliy:
+
+```python
+#!/usr/bin/env python3
+
+from schwarz.mailqueue.queue_runner import one_shot_queue_run
+
+def main():
+    # set up custom configuration, logging here (use your existing code)
+    cli_options = {'verbose': True}
+    # prepare configuration as expected by mailqueue-runner
+    settings = {
+        # … (smtp settings)
+
+        # --- optional ---
+        # only load "myplugin" plugin
+        'plugins': 'myplugin',
+        # do not reset currently configured loggers, just add a few for UI output
+        'basic_logging_configured': True,
+        # ability to inject a custom MessageHandler instance for maximum flexibility
+        #'mh': …
+    }
+    one_shot_queue_run(queue_dir, options=cli_options, settings=settings)
+
+if __name__ == '__main__':
+    main()
+```
 
 ### Motivation / related software
 

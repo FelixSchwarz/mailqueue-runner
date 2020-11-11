@@ -250,7 +250,8 @@ def assemble_queue_with_new_messages(queue_basedir, log):
         message_queue.put(path)
     return message_queue
 
-def send_all_queued_messages(queue_dir, mailer, plugins=None):
+def send_all_queued_messages(queue_dir, mailer=None, plugins=None, mh=None):
+    assert (mailer is None) ^ (mh is None)
     log = logging.getLogger('mailqueue.sending')
     unblock_stale_messages(queue_dir, log)
     message_queue = assemble_queue_with_new_messages(queue_dir, log)
@@ -258,7 +259,8 @@ def send_all_queued_messages(queue_dir, mailer, plugins=None):
         log.info('no unsent messages in queue dir')
         return
     log.debug('%d unsent messages in queue dir', message_queue.qsize())
-    mh = MessageHandler([mailer], plugins=plugins)
+    if mh is None:
+        mh = MessageHandler([mailer], plugins=plugins)
     while True:
         try:
             message_path = message_queue.get(block=False)
@@ -270,10 +272,14 @@ def send_all_queued_messages(queue_dir, mailer, plugins=None):
 
 # --------------------------------------------
 
-def one_shot_queue_run(queue_dir, config_path, options=None):
-    settings = init_app(config_path, options=options)
-    mailer = init_smtp_mailer(settings)
+def one_shot_queue_run(queue_dir, config_path=None, options=None, settings=None):
+    # ability to pass "settings" so callers can use a custom configuration
+    # mechanism (including ability to inject preconfigured MessageHandler).
+    assert (config_path is not None) ^ (settings is not None)
+    settings = init_app(config_path, options=options, settings=settings)
+    mh = (settings or {}).get('mh')
+    mailer = init_smtp_mailer(settings) if (not mh) else None
     plugin_loader = settings['plugin_loader']
-    send_all_queued_messages(queue_dir, mailer, plugins=registry)
+    send_all_queued_messages(queue_dir, mailer, plugins=registry, mh=mh)
     plugin_loader.terminate_all_activated_plugins()
 
