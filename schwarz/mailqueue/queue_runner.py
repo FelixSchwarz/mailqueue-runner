@@ -13,7 +13,7 @@ from boltons.timeutils import dt_to_timestamp
 
 from .app_helpers import init_app, init_smtp_mailer
 from .compat import queue, IS_WINDOWS
-from .maildir_utils import find_messages, move_message
+from .maildir_utils import create_maildir_directories, find_messages, move_message
 from .message_handler import BaseMsg, MessageHandler
 from .message_utils import dt_now, msg_as_bytes, parse_message_envelope, SendResult
 from .plugins import registry
@@ -28,6 +28,7 @@ __all__ = [
 
 def enqueue_message(msg, queue_path, sender, recipients, return_msg=False, **queue_args):
     msg_bytes = serialize_message_with_queue_data(msg, sender=sender, recipients=recipients, **queue_args)
+    create_maildir_directories(queue_path)
     mailbox = Maildir(queue_path)
     unique_id = mailbox.add(msg_bytes)
     msg_path = os.path.join(queue_path, 'new', unique_id)
