@@ -98,7 +98,7 @@ class MaildirBackedMsg(BaseMsg):
         self._msg = None
 
     def start_delivery(self):
-        self.fp = self._mark_message_as_in_progress(self.file_path)
+        self.fp = self._mark_message_as_in_progress()
         if self.fp is None:
             # e.g. invalid path
             return None
@@ -123,7 +123,7 @@ class MaildirBackedMsg(BaseMsg):
         self.fp.truncate()
         self.fp.seek(0)
         self._msg = None
-        self._move_message_back_to_new(self.fp)
+        self._move_message_back_to_new()
 
     def delivery_successful(self):
         self._remove_message(self.fp)
@@ -189,8 +189,8 @@ class MaildirBackedMsg(BaseMsg):
         self._retries = value
 
     # --- internal helpers ----------------------------------------------------
-    def _mark_message_as_in_progress(self, source_path):
-        return move_message(source_path, target_folder='cur')
+    def _mark_message_as_in_progress(self):
+        return move_message(self.file_path, target_folder='cur')
 
     def _delete_message(self, fp):
         if IS_WINDOWS:
@@ -198,14 +198,14 @@ class MaildirBackedMsg(BaseMsg):
         file_path = fp if (not hasattr(fp, 'name')) else fp.name
         os.unlink(file_path)
 
-    def _move_message_back_to_new(self, fp):
+    def _move_message_back_to_new(self):
         if IS_WINDOWS:
-            fp.close()
-        move_message(fp, target_folder='new', open_file=False)
+            self.fp.close()
+        move_message(self.fp, target_folder='new', open_file=False)
         if not IS_WINDOWS:
             # this ensures all locks will be released and we don't keep open files
             # around for no reason.
-            fp.close()
+            self.fp.close()
 
     def _remove_message(self, fp):
         file_path = fp.name
