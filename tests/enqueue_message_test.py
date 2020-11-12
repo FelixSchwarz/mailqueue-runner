@@ -8,7 +8,7 @@ import os
 from pythonic_testcase import *
 from schwarz.fakefs_helpers import TempFS
 
-from schwarz.mailqueue.queue_runner import enqueue_message
+from schwarz.mailqueue import enqueue_message, DebugMailer, MessageHandler
 from schwarz.mailqueue.testutils import message as example_message
 
 
@@ -27,6 +27,26 @@ class EnqueueMessageTest(PythonicTestCase):
 
         enqueue_message(msg, self.path_maildir, sender='foo@site.example', recipients=('bar@site.example',))
         assert_length(1, self.msg_files(folder='new'))
+
+    def test_can_store_message_on_disk_before_sending(self):
+        msg = example_message()
+        md_msg = enqueue_message(msg, self.path_maildir,
+            sender      = 'foo@site.example',
+            recipients  = ('bar@site.example',),
+            in_progress = True,
+            return_msg  = True,
+        )
+        assert_length(0, self.msg_files(folder='new'))
+        assert_length(1, self.msg_files(folder='cur'))
+
+        mailer = DebugMailer()
+        mh = MessageHandler([mailer])
+        send_result = mh.send_message(md_msg)
+        assert_trueish(send_result)
+
+        assert_length(1, mailer.sent_mails)
+        assert_length(0, self.msg_files(folder='new'))
+        assert_length(0, self.msg_files(folder='cur'))
 
     # --- internal helpers ----------------------------------------------------
     def msg_files(self, folder='new'):

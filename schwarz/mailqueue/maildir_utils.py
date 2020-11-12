@@ -125,6 +125,10 @@ def move_message(file_, target_folder, open_file=True):
     queue_base_dir = os.path.dirname(folder_path)
     filename = os.path.basename(file_path)
     target_path = os.path.join(queue_base_dir, target_folder, filename)
+    if file_path == target_path:
+        if not open_file:
+            return target_path
+        return file_
 
     did_open_file = False
     # no locking on Windows as you can not unlink/move open files there.

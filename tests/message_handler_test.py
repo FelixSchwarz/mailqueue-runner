@@ -259,8 +259,9 @@ class MessageHandlerTest(PythonicTestCase):
         assert_length(1, find_messages(self.path_maildir, log=l_(None)))
 
         send_result = mh.send_message(msg)
-        assert_length(0, find_messages(self.path_maildir, log=l_(None)))
         assert_falseish(send_result)
+        assert_length(0, mailer.sent_mails)
+        assert_length(0, find_messages(self.path_maildir, log=l_(None)))
         assert_true(send_result.discarded)
 
 

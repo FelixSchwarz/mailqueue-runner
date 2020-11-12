@@ -5,7 +5,7 @@ from __future__ import absolute_import, print_function, unicode_literals
 
 import email.utils
 import logging
-from mailbox import Maildir
+from mailbox import _sync_close, Maildir
 import os
 import time
 
@@ -26,15 +26,29 @@ __all__ = [
     'MaildirBackend',
 ]
 
-def enqueue_message(msg, queue_path, sender, recipients, return_msg=False, **queue_args):
+def enqueue_message(msg, queue_path, sender, recipients, return_msg=False, in_progress=False, **queue_args):
     msg_bytes = serialize_message_with_queue_data(msg, sender=sender, recipients=recipients, **queue_args)
     create_maildir_directories(queue_path)
+
     mailbox = Maildir(queue_path)
-    unique_id = mailbox.add(msg_bytes)
-    msg_path = os.path.join(queue_path, 'new', unique_id)
-    if return_msg:
-        return MaildirBackedMsg(msg_path)
-    return msg_path
+    sub_dir = 'cur' if in_progress else 'new'
+    return inject_message_into_maildir(msg_bytes, mailbox, sub_dir=sub_dir, return_msg=return_msg)
+
+
+def inject_message_into_maildir(msg_bytes, maildir, sub_dir='new', return_msg=False):
+    tmp_fp = maildir._create_tmp()
+    try:
+        maildir._dump_message(msg_bytes, tmp_fp)
+    except:
+        tmp_fp.close()
+        os.remove(tmp_fp.name)
+        raise
+    _sync_close(tmp_fp)
+    open_file = bool(return_msg)
+    target_ = move_message(tmp_fp, target_folder=sub_dir, open_file=open_file)
+    if not return_msg:
+        return target_
+    return MaildirBackedMsg(target_.name, fp=target_)
 
 
 def serialize_message_with_queue_data(msg, sender, recipients, queue_date=None, last=None, retries=None):
@@ -91,10 +105,10 @@ class MaildirBackend(object):
 
 
 class MaildirBackedMsg(BaseMsg):
-    def __init__(self, file_path):
+    def __init__(self, file_path, fp=None):
         super(MaildirBackedMsg, self).__init__()
         self.file_path = file_path
-        self.fp = None
+        self.fp = fp
         self._msg = None
 
     def start_delivery(self):
@@ -190,7 +204,7 @@ class MaildirBackedMsg(BaseMsg):
 
     # --- internal helpers ----------------------------------------------------
     def _mark_message_as_in_progress(self):
-        return move_message(self.file_path, target_folder='cur')
+        return move_message(self.fp or self.file_path, target_folder='cur')
 
     def _delete_message(self, fp):
         if IS_WINDOWS:
@@ -206,6 +220,7 @@ class MaildirBackedMsg(BaseMsg):
             # this ensures all locks will be released and we don't keep open files
             # around for no reason.
             self.fp.close()
+        self.fp = None
 
     def _remove_message(self, fp):
         file_path = fp.name

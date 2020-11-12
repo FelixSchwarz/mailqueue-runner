@@ -164,6 +164,29 @@ if __name__ == '__main__':
     main()
 ```
 
+
+### Cookbook: Conservative Message Sending
+
+The default configuration shown above tries to send messages via SMTP if possible and only serialize the data to persistent storage (filesystem) when the SMTP delivery failed. That approach is usually a good compromise between performance (serializing to disk is slow) while ensuring that messages will be sent eventually.
+
+However sometimes it is really important that you never loose a single message even if mailqueue-runner has a bug and crashes directly after trying to send the message with SMTP. To mitigate this risk you can use mailqueue-runner to store the message persistently before even trying to send it via SMTP:
+
+```python
+from schwarz.mailqueue import enqueue_message, MessageHandler
+
+md_msg = enqueue_message(msg, path_maildir,
+    sender      = '...',
+    recipients  = ('...',),
+    in_progress = True,
+    return_msg  = True,
+)
+handler = MessageHandler(transports=...)
+was_sent = handler.send_message(md_msg, sender='foo@site.example', recipient='bar@site.example')
+```
+
+Please note that you don't have to use a single approach exclusively in your application. You can use conservative message sending as shown above for really important messages while relying on a performance-focussed approach for not-so-important majority of your messages.
+
+
 ### Motivation / related software
 
 Many web applications need to send emails. Usually this works by delivering the
