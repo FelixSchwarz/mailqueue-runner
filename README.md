@@ -15,22 +15,24 @@ adapt the library to your needs.
 
 ### Usage (mail submission)
 
-    from schwarz.mailqueue import init_smtp_mailer, MaildirBackend, MessageHandler
-    # settings: a dict-like instance with keys as shown below in the "Configuration" section
-    settings = {}
-    # Adapt the list of transports as you like (ordering matters):
-    # - always enqueue: use "MaildirBackend()" only
-    # - never enqueue: use "init_smtp_mailer()" only
-    transports = [
-        init_smtp_mailer(settings),
-        MaildirBackend('/path/to/queue-dir'),
-    ]
-    handler = MessageHandler(transports)
-    msg = b'…' # RFC-822/RFC-5322 message as bytes or email.Message instance
-    was_sent = handler.send_message(msg, sender='foo@site.example', recipient='bar@site.example')
-    # "was_sent" evaluates to True if the message was sent via SMTP or queued
-    # for later delivery.
-    was_queued = (getattr(send_result, 'queued', None) is not False)
+```python
+from schwarz.mailqueue import init_smtp_mailer, MaildirBackend, MessageHandler
+# settings: a dict-like instance with keys as shown below in the "Configuration" section
+settings = {}
+# Adapt the list of transports as you like (ordering matters):
+# - always enqueue: use "MaildirBackend()" only
+# - never enqueue: use "init_smtp_mailer()" only
+transports = [
+    init_smtp_mailer(settings),
+    MaildirBackend('/path/to/queue-dir'),
+]
+handler = MessageHandler(transports)
+msg = b'…' # RFC-822/RFC-5322 message as bytes or email.Message instance
+was_sent = handler.send_message(msg, sender='foo@site.example', recipient='bar@site.example')
+# "was_sent" evaluates to True if the message was sent via SMTP or queued
+# for later delivery.
+was_queued = (getattr(send_result, 'queued', None) is not False)
+```
 
 
 ### Usage (mq-run)
