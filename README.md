@@ -216,6 +216,8 @@ solid piece of software. I wrote yet another library because I wanted
  - only minimal modification to queued messages (repoze.sendmail uses Python's
    email module to manipulate message headers required for delivery)
 
+[django-mail-queue](https://github.com/Privex/django-mail-queue) provides a Django app which also provides a web ui. Obviously restricted to Django and there is too much implicit ("magic") behavior for my taste. However I recommend trying this library if you are using Django.
+
 
 ### Non-goals
 
