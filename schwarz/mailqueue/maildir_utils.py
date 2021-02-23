@@ -68,7 +68,16 @@ def create_maildir_directories(basedir, is_folder=False):
     return new_path
 
 
+def is_path_like(path):
+    if hasattr(os, 'PathLike'):
+        return isinstance(path, os.PathLike)
+    # support Python 2 with pathlib2
+    return hasattr(path, '__fspath__')
+
+
 def find_messages(queue_basedir, log, queue_folder='new'):
+    if is_path_like(queue_basedir) and not hasattr(os, 'PathLike'):
+        queue_basedir = str(queue_basedir)
     path_new = os.path.join(queue_basedir, queue_folder)
     try:
         filenames = os.listdir(path_new)
