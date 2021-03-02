@@ -57,8 +57,10 @@ class SMTPMailer(object):
             connection.sendmail(fromaddr, toaddrs, message)
             msg_was_sent.value = True
             connection.quit()
-        except (SMTPException, OSError, socket.error):
-            pass
+        except (SMTPException, OSError, socket.error) as e:
+            if self.smtp_log:
+                log_msg = '%s (%s)' % (str(e), e.__class__.__name__)
+                self.smtp_log.warn(log_msg)
         return msg_was_sent
 
 

@@ -9,6 +9,7 @@ from ddt import ddt as DataDrivenTestCase, data as ddt_data
 from pymta.api import IMTAPolicy
 from pymta.test_util import DummyAuthenticator
 from pythonic_testcase import *
+from schwarz.log_utils.testutils import build_collecting_logger
 
 from schwarz.mailqueue import SMTPMailer
 from schwarz.mailqueue.compat import IS_PYTHON3
@@ -50,7 +51,8 @@ class SMTPMailerTest(PythonicTestCase):
     def test_can_handle_connection_error(self, exc):
         overrides = self._build_overrides(connect=exc)
         fake_client = fake_smtp_client(overrides=overrides)
-        mailer = SMTPMailer(client=fake_client)
+        logger, logs = build_collecting_logger()
+        mailer = SMTPMailer(client=fake_client, smtp_log=logger)
         message = b'Header: value\n\nbody\n'
         # We want to check that "SMTPMailer" is able to handle the "OSError"
         # which is raised in ".connect()" (see "overrides" above).
@@ -64,6 +66,10 @@ class SMTPMailerTest(PythonicTestCase):
 
         assert_false(msg_was_sent)
         assert_equals(0, fake_client.server.received_messages.qsize())
+        assert_length(1, logs.buffer)
+        expected_msg = '%s (%s)' % (str(exc), exc.__class__.__name__)
+        lr, = logs.buffer
+        assert_equals(expected_msg, lr.msg)
 
     def test_can_handle_smtp_exception_after_from(self):
         reject_from = self._build_policy(accept_from=False)
