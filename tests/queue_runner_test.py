@@ -7,9 +7,12 @@ from datetime import datetime as DateTime, timedelta as TimeDelta
 import os
 
 from boltons.timeutils import UTC
-from freezegun import freeze_time
 from pythonic_testcase import *
 from schwarz.fakefs_helpers import TempFS
+try:
+    from time_machine import travel as freeze_time
+except ImportError:
+    from freezegun import freeze_time
 from testfixtures import LogCapture
 
 from schwarz.mailqueue import (create_maildir_directories, lock_file,
