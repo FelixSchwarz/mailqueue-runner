@@ -11,7 +11,6 @@ except ImportError:
 
 from pkg_resources import Distribution, EntryPoint, WorkingSet
 from pythonic_testcase import *
-from schwarz.fakefs_helpers import TempFS
 from schwarz.log_utils import l_
 from schwarz.puzzle_plugins import connect_signals, disconnect_signals
 from schwarz.puzzle_plugins.lib import AttrDict
@@ -23,51 +22,46 @@ from schwarz.mailqueue.maildir_utils import find_messages
 from schwarz.mailqueue.testutils import create_ini, inject_example_message
 
 
+# entries=() so the WorkingSet contains our entries only, nothing is
+# picked up from the system
+@mock.patch('schwarz.mailqueue.app_helpers._working_set', new=WorkingSet(entries=()))
+def test_mq_runner_can_load_plugins(tmpdir):
+    queue_basedir = os.path.join(tmpdir, 'mailqueue')
+    create_maildir_directories(queue_basedir)
+    inject_example_message(queue_basedir)
 
-class MQRunTest(PythonicTestCase):
-    def setUp(self):
-        self.fs = TempFS.set_up(test=self)
+    mock_fn = mock.MagicMock(return_value=MQAction.DISCARD, spec={})
+    signal_map = {MQSignal.delivery_failed: mock_fn}
+    fake_plugin = create_fake_plugin(signal_map)
+    inject_plugin_into_working_set('testplugin', fake_plugin)
+    config_path = create_ini('host.example', port=12345, dir_path=tmpdir)
 
-    # entries=() so the WorkingSet contains our entries only, nothing is
-    # picked up from the system
-    @mock.patch('schwarz.mailqueue.app_helpers._working_set', new=WorkingSet(entries=()))
-    def test_mq_runner_can_load_plugins(self):
-        queue_basedir = os.path.join(self.fs.root, 'mailqueue')
-        create_maildir_directories(queue_basedir)
-        inject_example_message(queue_basedir)
+    cmd = ['mq-run', config_path, queue_basedir]
+    mailer = DebugMailer(simulate_failed_sending=True)
+    with mock.patch('schwarz.mailqueue.queue_runner.init_smtp_mailer', new=lambda s: mailer):
+        rc = one_shot_queue_run_main(argv=cmd, return_rc_code=True)
+    assert_equals(0, rc)
 
-        mock_fn = mock.MagicMock(return_value=MQAction.DISCARD, spec={})
-        signal_map = {MQSignal.delivery_failed: mock_fn}
-        fake_plugin = create_fake_plugin(signal_map)
-        inject_plugin_into_working_set('testplugin', fake_plugin)
-        config_path = create_ini('host.example', port=12345, fs=self.fs)
+    assert_length(0, mailer.sent_mails)
+    mock_fn.assert_called_once()
+    assert_length(0, find_messages(queue_basedir, log=l_(None)),
+        message='plugin should have discarded the message after failed delivery')
 
-        cmd = ['mq-run', config_path, queue_basedir]
-        mailer = DebugMailer(simulate_failed_sending=True)
-        with mock.patch('schwarz.mailqueue.queue_runner.init_smtp_mailer', new=lambda s: mailer):
-            rc = one_shot_queue_run_main(argv=cmd, return_rc_code=True)
-        assert_equals(0, rc)
+def test_mq_runner_works_without_plugins(tmpdir):
+    queue_basedir = os.path.join(tmpdir, 'mailqueue')
+    create_maildir_directories(queue_basedir)
+    inject_example_message(queue_basedir)
+    config_path = create_ini('host.example', port=12345, dir_path=tmpdir)
 
-        assert_length(0, mailer.sent_mails)
-        mock_fn.assert_called_once()
-        assert_length(0, find_messages(queue_basedir, log=l_(None)),
-            message='plugin should have discarded the message after failed delivery')
+    cmd = ['mq-run', config_path, queue_basedir]
+    mailer = DebugMailer(simulate_failed_sending=True)
+    with mock.patch('schwarz.mailqueue.queue_runner.init_smtp_mailer', new=lambda s: mailer):
+        rc = one_shot_queue_run_main(argv=cmd, return_rc_code=True)
+    assert_equals(0, rc)
 
-    def test_mq_runner_works_without_plugins(self):
-        queue_basedir = os.path.join(self.fs.root, 'mailqueue')
-        create_maildir_directories(queue_basedir)
-        inject_example_message(queue_basedir)
-        config_path = create_ini('host.example', port=12345, fs=self.fs)
-
-        cmd = ['mq-run', config_path, queue_basedir]
-        mailer = DebugMailer(simulate_failed_sending=True)
-        with mock.patch('schwarz.mailqueue.queue_runner.init_smtp_mailer', new=lambda s: mailer):
-            rc = one_shot_queue_run_main(argv=cmd, return_rc_code=True)
-        assert_equals(0, rc)
-
-        assert_length(0, mailer.sent_mails)
-        assert_length(1, find_messages(queue_basedir, log=l_(None)),
-            message='message should have been queued for later delivery')
+    assert_length(0, mailer.sent_mails)
+    assert_length(1, find_messages(queue_basedir, log=l_(None)),
+        message='message should have been queued for later delivery')
 
 
 

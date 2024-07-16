@@ -5,10 +5,11 @@ from __future__ import absolute_import, print_function, unicode_literals
 
 import email
 import re
+import shutil
+import tempfile
 
 from pymta.test_util import SMTPTestCase
 from pythonic_testcase import *
-from schwarz.fakefs_helpers import TempFS
 
 from schwarz.mailqueue.cli import send_test_message_main
 from schwarz.mailqueue.testutils import create_ini
@@ -19,10 +20,14 @@ send_test_message_main.__test__ = False
 class MQSendTest(SMTPTestCase):
     def setUp(self):
         super(MQSendTest, self).setUp()
-        self.tempfs = TempFS.set_up(test=self)
+        self.tmpdir = tempfile.mkdtemp()
+
+    def tearDown(self):
+        shutil.rmtree(self.tmpdir)
+        super(MQSendTest, self).tearDown()
 
     def test_can_send_test_message(self):
-        config_path = create_ini(self.hostname, self.listen_port, fs=self.tempfs)
+        config_path = create_ini(self.hostname, self.listen_port, dir_path=self.tmpdir)
 
         cmd = ['mq-send-test', config_path, '--quiet', '--from=bar@site.example', '--to=foo@site.example']
         rc = send_test_message_main(argv=cmd, return_rc_code=True)
