@@ -4,7 +4,6 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
 from pymta.test_util import SMTPTestCase
-from pythonic_testcase import *
 
 from schwarz.mailqueue import SMTPMailer
 from schwarz.mailqueue.compat import IS_PYTHON3
@@ -18,17 +17,17 @@ class SMTPMailerFullstackTest(SMTPTestCase):
         toaddrs = ('bar@site.example', 'baz@site.example',)
         msg_was_sent = mailer.send(fromaddr, toaddrs, message)
 
-        assert_true(msg_was_sent)
+        assert msg_was_sent
         received_queue = self.get_received_messages()
-        assert_equals(1, received_queue.qsize())
+        assert received_queue.qsize() == 1
         received_message = received_queue.get(block=False)
-        assert_equals(fromaddr, received_message.smtp_from)
-        assert_equals(toaddrs, tuple(received_message.smtp_to))
-        assert_none(received_message.username)
+        assert received_message.smtp_from == fromaddr
+        assert tuple(received_message.smtp_to) == toaddrs
+        assert received_message.username is None
         # pymta converts this to a string automatically
         expected_message = message.decode('ASCII')
         # in Python 2 the received message lacks the final '\n' (unknown reason)
         if not IS_PYTHON3:
             expected_message = expected_message.rstrip('\n')
-        assert_equals(expected_message, received_message.msg_data)
+        assert received_message.msg_data == expected_message
 

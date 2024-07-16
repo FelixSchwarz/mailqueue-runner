@@ -9,7 +9,6 @@ import shutil
 import tempfile
 
 from pymta.test_util import SMTPTestCase
-from pythonic_testcase import *
 
 from schwarz.mailqueue.cli import send_test_message_main
 from schwarz.mailqueue.testutils import create_ini
@@ -31,14 +30,14 @@ class MQSendTest(SMTPTestCase):
 
         cmd = ['mq-send-test', config_path, '--quiet', '--from=bar@site.example', '--to=foo@site.example']
         rc = send_test_message_main(argv=cmd, return_rc_code=True)
-        assert_equals(0, rc)
+        assert rc == 0
 
         received_queue = self.get_received_messages()
-        assert_equals(1, received_queue.qsize())
+        assert received_queue.qsize() == 1
         smtp_msg = received_queue.get(block=False)
-        assert_equals('bar@site.example', smtp_msg.smtp_from)
-        assert_equals(('foo@site.example',), tuple(smtp_msg.smtp_to))
-        assert_none(smtp_msg.username)
+        assert smtp_msg.smtp_from == 'bar@site.example'
+        assert tuple(smtp_msg.smtp_to) == ('foo@site.example',)
+        assert smtp_msg.username is None
         msg = email.message_from_string(smtp_msg.msg_data)
         assert_startswith('Test message', msg['Subject'])
         assert_matches('^<[^@>]+@mqrunner.example>$', msg['Message-ID'],
@@ -47,9 +46,9 @@ class MQSendTest(SMTPTestCase):
 
 
 def assert_startswith(substr, full_str):
-    assert_true(full_str.startswith(substr))
+    assert full_str.startswith(substr)
 
 def assert_matches(pattern, text_str, message=None):
     match = re.match(pattern, text_str)
-    assert_not_none(match, message=message)
+    assert match is not None, message
 

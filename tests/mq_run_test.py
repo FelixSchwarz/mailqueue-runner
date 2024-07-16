@@ -10,7 +10,6 @@ except ImportError:
     import mock
 
 from pkg_resources import Distribution, EntryPoint, WorkingSet
-from pythonic_testcase import *
 from schwarz.log_utils import l_
 from schwarz.puzzle_plugins import connect_signals, disconnect_signals
 from schwarz.puzzle_plugins.lib import AttrDict
@@ -40,12 +39,12 @@ def test_mq_runner_can_load_plugins(tmpdir):
     mailer = DebugMailer(simulate_failed_sending=True)
     with mock.patch('schwarz.mailqueue.queue_runner.init_smtp_mailer', new=lambda s: mailer):
         rc = one_shot_queue_run_main(argv=cmd, return_rc_code=True)
-    assert_equals(0, rc)
+    assert rc == 0
 
-    assert_length(0, mailer.sent_mails)
+    assert len(mailer.sent_mails) == 0
     mock_fn.assert_called_once()
-    assert_length(0, find_messages(queue_basedir, log=l_(None)),
-        message='plugin should have discarded the message after failed delivery')
+    assert len(tuple(find_messages(queue_basedir, log=l_(None)))) == 0, \
+        'plugin should have discarded the message after failed delivery'
 
 def test_mq_runner_works_without_plugins(tmpdir):
     queue_basedir = os.path.join(tmpdir, 'mailqueue')
@@ -57,11 +56,11 @@ def test_mq_runner_works_without_plugins(tmpdir):
     mailer = DebugMailer(simulate_failed_sending=True)
     with mock.patch('schwarz.mailqueue.queue_runner.init_smtp_mailer', new=lambda s: mailer):
         rc = one_shot_queue_run_main(argv=cmd, return_rc_code=True)
-    assert_equals(0, rc)
+    assert rc == 0
 
-    assert_length(0, mailer.sent_mails)
-    assert_length(1, find_messages(queue_basedir, log=l_(None)),
-        message='message should have been queued for later delivery')
+    assert len(mailer.sent_mails) == 0
+    assert len(tuple(find_messages(queue_basedir, log=l_(None)))) == 1, \
+        'message should have been queued for later delivery'
 
 
 

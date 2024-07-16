@@ -8,7 +8,6 @@ import socket
 from pymta.api import IMTAPolicy
 from pymta.test_util import DummyAuthenticator
 import pytest
-from pythonic_testcase import *
 from schwarz.log_utils.testutils import build_collecting_logger
 
 from schwarz.mailqueue import SMTPMailer
@@ -24,20 +23,20 @@ def test_can_send_message_via_smtpmailer():
     message = b'Header: value\n\nbody\n'
     toaddrs = ('bar@site.example', 'baz@site.example',)
     msg_was_sent = mailer.send(fromaddr, toaddrs, message)
-    assert_true(msg_was_sent)
+    assert msg_was_sent
 
     received_queue = fake_client.server.received_messages
-    assert_equals(1, received_queue.qsize())
+    assert received_queue.qsize() == 1
     received_message = received_queue.get(block=False)
-    assert_equals(fromaddr, received_message.smtp_from)
-    assert_equals(toaddrs, tuple(received_message.smtp_to))
-    assert_none(received_message.username)
+    assert received_message.smtp_from == fromaddr
+    assert tuple(received_message.smtp_to) == toaddrs
+    assert received_message.username is None
     # pymta converts this to a string automatically
     expected_message = message.decode('ASCII')
     # in Python 2 the received message lacks the final '\n' (unknown reason)
     if not IS_PYTHON3:
         expected_message = expected_message.rstrip('\n')
-    assert_equals(expected_message, received_message.msg_data)
+    assert received_message.msg_data == expected_message
 
 @pytest.mark.parametrize('exc', [
     OSError('error on connect'),
@@ -61,12 +60,12 @@ def test_can_handle_connection_error(exc):
     with stub_socket_creation(fake_client.server):
         msg_was_sent = mailer.send('foo@site.example', 'bar@site.example', message)
 
-    assert_false(msg_was_sent)
-    assert_equals(0, fake_client.server.received_messages.qsize())
-    assert_length(1, logs.buffer)
+    assert not msg_was_sent
+    assert fake_client.server.received_messages.qsize() == 0
+    assert len(logs.buffer) == 1
     expected_msg = '%s (%s)' % (str(exc), exc.__class__.__name__)
     lr, = logs.buffer
-    assert_equals(expected_msg, lr.msg)
+    assert lr.msg == expected_msg
 
 def test_can_handle_smtp_exception_after_from():
     reject_from = _build_policy(accept_from=False)
@@ -75,8 +74,8 @@ def test_can_handle_smtp_exception_after_from():
     message = b'Header: value\n\nbody\n'
     msg_was_sent = mailer.send('foo@site.example', 'bar@site.example', message)
 
-    assert_false(msg_was_sent)
-    assert_equals(0, fake_client.server.received_messages.qsize())
+    assert not msg_was_sent
+    assert fake_client.server.received_messages.qsize() == 0
 
 
 @pytest.mark.parametrize('auth_type', ['PLAIN', 'LOGIN'])
@@ -91,9 +90,9 @@ def test_can_use_smtp_auth(auth_type):
     message = b'Header: value\n\nbody\n'
     msg_was_sent = mailer.send('foo@site.example', 'bar@site.example', message)
 
-    assert_true(msg_was_sent)
+    assert msg_was_sent
     received_queue = fake_client.server.received_messages
-    assert_equals(1, received_queue.qsize())
+    assert received_queue.qsize() == 1
 
 # --- internal helpers ----------------------------------------------------
 def _build_policy(**method_results):

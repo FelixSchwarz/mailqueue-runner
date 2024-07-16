@@ -6,7 +6,6 @@ from __future__ import absolute_import, print_function, unicode_literals
 import logging
 import socket
 
-from pythonic_testcase import *
 from testfixtures import LogCapture
 
 from schwarz.mailqueue.testutils import fake_smtp_client
@@ -16,7 +15,7 @@ def test_can_log_connect():
     with LogCapture() as l:
         smtp_log = logging.getLogger('s')
         client = fake_smtp_client(smtp_log=smtp_log)
-    assert_not_equals(0, len(l.records), message='no records logged')
+    assert len(l.records) != 0, 'no records logged'
     l.check(
         ('s', 'DEBUG', 'connecting to site.invalid:123')
     )
@@ -27,7 +26,7 @@ def test_can_log_client_command():
         client = fake_smtp_client(smtp_log=smtp_log)
         client.ehlo('client.example')
         client.quit()
-    assert_not_equals(0, len(l.records), message='no records logged')
+    assert len(l.records) != 0, 'no records logged'
     # pymta shortcoming: unable to set the server host name manually
     server_name = socket.getfqdn()
     l.check(
@@ -48,7 +47,7 @@ def test_can_log_complete_smtp_interaction():
         client = fake_smtp_client(smtp_log=smtp_log, local_hostname='client.example')
         client.sendmail(from_, to_, msg)
         client.quit()
-    assert_not_equals(0, len(l.records), message='no records logged')
+    assert len(l.records) != 0, 'no records logged'
     # pymta shortcoming: unable to set the server host name manually
     server_name = socket.getfqdn()
     l.check(

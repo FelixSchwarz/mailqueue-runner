@@ -7,7 +7,6 @@ from datetime import datetime as DateTime
 from io import BytesIO
 
 from boltons.timeutils import LocalTZ
-from pythonic_testcase import *
 
 from schwarz.mailqueue import parse_message_envelope, testutils
 from schwarz.mailqueue.queue_runner import serialize_message_with_queue_data
@@ -20,21 +19,21 @@ def test_can_parse_simple_message_envelope():
         msg=b'RFC-821 MESSAGE',
     )
     msg_info = parse_message_envelope(queue_fp)
-    assert_equals('foo@site.example', msg_info.from_addr)
-    assert_equals(('bar@site.example',), msg_info.to_addrs)
-    assert_equals(b'RFC-821 MESSAGE', msg_info.msg_fp.read())
+    assert msg_info.from_addr == 'foo@site.example'
+    assert msg_info.to_addrs == ('bar@site.example',)
+    assert msg_info.msg_fp.read() == b'RFC-821 MESSAGE'
 
 def test_can_parse_return_path_with_angle_brackets():
     # Exim puts angle brackets around the return path
     queue_fp = build_queued_message(sender='foo@site.example')
     _assert_return_path_has_angle_brackets(queue_fp)
     msg_info = parse_message_envelope(queue_fp)
-    assert_equals('foo@site.example', msg_info.from_addr)
+    assert msg_info.from_addr == 'foo@site.example'
 
 def _assert_return_path_has_angle_brackets(queue_fp):
     sender_line = queue_fp.readline()
     queue_fp.seek(0)
-    assert_equals(b'Return-path: <foo@site.example>\n', sender_line)
+    assert sender_line == b'Return-path: <foo@site.example>\n'
 
 def test_can_parse_encoded_header():
     # repoze.sendmail encodes all (envelope) header values
@@ -43,8 +42,8 @@ def test_can_parse_encoded_header():
         recipient='=?utf-8?q?foo=2Ebar=40site=2Eexample?=',
     )
     msg_info = parse_message_envelope(queue_fp)
-    assert_equals('foo@site.example', msg_info.from_addr)
-    assert_equals(('foo.bar@site.example',), msg_info.to_addrs)
+    assert msg_info.from_addr == 'foo@site.example'
+    assert msg_info.to_addrs == ('foo.bar@site.example',)
 
 def test_can_parse_queue_metadata():
     queue_date = DateTime(2020, 10, 1, hour=15, minute=42, second=21, tzinfo=LocalTZ)
@@ -60,12 +59,12 @@ def test_can_parse_queue_metadata():
         msg=b'RFC-821 MESSAGE',
     )
     msg_info = parse_message_envelope(queue_fp)
-    assert_equals('foo@site.example', msg_info.from_addr)
-    assert_equals(('bar@site.example',), msg_info.to_addrs)
-    assert_equals(queue_date, msg_info.queue_date)
-    assert_equals(last_attempt, msg_info.last)
-    assert_equals(retry_attempts, msg_info.retries)
-    assert_equals(b'RFC-821 MESSAGE', msg_info.msg_fp.read())
+    assert msg_info.from_addr == 'foo@site.example'
+    assert msg_info.to_addrs == ('bar@site.example',)
+    assert msg_info.queue_date == queue_date
+    assert msg_info.last == last_attempt
+    assert msg_info.retries == retry_attempts
+    assert msg_info.msg_fp.read() == b'RFC-821 MESSAGE'
 
 
 def build_queued_message(sender='foo@site.example', recipient='bar@site.example', msg=None, queue_date=None, last=None, retries=None):

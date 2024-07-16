@@ -11,7 +11,6 @@ except ImportError:
     from mock import MagicMock
 import uuid
 
-from pythonic_testcase import *
 import pytest
 from schwarz.log_utils import l_
 from schwarz.puzzle_plugins import connect_signals, SignalRegistry
@@ -49,36 +48,36 @@ def test_can_send_message(path_maildir, with_msg_id):
         recipient  = b'bar@site.example',
         msg_bytes  = msg_bytes,
     )
-    assert_true(os.path.exists(msg.path))
+    assert os.path.exists(msg.path)
 
     with LogCapture() as lc:
         mh = MessageHandler([mailer], info_logger(lc))
         was_sent = mh.send_message(msg)
-    assert_trueish(was_sent)
+    assert bool(was_sent)
     expected_log_msg = '%s => %s' % ('foo@site.example', 'bar@site.example')
     if with_msg_id:
         expected_log_msg += ' <%s>' % msg_id
     assert_did_log_message(lc, expected_msg=expected_log_msg)
 
-    assert_length(1, mailer.sent_mails)
+    assert len(mailer.sent_mails) == 1
     sent_msg, = mailer.sent_mails
-    assert_equals('foo@site.example', sent_msg.from_addr)
-    assert_equals(('bar@site.example',), sent_msg.to_addrs)
-    assert_equals(msg_nl(msg_bytes), sent_msg.msg_fp.read())
-    assert_false(os.path.exists(msg.path))
+    assert sent_msg.from_addr == 'foo@site.example'
+    assert sent_msg.to_addrs == ('bar@site.example',)
+    assert sent_msg.msg_fp.read() == msg_nl(msg_bytes)
+    assert not os.path.exists(msg.path)
     # ensure there are no left-overs/tmp files
-    assert_length(0, list_all_files(path_maildir))
+    assert len(list_all_files(path_maildir)) == 0
 
 def test_can_handle_sending_failure(path_maildir):
     mailer = DebugMailer(simulate_failed_sending=True)
     msg = inject_example_message(path_maildir)
-    assert_true(os.path.exists(msg.path))
+    assert os.path.exists(msg.path)
 
     was_sent = MessageHandler([mailer]).send_message(msg)
-    assert_falseish(was_sent)
-    assert_true(os.path.exists(msg.path))
+    assert not was_sent
+    assert os.path.exists(msg.path)
     # no left-overs (e.g. in "tmp" folder) other than the initial message file
-    assert_length(1, list_all_files(path_maildir))
+    assert len(list_all_files(path_maildir)) == 1
 
 def test_can_handle_non_existent_file_in_send(path_maildir):
     mailer = DebugMailer()
@@ -86,8 +85,8 @@ def test_can_handle_non_existent_file_in_send(path_maildir):
     msg_with_invalid_path = MaildirBackedMsg(invalid_path)
 
     was_sent = MessageHandler([mailer]).send_message(msg_with_invalid_path)
-    assert_none(was_sent)
-    assert_length(0, mailer.sent_mails)
+    assert was_sent is None
+    assert len(mailer.sent_mails) == 0
 
 def test_can_handle_vanished_file_after_successful_send(path_maildir):
     if IS_WINDOWS:
@@ -100,9 +99,9 @@ def test_can_handle_vanished_file_after_successful_send(path_maildir):
     mailer = DebugMailer(send_callback=delete_on_send)
 
     was_sent = MessageHandler([mailer]).send_message(msg)
-    assert_true(was_sent)
-    assert_length(1, mailer.sent_mails)
-    assert_length(0, list_all_files(path_maildir))
+    assert was_sent
+    assert len(mailer.sent_mails) == 1
+    assert len(list_all_files(path_maildir)) == 0
 
 def test_can_handle_vanished_file_after_failed_send(path_maildir):
     if IS_WINDOWS:
@@ -115,9 +114,9 @@ def test_can_handle_vanished_file_after_failed_send(path_maildir):
     mailer = DebugMailer(send_callback=delete_on_send)
 
     was_sent = MessageHandler([mailer]).send_message(msg)
-    assert_false(was_sent)
-    assert_length(0, mailer.sent_mails)
-    assert_length(0, list_all_files(path_maildir))
+    assert not was_sent
+    assert len(mailer.sent_mails) == 0
+    assert len(list_all_files(path_maildir)) == 0
 
 def test_can_handle_duplicate_file_in_cur_before_send(path_maildir):
     msg = inject_example_message(path_maildir)
@@ -130,9 +129,9 @@ def test_can_handle_duplicate_file_in_cur_before_send(path_maildir):
     mailer = DebugMailer()
 
     was_sent = MessageHandler([mailer]).send_message(msg)
-    assert_none(was_sent)
-    assert_length(0, mailer.sent_mails)
-    assert_length(2, list_all_files(path_maildir))
+    assert was_sent is None
+    assert len(mailer.sent_mails) == 0
+    assert len(list_all_files(path_maildir)) == 2
 
 def test_can_handle_duplicate_file_in_new_after_failed_send(path_maildir):
     msg = inject_example_message(path_maildir)
@@ -145,9 +144,9 @@ def test_can_handle_duplicate_file_in_new_after_failed_send(path_maildir):
     mailer = DebugMailer(send_callback=duplicate_on_failed_send)
 
     was_sent = MessageHandler([mailer]).send_message(msg)
-    assert_false(was_sent)
-    assert_length(0, mailer.sent_mails)
-    assert_length(2, list_all_files(path_maildir))
+    assert not was_sent
+    assert len(mailer.sent_mails) == 0
+    assert len(list_all_files(path_maildir)) == 2
 
 def test_tries_to_lock_message_while_sending(path_maildir):
     mailer = DebugMailer()
@@ -156,15 +155,15 @@ def test_tries_to_lock_message_while_sending(path_maildir):
     mh = MessageHandler([mailer])
 
     was_sent = mh.send_message(msg)
-    assert_none(was_sent)
-    assert_length(1, msg_files(path_maildir, folder='new'))
-    assert_is_empty(mailer.sent_mails)
+    assert was_sent is None
+    assert len(msg_files(path_maildir, folder='new')) == 1
+    assert not mailer.sent_mails
 
     locked_msg.close()
     was_sent = mh.send_message(msg)
-    assert_trueish(was_sent)
-    assert_is_empty(msg_files(path_maildir, folder='new'))
-    assert_length(1, mailer.sent_mails)
+    assert bool(was_sent)
+    assert len(msg_files(path_maildir, folder='new')) == 0
+    assert len(mailer.sent_mails) == 1
 
 def test_can_enqueue_message_after_failed_sending(path_maildir):
     mailer = DebugMailer(simulate_failed_sending=True)
@@ -173,13 +172,13 @@ def test_can_enqueue_message_after_failed_sending(path_maildir):
 
     mh = MessageHandler([mailer, maildir_fallback])
     was_sent = mh.send_message(msg, sender='foo@site.example', recipient='bar@site.example')
-    assert_trueish(was_sent)
-    assert_is_empty(mailer.sent_mails)
+    assert bool(was_sent)
+    assert not mailer.sent_mails
     msg_path, = msg_files(path_maildir, folder='new')
     with open(msg_path, 'rb') as msg_fp:
         stored_msg = parse_message_envelope(msg_fp)
-    assert_equals('foo@site.example', stored_msg.from_addr)
-    assert_equals(('bar@site.example',), stored_msg.to_addrs)
+    assert stored_msg.from_addr == 'foo@site.example'
+    assert stored_msg.to_addrs == ('bar@site.example',)
 
 def test_can_enqueue_message_with_multiple_recipients_after_failed_sending(path_maildir):
     mailer = DebugMailer(simulate_failed_sending=True)
@@ -191,7 +190,7 @@ def test_can_enqueue_message_with_multiple_recipients_after_failed_sending(path_
     msg_path, = msg_files(path_maildir, folder='new')
     with open(msg_path, 'rb') as msg_fp:
         stored_msg = parse_message_envelope(msg_fp)
-    assert_equals(recipients, stored_msg.to_addrs)
+    assert stored_msg.to_addrs == recipients
 
 @pytest.mark.parametrize('delivery_successful', [True, False])
 def test_can_notify_plugin_after_delivery(path_maildir, delivery_successful):
@@ -214,13 +213,13 @@ def test_can_notify_plugin_after_delivery(path_maildir, delivery_successful):
     call_kwargs = plugin.call_args[-1]
     send_result = call_kwargs['send_result']
     if delivery_successful:
-        assert_length(1, mailer.sent_mails)
-        assert_trueish(send_result)
+        assert len(mailer.sent_mails) == 1
+        assert bool(send_result)
     else:
-        assert_length(0, mailer.sent_mails)
-        assert_falseish(send_result)
-    assert_false(send_result.queued)
-    assert_equals('debug', send_result.transport)
+        assert len(mailer.sent_mails) == 0
+        assert not send_result
+    assert not send_result.queued
+    assert send_result.transport == 'debug'
 
 def test_plugin_can_discard_message_after_failed_delivery(path_maildir):
     mailer = DebugMailer(simulate_failed_sending=True)
@@ -228,10 +227,10 @@ def test_plugin_can_discard_message_after_failed_delivery(path_maildir):
     recipient = 'bar@site.example'
 
     def discard_message(event_sender, msg, send_result):
-        assert_falseish(send_result)
-        assert_none(send_result.discarded)
-        assert_equals(sender, msg.from_addr)
-        assert_equals({recipient}, set(msg.to_addrs))
+        assert not send_result
+        assert send_result.discarded is None
+        assert msg.from_addr == sender
+        assert set(msg.to_addrs) == {recipient}
         return MQAction.DISCARD
 
     registry = SignalRegistry()
@@ -240,9 +239,9 @@ def test_plugin_can_discard_message_after_failed_delivery(path_maildir):
     mh = MessageHandler([mailer], plugins=registry)
     send_result = mh.send_message(msg, sender=sender, recipient=recipient)
 
-    assert_falseish(send_result)
-    assert_false(send_result.queued)
-    assert_true(send_result.discarded)
+    assert not send_result
+    assert not send_result.queued
+    assert send_result.discarded
 
 def test_plugin_can_access_number_of_failed_deliveries(path_maildir):
     registry = SignalRegistry()
@@ -255,13 +254,13 @@ def test_plugin_can_access_number_of_failed_deliveries(path_maildir):
     mh = MessageHandler([mailer], plugins=registry)
 
     mh.send_message(msg)
-    assert_length(1, find_messages(path_maildir, log=l_(None)))
+    assert len(tuple(find_messages(path_maildir, log=l_(None)))) == 1
 
     send_result = mh.send_message(msg)
-    assert_falseish(send_result)
-    assert_length(0, mailer.sent_mails)
-    assert_length(0, find_messages(path_maildir, log=l_(None)))
-    assert_true(send_result.discarded)
+    assert not send_result
+    assert len(mailer.sent_mails) == 0
+    assert len(tuple(find_messages(path_maildir, log=l_(None)))) == 0
+    assert send_result.discarded
 
 
 # --- internal helpers ----------------------------------------------------
