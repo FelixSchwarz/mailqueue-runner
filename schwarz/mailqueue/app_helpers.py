@@ -10,7 +10,7 @@ import sys
 
 from schwarz.puzzle_plugins import parse_list_str, PluginLoader
 
-from .compat import configparser
+from .compat import configparser, SafeConfigParser
 from .mailer import SMTPMailer
 from .plugins import registry
 
@@ -80,7 +80,7 @@ def parse_config(config_path, section_name=None):
         sys.stderr.write('config file "%s" not found.\n' % filename)
         sys.exit(20)
 
-    parser = configparser.SafeConfigParser()
+    parser = SafeConfigParser()
     exc_msg = None
     try:
         parser.read(config_path)

@@ -15,6 +15,7 @@ __all__ = [
     'os_makedirs',
     'queue',
     'FileNotFoundError',
+    'SafeConfigParser',
     'IS_PYTHON3',
     'IS_WINDOWS',
 ]
@@ -35,8 +36,11 @@ def os_makedirs(name, mode, exist_ok=False):
 
 try:
     import configparser
+    # in Python 3.2 "SafeConfigParser" was renamed to "ConfigParser"
+    from configparser import ConfigParser as SafeConfigParser
 except ImportError:
     import ConfigParser as configparser
+    from ConfigParser import SafeConfigParser
 
 try:
     import queue
