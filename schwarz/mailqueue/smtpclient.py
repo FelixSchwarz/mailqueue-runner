@@ -6,20 +6,21 @@
 
 from __future__ import absolute_import, print_function, unicode_literals
 
-from contextlib import contextmanager
 import logging
 import re
-import six
 import socket
+from contextlib import contextmanager
+
+import six
 
 from .lib.smtplib_py37 import (
-    _fix_eols,
-    bCRLF,
     CRLF,
     SMTP,
     SMTPDataError,
     SMTPResponseException,
-    SMTPSenderRefused
+    SMTPSenderRefused,
+    _fix_eols,
+    bCRLF,
 )
 
 
@@ -88,7 +89,8 @@ class SMTPClient(SMTP):
         # gets all the interesting info anyway so we can just disable all
         # logging here.
         with disable_debug(self):
-            return super(SMTPClient, self).connect(host=host, port=port, source_address=source_address)
+            _super_instance = super(SMTPClient, self)
+            return _super_instance.connect(host=host, port=port, source_address=source_address)
 
     def _get_socket(self, host, port, timeout):
         # This wrapper method is big because it contains superior logging which

@@ -5,5 +5,6 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
 from schwarz.mailqueue.cli import *
-send_test_message_main()
 
+
+send_test_message_main()

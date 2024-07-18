@@ -3,17 +3,18 @@
 
 from __future__ import absolute_import, print_function, unicode_literals
 
-from email.message import Message
-from io import BytesIO
 import logging
 import os
+from email.message import Message
+from io import BytesIO
 
 from pymta import SMTPCommandParser
 from pymta.test_util import BlackholeDeliverer
+
 from schwarz.log_utils import ForwardingLogger
 
 from .maildir_utils import move_message
-from .queue_runner import enqueue_message, MaildirBackedMsg
+from .queue_runner import MaildirBackedMsg, enqueue_message
 from .smtpclient import SMTPClient
 
 
@@ -32,11 +33,13 @@ def message():
     msg.set_payload('MsgBody')
     return msg
 
-def inject_example_message(queue_path, sender=b'foo@site.example', recipient=None, recipients=None, msg_bytes=None, target_folder='new', queue_date=None):
+def inject_example_message(queue_path, sender=b'foo@site.example', recipient=None,
+                           recipients=None, msg_bytes=None, target_folder='new',
+                           queue_date=None):
     if msg_bytes is None:
         msg_bytes = message()
     if recipient and recipients:
-        raise ValueError('inject_example_message() got conflicting parameters: recipient=%r, recipients=%r' % (recipient, recipients))
+        raise ValueError('inject_example_message() got conflicting parameters: recipient=%r, recipients=%r' % (recipient, recipients))  # noqa: E501 (line too long)
     if (recipient is None) and (recipients is None):
         recipients = (b'bar@site.example',)
     elif recipient:
@@ -96,7 +99,8 @@ def assert_did_log_message(log_capture, expected_msg):
     log_messages = [log_record.msg for log_record in lc.records]
     if expected_msg in log_messages:
         return
-    raise AssertionError('message not logged: "%s" - did log %s' % (expected_msg, log_messages))
+    error_msg = 'message not logged: "%s" - did log %s' % (expected_msg, log_messages)
+    raise AssertionError(error_msg)
 
 
 # --- test helpers to simulate a SMTP server ----------------------------------
@@ -215,4 +219,3 @@ class SocketMock(object):
         self.reply_data.seek(0, os.SEEK_END)
         self.reply_data.write(reply_bytes)
         self.reply_data.seek(previous_position, os.SEEK_SET)
-

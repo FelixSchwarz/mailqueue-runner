@@ -16,4 +16,3 @@ class MQSignal(object):
 
 class MQAction(object):
     DISCARD = 'discard'
-

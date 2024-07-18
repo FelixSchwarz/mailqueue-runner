@@ -243,5 +243,3 @@ a Windows machine should be fine.
 The code is licensed unter the MIT license with only few exceptions: It
 contains a custom (slightly modified) version of Python's smtplib which is
 licensed under the [Python License 2.0](https://spdx.org/licenses/Python-2.0.html).
-
-

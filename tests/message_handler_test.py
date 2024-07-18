@@ -5,6 +5,8 @@ from __future__ import absolute_import, print_function, unicode_literals
 
 import os
 import shutil
+
+
 try:
     from unittest.mock import MagicMock
 except ImportError:
@@ -13,18 +15,21 @@ import uuid
 
 import pytest
 from schwarz.log_utils import l_
-from schwarz.puzzle_plugins import connect_signals, SignalRegistry
+from schwarz.puzzle_plugins import SignalRegistry, connect_signals
 from testfixtures import LogCapture
 
-from schwarz.mailqueue import (create_maildir_directories, lock_file,
-    DebugMailer, MessageHandler)
+from schwarz.mailqueue import DebugMailer, MessageHandler, create_maildir_directories, lock_file
 from schwarz.mailqueue.compat import IS_WINDOWS
 from schwarz.mailqueue.maildir_utils import find_messages
 from schwarz.mailqueue.message_utils import parse_message_envelope
 from schwarz.mailqueue.plugins import MQAction, MQSignal
 from schwarz.mailqueue.queue_runner import MaildirBackedMsg, MaildirBackend
-from schwarz.mailqueue.testutils import (assert_did_log_message, info_logger,
-    inject_example_message, message as example_message)
+from schwarz.mailqueue.testutils import (
+    assert_did_log_message,
+    info_logger,
+    inject_example_message,
+    message as example_message,
+)
 
 
 @pytest.fixture
@@ -283,4 +288,3 @@ def msg_files(path_maildir, folder='new'):
 
 def msg_nl(msg_bytes):
     return msg_bytes if (not IS_WINDOWS) else msg_bytes.replace(b'\n', b'\r\n')
-

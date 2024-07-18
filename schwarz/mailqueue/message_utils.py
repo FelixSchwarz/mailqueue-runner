@@ -4,13 +4,13 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
 import calendar
+import email.utils
+import re
 from collections import namedtuple
 from datetime import datetime as DateTime, timedelta as TimeDelta
 from email.header import decode_header
 from email.parser import FeedParser, HeaderParser
-import email.utils
 from io import BytesIO, TextIOWrapper
-import re
 
 from boltons.timeutils import ConstantTZInfo, LocalTZ
 
@@ -69,7 +69,7 @@ def dt_now():
     return DateTime.now(tz=LocalTZ)
 
 
-_MsgInfo = namedtuple('_MsgInfo', ('from_addr', 'to_addrs', 'msg_fp', 'queue_date', 'last', 'retries'))
+_MsgInfo = namedtuple('_MsgInfo', ('from_addr', 'to_addrs', 'msg_fp', 'queue_date', 'last', 'retries'))  # noqa: E501 (line too long)
 
 class MsgInfo(_MsgInfo):
     def __new__(cls, from_addr, to_addrs, msg_fp, queue_date=None, last=None, retries=None):
@@ -138,7 +138,10 @@ def decode_header_value(encoded_str):
 def strip_brackets(value):
     if value is None:
         return None
-    angle_regex = _re_angle_brackets if isinstance(value, bytes) else _re_angle_brackets_str
+    if isinstance(value, bytes):
+        angle_regex = _re_angle_brackets
+    else:
+        angle_regex = _re_angle_brackets_str
     match = angle_regex.search(value)
     return match.group(1)
 
@@ -161,7 +164,7 @@ def parse_datetime(dt_str):
 def parse_number(number_str):
     if number_str is None:
         return None
-    return int(re.search('^(\d+)$', number_str).group(1))
+    return int(re.search(r'^(\d+)$', number_str).group(1))
 
 def msg_as_bytes(msg):
     if hasattr(msg, 'as_bytes'):
@@ -174,4 +177,3 @@ def msg_as_bytes(msg):
     else:
         msg_bytes = msg
     return msg_bytes
-

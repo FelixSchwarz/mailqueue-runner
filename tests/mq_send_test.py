@@ -6,12 +6,14 @@ from __future__ import absolute_import, print_function, unicode_literals
 import email
 import re
 
+import pytest
 from dotmap import DotMap
 from pymta.test_util import SMTPTestHelper
-import pytest
 
 from schwarz.mailqueue.cli import send_test_message_main
 from schwarz.mailqueue.testutils import create_ini
+
+
 # prevent nosetests from running this imported function as "test"
 send_test_message_main.__test__ = False
 
@@ -33,7 +35,7 @@ def ctx():
 def test_mq_send_test_can_send_test_message(ctx, tmp_path):
     config_path = create_ini(ctx.hostname, ctx.listen_port, dir_path=str(tmp_path))
 
-    cmd = ['mq-send-test', config_path, '--quiet', '--from=bar@site.example', '--to=foo@site.example']
+    cmd = ['mq-send-test', config_path, '--quiet', '--from=bar@site.example', '--to=foo@site.example']  # noqa: E501 (line too long)
     rc = send_test_message_main(argv=cmd, return_rc_code=True)
     assert rc == 0
 
@@ -52,4 +54,3 @@ def test_mq_send_test_can_send_test_message(ctx, tmp_path):
 def assert_matches(pattern, text_str, message=None):
     match = re.match(pattern, text_str)
     assert match is not None, message
-

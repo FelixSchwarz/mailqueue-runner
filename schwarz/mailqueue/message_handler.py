@@ -3,10 +3,10 @@
 
 from __future__ import absolute_import, print_function, unicode_literals
 
-from io import BytesIO
 import logging
+from io import BytesIO
 
-from .message_utils import dt_now, msg_as_bytes, MsgInfo, SendResult
+from .message_utils import MsgInfo, SendResult, dt_now, msg_as_bytes
 from .plugins import MQAction, MQSignal
 
 
@@ -46,7 +46,7 @@ class MessageHandler(object):
         if not send_result:
             msg_wrapper.retries += 1
             msg_wrapper.last_delivery_attempt = dt_now()
-            discard_message = self._notify_plugins(MQSignal.delivery_failed, msg_wrapper, send_result)
+            discard_message = self._notify_plugins(MQSignal.delivery_failed, msg_wrapper, send_result)  # noqa: E501 (line too long)
             msg_wrapper.delivery_failed(discard=discard_message)
             send_result.discarded = discard_message
         return send_result
@@ -61,7 +61,8 @@ class MessageHandler(object):
     def _notify_plugins(self, signal, msg, send_result):
         if self.plugins is None:
             return
-        results = self.plugins.call_plugins(signal, signal_kwargs={'msg': msg, 'send_result': send_result})
+        signal_kwargs = {'msg': msg, 'send_result': send_result}
+        results = self.plugins.call_plugins(signal, signal_kwargs=signal_kwargs)
 
         if not results:
             return None
@@ -86,7 +87,7 @@ class MessageHandler(object):
         recipient = kwargs.pop('recipient', None)
         recipients = kwargs.pop('recipients', None)
         if recipient and recipients:
-            raise ValueError('__init__() got conflicting parameters: recipient=%r, recipients=%r' % (recipient, recipients))
+            raise ValueError('__init__() got conflicting parameters: recipient=%r, recipients=%r' % (recipient, recipients))  # noqa: E501 (line too long)
         if recipient:
             recipients = (recipient,)
         if not recipients:
@@ -166,4 +167,3 @@ class InMemoryMsg(BaseMsg):
 
     def start_delivery(self):
         return True
-

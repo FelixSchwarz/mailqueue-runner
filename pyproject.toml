@@ -1,0 +1,34 @@
+[tool.ruff]
+line-length = 100
+src = ["schwarz", "tests"]
+
+ignore = [
+    # F405 "… may be undefined, or defined from star imports: …"
+    #    Sometimes star imports are perfectly fine IMHO.
+    "F403",
+    "F405",
+    # E731: "Do not assign a `lambda` expression, use a `def`"
+    #    I think assigning to lambda expressions is ok.
+    "E731",
+]
+
+select = [
+    # Pyflakes
+    "F",
+    # Pycodestyle
+    "E",
+    "W",
+    # isort
+    "I001",
+
+    # Special rule code to enforce that your noqa directives are "valid", in that
+    # the violations they say they ignore are actually being triggered on that line
+    # (and thus suppressed).
+    # replaces basically "yesqa"
+    "RUF100",
+]
+
+[tool.ruff.isort]
+lines-after-imports = 2
+known-first-party = ["schwarz.mailqueue"]
+combine-as-imports = true

@@ -62,4 +62,3 @@ def send_test_message_main(argv=sys.argv, return_rc_code=False):
     if return_rc_code:
         return exit_code
     sys.exit(exit_code)
-

@@ -5,17 +5,17 @@ from __future__ import absolute_import, print_function, unicode_literals
 
 import email.utils
 import logging
-from mailbox import _sync_close, Maildir
 import os
 import time
+from mailbox import Maildir, _sync_close
 
 from boltons.timeutils import dt_to_timestamp
 
 from .app_helpers import init_app, init_smtp_mailer
-from .compat import queue, IS_WINDOWS
+from .compat import IS_WINDOWS, queue
 from .maildir_utils import create_maildir_directories, find_messages, move_message
 from .message_handler import BaseMsg, MessageHandler
-from .message_utils import dt_now, msg_as_bytes, parse_message_envelope, SendResult
+from .message_utils import SendResult, dt_now, msg_as_bytes, parse_message_envelope
 from .plugins import registry
 
 
@@ -26,13 +26,25 @@ __all__ = [
     'MaildirBackend',
 ]
 
-def enqueue_message(msg, queue_path, sender, recipients, return_msg=False, in_progress=False, **queue_args):
-    msg_bytes = serialize_message_with_queue_data(msg, sender=sender, recipients=recipients, **queue_args)
+def enqueue_message(msg, queue_path, sender, recipients, return_msg=False,
+                    in_progress=False, **queue_args):
+    msg_bytes = serialize_message_with_queue_data(
+        msg,
+        sender=sender,
+        recipients=recipients,
+        **queue_args
+    )
     create_maildir_directories(queue_path)
 
     mailbox = Maildir(queue_path)
     sub_dir = 'cur' if in_progress else 'new'
-    return inject_message_into_maildir(msg_bytes, mailbox, sub_dir=sub_dir, return_msg=return_msg)
+    msg = inject_message_into_maildir(
+        msg_bytes,
+        mailbox,
+        sub_dir=sub_dir,
+        return_msg=return_msg,
+    )
+    return msg
 
 
 def inject_message_into_maildir(msg_bytes, maildir, sub_dir='new', return_msg=False):
@@ -51,7 +63,8 @@ def inject_message_into_maildir(msg_bytes, maildir, sub_dir='new', return_msg=Fa
     return MaildirBackedMsg(target_.name, fp=target_)
 
 
-def serialize_message_with_queue_data(msg, sender, recipients, queue_date=None, last=None, retries=None):
+def serialize_message_with_queue_data(msg, sender, recipients, queue_date=None,
+                                      last=None, retries=None):
     sender_bytes = _email_address_as_bytes(sender)
     b_recipients = [_email_address_as_bytes(recipient) for recipient in recipients]
     queue_lines = [
@@ -297,4 +310,3 @@ def one_shot_queue_run(queue_dir, config_path=None, options=None, settings=None)
     plugin_loader = settings['plugin_loader']
     send_all_queued_messages(queue_dir, mailer, plugins=registry, mh=mh)
     plugin_loader.terminate_all_activated_plugins()
-

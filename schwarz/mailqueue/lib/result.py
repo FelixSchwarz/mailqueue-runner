@@ -60,7 +60,7 @@ class Result(object):
             self.__dict__[key] = value
             return
         if key not in self.data:
-            raise AttributeError("'%s' object has no attribute '%s'" % (self.__class__.__name__, key))
+            class_name = self.__class__.__name__, key
+            raise AttributeError("'%s' object has no attribute '%s'" % class_name)
         setter = getattr(self, 'set_'+key)
         setter(value)
-

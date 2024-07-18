@@ -7,7 +7,7 @@ import os
 
 import pytest
 
-from schwarz.mailqueue import enqueue_message, DebugMailer, MessageHandler
+from schwarz.mailqueue import DebugMailer, MessageHandler, enqueue_message
 from schwarz.mailqueue.testutils import message as example_message
 
 
@@ -56,4 +56,3 @@ def _msg_files(path_maildir, folder='new'):
         file_path = os.path.join(path, filename)
         files.append(file_path)
     return files
-

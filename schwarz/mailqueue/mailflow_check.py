@@ -47,4 +47,3 @@ def send_test_message(config_path, options):
     mh = MessageHandler(transports=(mailer,))
     was_sent = mh.send_message(msg)
     return was_sent
-

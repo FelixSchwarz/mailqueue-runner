@@ -5,10 +5,10 @@ from __future__ import absolute_import, print_function, unicode_literals
 
 import os
 
-from boltons.fileutils import atomic_rename, atomic_save
 import portalocker
+from boltons.fileutils import atomic_rename, atomic_save
 
-from .compat import os_makedirs, FileNotFoundError, IS_WINDOWS
+from .compat import IS_WINDOWS, FileNotFoundError, os_makedirs
 
 
 __all__ = ['create_maildir_directories', 'lock_file', 'move_message']
@@ -63,7 +63,7 @@ def create_maildir_directories(basedir, is_folder=False):
         maildirfolder_path = os.path.join(basedir, 'maildirfolder')
         # never overwrite an existing "maildirfolder" file (just being overcautious)
         # in Python 3 we could also use "open(..., 'xb')" and catch FileExistsError
-        with atomic_save(maildirfolder_path, overwrite=False) as fp:
+        with atomic_save(maildirfolder_path, overwrite=False):
             pass
     return new_path
 
@@ -183,4 +183,3 @@ def move_message(file_, target_folder, open_file=True):
     except (IOError, OSError):
         pass
     return None
-

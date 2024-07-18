@@ -3,20 +3,26 @@
 
 from __future__ import absolute_import, print_function, unicode_literals
 
-from datetime import datetime as DateTime, timedelta as TimeDelta
 import os
 import sys
+from datetime import datetime as DateTime, timedelta as TimeDelta
 
-from boltons.timeutils import UTC
 import pytest
+from boltons.timeutils import UTC
+
+
 try:
     from time_machine import travel as freeze_time
 except ImportError:
     from freezegun import freeze_time
 from testfixtures import LogCapture
 
-from schwarz.mailqueue import (create_maildir_directories, lock_file,
-    send_all_queued_messages, DebugMailer)
+from schwarz.mailqueue import (
+    DebugMailer,
+    create_maildir_directories,
+    lock_file,
+    send_all_queued_messages,
+)
 from schwarz.mailqueue.queue_runner import MaildirBackedMsg
 from schwarz.mailqueue.testutils import inject_example_message
 
@@ -98,4 +104,3 @@ def msg_files(path_maildir, folder='new'):
         file_path = os.path.join(path, filename)
         files.append(file_path)
     return files
-

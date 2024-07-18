@@ -36,6 +36,7 @@ def os_makedirs(name, mode, exist_ok=False):
 
 try:
     import configparser
+
     # in Python 3.2 "SafeConfigParser" was renamed to "ConfigParser"
     from configparser import ConfigParser as SafeConfigParser
 except ImportError:
@@ -98,4 +99,3 @@ def make_msgid(domain=None):
     msg_id_str = email.utils.make_msgid('@'+domain)
     msg_id = msg_id_str.rsplit('@', 1)[0] + '>'
     return msg_id
-

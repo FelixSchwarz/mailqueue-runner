@@ -67,7 +67,8 @@ def test_can_parse_queue_metadata():
     assert msg_info.msg_fp.read() == b'RFC-821 MESSAGE'
 
 
-def build_queued_message(sender='foo@site.example', recipient='bar@site.example', msg=None, queue_date=None, last=None, retries=None):
+def build_queued_message(sender='foo@site.example', recipient='bar@site.example',
+                         msg=None, queue_date=None, last=None, retries=None):
     if msg is None:
         msg = testutils.message()
     msg_bytes = serialize_message_with_queue_data(
@@ -79,4 +80,3 @@ def build_queued_message(sender='foo@site.example', recipient='bar@site.example'
         retries    = retries,
     )
     return BytesIO(msg_bytes)
-

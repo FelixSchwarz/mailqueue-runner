@@ -8,9 +8,9 @@ import logging.config
 import os
 import sys
 
-from schwarz.puzzle_plugins import parse_list_str, PluginLoader
+from schwarz.puzzle_plugins import PluginLoader, parse_list_str
 
-from .compat import configparser, SafeConfigParser
+from .compat import SafeConfigParser, configparser
 from .mailer import SMTPMailer
 from .plugins import registry
 
@@ -163,4 +163,3 @@ def configure_logging(settings, options):
     # the root logger (this might lead to duplicate lines shown to the user,
     # e.g. in case of errors).
     mq_logger.propagate = False
-

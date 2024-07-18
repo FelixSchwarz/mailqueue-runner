@@ -5,15 +5,14 @@ from __future__ import absolute_import, print_function, unicode_literals
 
 import socket
 
+import pytest
 from pymta.api import IMTAPolicy
 from pymta.test_util import DummyAuthenticator
-import pytest
 from schwarz.log_utils.testutils import build_collecting_logger
 
 from schwarz.mailqueue import SMTPMailer
 from schwarz.mailqueue.compat import IS_PYTHON3
-from schwarz.mailqueue.testutils import (fake_smtp_client, stub_socket_creation,
-    SocketMock)
+from schwarz.mailqueue.testutils import SocketMock, fake_smtp_client, stub_socket_creation
 
 
 def test_can_send_message_via_smtpmailer():
@@ -111,4 +110,3 @@ def _build_overrides(**overrides):
             raise exception
         _overrides[method_name] = raise_exc
     return _overrides
-

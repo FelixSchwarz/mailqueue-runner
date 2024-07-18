@@ -4,6 +4,8 @@
 from __future__ import absolute_import, print_function, unicode_literals
 
 import os
+
+
 try:
     from unittest import mock
 except ImportError:
@@ -14,8 +16,13 @@ from schwarz.log_utils import l_
 from schwarz.puzzle_plugins import connect_signals, disconnect_signals
 from schwarz.puzzle_plugins.lib import AttrDict
 
-from schwarz.mailqueue import (app_helpers, create_maildir_directories,
-    DebugMailer, MQAction, MQSignal)
+from schwarz.mailqueue import (
+    DebugMailer,
+    MQAction,
+    MQSignal,
+    app_helpers,
+    create_maildir_directories,
+)
 from schwarz.mailqueue.cli import one_shot_queue_run_main
 from schwarz.mailqueue.maildir_utils import find_messages
 from schwarz.mailqueue.testutils import create_ini, inject_example_message
@@ -100,4 +107,3 @@ def create_fake_plugin(signal_map):
         'terminate': fake_terminate,
     })
     return fake_plugin
-

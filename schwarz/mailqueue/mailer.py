@@ -3,9 +3,9 @@
 
 from __future__ import absolute_import, print_function, unicode_literals
 
+import socket
 from io import BytesIO
 from smtplib import SMTPException
-import socket
 
 from .message_utils import MsgInfo, SendResult
 from .smtpclient import SMTPClient
@@ -16,7 +16,7 @@ __all__ = ['DebugMailer', 'SMTPMailer']
 class SMTPMailer(object):
     def __init__(self, hostname=None, **kwargs):
         if (hostname is None) and ('client' not in kwargs):
-            raise TypeError('not enough parameters for __init__(): please specify at least "hostname" or "client"')
+            raise TypeError('not enough parameters for __init__(): please specify at least "hostname" or "client"')  # noqa: E501 (line too long)
         self.hostname = hostname
         # ensure "port" is numeric as "socket.connect()" in Python 2 only
         # accepts ints (in Python 3 '25' works as well).
@@ -31,7 +31,12 @@ class SMTPMailer(object):
             raise TypeError("__init__() got an unexpected keyword argument '%s'" % extra_name)
 
     def init_smtp_client(self):
-        smtp_client = SMTPClient(self.hostname, self.port, timeout=self.connect_timeout, smtp_log=self.smtp_log)
+        smtp_client = SMTPClient(
+            self.hostname,
+            self.port,
+            timeout=self.connect_timeout,
+            smtp_log=self.smtp_log,
+        )
         return smtp_client
 
     def send(self, fromaddr, toaddrs, message):
@@ -80,4 +85,3 @@ class DebugMailer(object):
             msg_info = MsgInfo(fromaddr, toaddrs, BytesIO(message))
             self.sent_mails.append(msg_info)
         return was_sent
-

@@ -5,17 +5,17 @@ from __future__ import absolute_import, print_function, unicode_literals
 
 from datetime import datetime as DateTime, timedelta as TimeDelta
 
-from boltons.timeutils import ConstantTZInfo, ZERO
 import pytest
+from boltons.timeutils import ZERO, ConstantTZInfo
 
 from schwarz.mailqueue.compat import format_datetime_rfc2822
 from schwarz.mailqueue.message_utils import parse_datetime
 
 
 @pytest.mark.parametrize('dt', [
-    DateTime(2020, 3, 1, hour=11, minute=42, second=23, tzinfo=ConstantTZInfo(offset=TimeDelta(hours=1))),
-    DateTime(2020, 7, 21, hour=23, minute=2, second=59, tzinfo=ConstantTZInfo(offset=TimeDelta(hours=2))),
-    DateTime(2020, 7, 21, hour=23, minute=2, second=59, tzinfo=ConstantTZInfo(offset=TimeDelta(hours=6))),
+    DateTime(2020, 3, 1, hour=11, minute=42, second=23, tzinfo=ConstantTZInfo(offset=TimeDelta(hours=1))),  # noqa: E501 (line too long)
+    DateTime(2020, 7, 21, hour=23, minute=2, second=59, tzinfo=ConstantTZInfo(offset=TimeDelta(hours=2))),  # noqa: E501 (line too long)
+    DateTime(2020, 7, 21, hour=23, minute=2, second=59, tzinfo=ConstantTZInfo(offset=TimeDelta(hours=6))),  # noqa: E501 (line too long)
     DateTime(2020, 7, 21, hour=23, minute=2, second=59, tzinfo=ConstantTZInfo(offset=ZERO)),
 ])
 def test_parse_datetime(dt):
@@ -32,4 +32,3 @@ def test_format_datetime_rfc2822(offset_str, offset):
     dt = DateTime(2020, 7, 21, hour=23, minute=2, second=59, tzinfo=tz)
     expected_str = 'Tue, 21 Jul 2020 23:02:59 ' + offset_str
     assert format_datetime_rfc2822(dt) == expected_str
-

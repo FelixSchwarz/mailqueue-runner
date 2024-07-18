@@ -3,9 +3,9 @@
 
 from __future__ import absolute_import, print_function, unicode_literals
 
+import pytest
 from dotmap import DotMap
 from pymta.test_util import SMTPTestHelper
-import pytest
 
 from schwarz.mailqueue import SMTPMailer
 from schwarz.mailqueue.compat import IS_PYTHON3
@@ -46,4 +46,3 @@ def test_can_send_message(ctx):
     if not IS_PYTHON3:
         expected_message = expected_message.rstrip('\n')
     assert received_message.msg_data == expected_message
-
