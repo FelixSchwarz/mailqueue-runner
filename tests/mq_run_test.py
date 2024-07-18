@@ -24,8 +24,8 @@ from schwarz.mailqueue.testutils import create_ini, inject_example_message
 # entries=() so the WorkingSet contains our entries only, nothing is
 # picked up from the system
 @mock.patch('schwarz.mailqueue.app_helpers._working_set', new=WorkingSet(entries=()))
-def test_mq_runner_can_load_plugins(tmpdir):
-    queue_basedir = os.path.join(tmpdir, 'mailqueue')
+def test_mq_runner_can_load_plugins(tmp_path):
+    queue_basedir = os.path.join(str(tmp_path), 'mailqueue')
     create_maildir_directories(queue_basedir)
     inject_example_message(queue_basedir)
 
@@ -33,7 +33,7 @@ def test_mq_runner_can_load_plugins(tmpdir):
     signal_map = {MQSignal.delivery_failed: mock_fn}
     fake_plugin = create_fake_plugin(signal_map)
     inject_plugin_into_working_set('testplugin', fake_plugin)
-    config_path = create_ini('host.example', port=12345, dir_path=tmpdir)
+    config_path = create_ini('host.example', port=12345, dir_path=str(tmp_path))
 
     cmd = ['mq-run', config_path, queue_basedir]
     mailer = DebugMailer(simulate_failed_sending=True)
@@ -46,11 +46,11 @@ def test_mq_runner_can_load_plugins(tmpdir):
     assert len(tuple(find_messages(queue_basedir, log=l_(None)))) == 0, \
         'plugin should have discarded the message after failed delivery'
 
-def test_mq_runner_works_without_plugins(tmpdir):
-    queue_basedir = os.path.join(tmpdir, 'mailqueue')
+def test_mq_runner_works_without_plugins(tmp_path):
+    queue_basedir = os.path.join(str(tmp_path), 'mailqueue')
     create_maildir_directories(queue_basedir)
     inject_example_message(queue_basedir)
-    config_path = create_ini('host.example', port=12345, dir_path=tmpdir)
+    config_path = create_ini('host.example', port=12345, dir_path=str(tmp_path))
 
     cmd = ['mq-run', config_path, queue_basedir]
     mailer = DebugMailer(simulate_failed_sending=True)

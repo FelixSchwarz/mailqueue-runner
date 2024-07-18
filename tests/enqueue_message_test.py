@@ -12,8 +12,8 @@ from schwarz.mailqueue.testutils import message as example_message
 
 
 @pytest.fixture
-def path_maildir(tmpdir):
-    return os.path.join(tmpdir, 'mailqueue')
+def path_maildir(tmp_path):
+    return os.path.join(str(tmp_path), 'mailqueue')
 
 
 def test_can_create_missing_maildir_folders_before_enqueueing_message(path_maildir):

@@ -28,8 +28,8 @@ from schwarz.mailqueue.testutils import (assert_did_log_message, info_logger,
 
 
 @pytest.fixture
-def path_maildir(tmpdir):
-    path_maildir = os.path.join(tmpdir, 'mailqueue')
+def path_maildir(tmp_path):
+    path_maildir = os.path.join(str(tmp_path), 'mailqueue')
     create_maildir_directories(path_maildir)
     return path_maildir
 

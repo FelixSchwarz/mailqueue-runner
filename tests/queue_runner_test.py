@@ -21,8 +21,8 @@ from schwarz.mailqueue.testutils import inject_example_message
 
 
 @pytest.fixture
-def path_maildir(tmpdir):
-    _path_maildir = os.path.join(tmpdir, 'mailqueue')
+def path_maildir(tmp_path):
+    _path_maildir = os.path.join(str(tmp_path), 'mailqueue')
     create_maildir_directories(_path_maildir)
     return _path_maildir
 
