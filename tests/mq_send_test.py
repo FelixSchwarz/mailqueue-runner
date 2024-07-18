@@ -5,10 +5,10 @@ from __future__ import absolute_import, print_function, unicode_literals
 
 import email
 import re
-import shutil
-import tempfile
 
-from pymta.test_util import SMTPTestCase
+from dotmap import DotMap
+from pymta.test_util import SMTPTestHelper
+import pytest
 
 from schwarz.mailqueue.cli import send_test_message_main
 from schwarz.mailqueue.testutils import create_ini
@@ -16,37 +16,38 @@ from schwarz.mailqueue.testutils import create_ini
 send_test_message_main.__test__ = False
 
 
-class MQSendTest(SMTPTestCase):
-    def setUp(self):
-        super(MQSendTest, self).setUp()
-        self.tmpdir = tempfile.mkdtemp()
+@pytest.fixture
+def ctx():
+    mta_helper = SMTPTestHelper()
+    (hostname, listen_port) = mta_helper.start_mta()
+    ctx = {
+        'hostname': hostname,
+        'listen_port': listen_port,
+        'mta': mta_helper,
+    }
+    try:
+        yield DotMap(_dynamic=False, **ctx)
+    finally:
+        mta_helper.stop_mta()
 
-    def tearDown(self):
-        shutil.rmtree(self.tmpdir)
-        super(MQSendTest, self).tearDown()
+def test_mq_send_test_can_send_test_message(ctx, tmpdir):
+    config_path = create_ini(ctx.hostname, ctx.listen_port, dir_path=tmpdir)
 
-    def test_can_send_test_message(self):
-        config_path = create_ini(self.hostname, self.listen_port, dir_path=self.tmpdir)
+    cmd = ['mq-send-test', config_path, '--quiet', '--from=bar@site.example', '--to=foo@site.example']
+    rc = send_test_message_main(argv=cmd, return_rc_code=True)
+    assert rc == 0
 
-        cmd = ['mq-send-test', config_path, '--quiet', '--from=bar@site.example', '--to=foo@site.example']
-        rc = send_test_message_main(argv=cmd, return_rc_code=True)
-        assert rc == 0
+    received_queue = ctx.mta.get_received_messages()
+    assert received_queue.qsize() == 1
+    smtp_msg = received_queue.get(block=False)
+    assert smtp_msg.smtp_from == 'bar@site.example'
+    assert tuple(smtp_msg.smtp_to) == ('foo@site.example',)
+    assert smtp_msg.username is None
+    msg = email.message_from_string(smtp_msg.msg_data)
+    assert msg['Subject'].startswith('Test message')
+    assert_matches('^<[^@>]+@mqrunner.example>$', msg['Message-ID'],
+        message='test message should use custom Msg-ID domain (with correct brackets)')
 
-        received_queue = self.get_received_messages()
-        assert received_queue.qsize() == 1
-        smtp_msg = received_queue.get(block=False)
-        assert smtp_msg.smtp_from == 'bar@site.example'
-        assert tuple(smtp_msg.smtp_to) == ('foo@site.example',)
-        assert smtp_msg.username is None
-        msg = email.message_from_string(smtp_msg.msg_data)
-        assert_startswith('Test message', msg['Subject'])
-        assert_matches('^<[^@>]+@mqrunner.example>$', msg['Message-ID'],
-            message='test message should use custom Msg-ID domain (with correct brackets)')
-
-
-
-def assert_startswith(substr, full_str):
-    assert full_str.startswith(substr)
 
 def assert_matches(pattern, text_str, message=None):
     match = re.match(pattern, text_str)
