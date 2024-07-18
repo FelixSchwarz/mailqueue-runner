@@ -79,3 +79,29 @@ jobs:
     - name: Run test suite
       run: |
         pytest
+
+  # --- testing on Windows ------------------------------------------
+  tests-windows:
+    runs-on: windows-latest
+    timeout-minutes: 10
+
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install dependencies
+      run: |
+        pip install --upgrade pip setuptools wheel
+        pip install -e .[testing]
+
+    - name: Run test suite
+      run: |
+        pytest
