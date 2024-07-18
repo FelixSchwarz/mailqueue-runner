@@ -5,6 +5,7 @@ from __future__ import absolute_import, print_function, unicode_literals
 
 from datetime import datetime as DateTime, timedelta as TimeDelta
 import os
+import sys
 
 from boltons.timeutils import UTC
 import pytest
@@ -27,6 +28,10 @@ def path_maildir(tmp_path):
     return _path_maildir
 
 
+IS_PYPY3 = (sys.version_info >= (3, 0)) and (sys.implementation.name == 'pypy')
+
+@pytest.mark.skipif(IS_PYPY3, reason='"time-machine" does not work on PyPy')
+# https://github.com/adamchainz/time-machine/issues/305
 def test_can_move_stale_messages_back_to_new(path_maildir):
     mailer = DebugMailer()
     inject_example_message(path_maildir, target_folder='cur')
