@@ -1,4 +1,4 @@
-include appveyor.yml
-recursive-include appveyor *
 include *.txt
+include *.ini
+
 
