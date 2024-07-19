@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 # SPDX-License-Identifier: MIT
 
-from __future__ import absolute_import, print_function, unicode_literals
-
 import socket
 
 import pytest
@@ -11,7 +9,6 @@ from pymta.test_util import DummyAuthenticator
 from schwarz.log_utils.testutils import build_collecting_logger
 
 from schwarz.mailqueue import SMTPMailer
-from schwarz.mailqueue.compat import IS_PYTHON3
 from schwarz.mailqueue.testutils import SocketMock, fake_smtp_client, stub_socket_creation
 
 
@@ -32,18 +29,10 @@ def test_can_send_message_via_smtpmailer():
     assert received_message.username is None
     # pymta converts this to a string automatically
     expected_message = message.decode('ASCII')
-    # in Python 2 the received message lacks the final '\n' (unknown reason)
-    if not IS_PYTHON3:
-        expected_message = expected_message.rstrip('\n')
     assert received_message.msg_data == expected_message
 
-@pytest.mark.parametrize('exc', [
-    OSError('error on connect'),
-    # with Python 3 socket.error is a subclass of OSError but we need to
-    # catch it separately in Python 2.
-    socket.error(101, 'Network is unreachable'),
-])
-def test_can_handle_connection_error(exc):
+def test_can_handle_connection_error():
+    exc = socket.error(101, 'Network is unreachable')
     overrides = _build_overrides(connect=exc)
     fake_client = fake_smtp_client(overrides=overrides)
     logger, logs = build_collecting_logger()

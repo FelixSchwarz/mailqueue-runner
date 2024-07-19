@@ -11,26 +11,6 @@ on:
 
 
 jobs:
-  # --- Python 2 tests in separate container ----------------------------------
-  tests-py2:
-    runs-on: ubuntu-latest
-    container:
-      image: python:2.7.18-buster
-    timeout-minutes: 10
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install dependencies
-        run: |
-          pip install --upgrade pip setuptools wheel
-          pip install -e .[testing]
-
-      - name: Run test suite
-        run: |
-          pytest
-
-
   # --- tests running on Ubuntu 20.04 -----------------------------------------
   tests-py36:
     # "ubuntu-latest" does not have Python 3.6

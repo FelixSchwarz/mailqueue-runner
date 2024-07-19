@@ -1,14 +1,11 @@
 # -*- coding: utf-8 -*-
 # SPDX-License-Identifier: MIT
 
-from __future__ import absolute_import, print_function, unicode_literals
-
 import pytest
 from dotmap import DotMap
 from pymta.test_util import SMTPTestHelper
 
 from schwarz.mailqueue import SMTPMailer
-from schwarz.mailqueue.compat import IS_PYTHON3
 
 
 @pytest.fixture
@@ -42,7 +39,4 @@ def test_can_send_message(ctx):
     assert received_message.username is None
     # pymta converts this to a string automatically
     expected_message = message.decode('ASCII')
-    # in Python 2 the received message lacks the final '\n' (unknown reason)
-    if not IS_PYTHON3:
-        expected_message = expected_message.rstrip('\n')
     assert received_message.msg_data == expected_message

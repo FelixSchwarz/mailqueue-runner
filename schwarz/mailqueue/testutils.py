@@ -1,16 +1,14 @@
 # -*- coding: utf-8 -*-
 # SPDX-License-Identifier: MIT
 
-from __future__ import absolute_import, print_function, unicode_literals
-
 import logging
 import os
 from email.message import Message
 from io import BytesIO
+from unittest import mock
 
 from pymta import SMTPCommandParser
 from pymta.test_util import BlackholeDeliverer
-
 from schwarz.log_utils import ForwardingLogger
 
 from .maildir_utils import move_message
@@ -104,17 +102,6 @@ def assert_did_log_message(log_capture, expected_msg):
 
 
 # --- test helpers to simulate a SMTP server ----------------------------------
-try:
-    from unittest import mock
-except ImportError:
-    try:
-        import mock
-    except ImportError:
-        # Python 2 without "mock" library installed
-        # "stub_socket_creation()" will fail but at least users can import this
-        # module/use other functionality
-        mock = None
-
 
 def stub_socket_creation(socket_mock):
     connect_override = socket_mock._overrides.get('connect', None)

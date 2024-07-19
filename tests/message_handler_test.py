@@ -1,17 +1,10 @@
 # -*- coding: utf-8 -*-
 # SPDX-License-Identifier: MIT
 
-from __future__ import absolute_import, print_function, unicode_literals
-
 import os
 import shutil
-
-
-try:
-    from unittest.mock import MagicMock
-except ImportError:
-    from mock import MagicMock
 import uuid
+from unittest.mock import MagicMock
 
 import pytest
 from schwarz.log_utils import l_

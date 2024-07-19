@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 # SPDX-License-Identifier: MIT
 
-from __future__ import absolute_import, print_function, unicode_literals
-
 import calendar
 import email.utils
 import re
@@ -34,7 +32,7 @@ def parse_message_envelope(fp):
     }
 
     parser = FeedParser()
-    parser._headersonly = True
+    parser._set_headersonly()
     while True:
         line = read_header_line(fp)
         if line == b'':
@@ -171,9 +169,6 @@ def msg_as_bytes(msg):
         msg_bytes = msg.as_bytes()
     elif hasattr(msg, 'read'):
         msg_bytes = msg.read()
-    elif hasattr(msg, 'as_string'):
-        # email.message.Message in Python 2
-        msg_bytes = msg.as_string().encode('ascii')
     else:
         msg_bytes = msg
     return msg_bytes

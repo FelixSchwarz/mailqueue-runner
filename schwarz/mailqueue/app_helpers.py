@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 # SPDX-License-Identifier: MIT
 
-from __future__ import absolute_import, print_function, unicode_literals
-
+import configparser
 import logging
 import logging.config
 import os
@@ -10,7 +9,6 @@ import sys
 
 from schwarz.puzzle_plugins import PluginLoader, parse_list_str
 
-from .compat import SafeConfigParser, configparser
 from .mailer import SMTPMailer
 from .plugins import registry
 
@@ -80,7 +78,7 @@ def parse_config(config_path, section_name=None):
         sys.stderr.write('config file "%s" not found.\n' % filename)
         sys.exit(20)
 
-    parser = SafeConfigParser()
+    parser = configparser.ConfigParser()
     exc_msg = None
     try:
         parser.read(config_path)

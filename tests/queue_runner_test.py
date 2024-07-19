@@ -1,10 +1,7 @@
 # -*- coding: utf-8 -*-
 # SPDX-License-Identifier: MIT
 
-from __future__ import absolute_import, print_function, unicode_literals
-
 import os
-import sys
 from datetime import datetime as DateTime, timedelta as TimeDelta
 
 import pytest
@@ -12,9 +9,9 @@ from boltons.timeutils import UTC
 
 
 try:
-    from time_machine import travel as freeze_time
+    import time_machine
 except ImportError:
-    from freezegun import freeze_time
+    time_machine = None
 from testfixtures import LogCapture
 
 from schwarz.mailqueue import (
@@ -34,9 +31,7 @@ def path_maildir(tmp_path):
     return _path_maildir
 
 
-IS_PYPY3 = (sys.version_info >= (3, 0)) and (sys.implementation.name == 'pypy')
-
-@pytest.mark.skipif(IS_PYPY3, reason='"time-machine" does not work on PyPy')
+@pytest.mark.skipif(time_machine is None, reason='"time-machine" dependency not installed')
 # https://github.com/adamchainz/time-machine/issues/305
 def test_can_move_stale_messages_back_to_new(path_maildir):
     mailer = DebugMailer()
@@ -50,7 +45,7 @@ def test_can_move_stale_messages_back_to_new(path_maildir):
     dt_stale = DateTime.now() + TimeDelta(hours=1)
     # LogCapture: no logged warning about stale message on the command line
     with LogCapture():
-        with freeze_time(dt_stale):
+        with time_machine.travel(dt_stale):
             send_all_queued_messages(path_maildir, mailer)
     assert len(msg_files(path_maildir, folder='new')) == 0
     assert len(msg_files(path_maildir, folder='cur')) == 0

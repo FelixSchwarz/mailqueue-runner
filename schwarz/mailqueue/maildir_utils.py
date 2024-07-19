@@ -1,14 +1,12 @@
 # -*- coding: utf-8 -*-
 # SPDX-License-Identifier: MIT
 
-from __future__ import absolute_import, print_function, unicode_literals
-
 import os
 
 import portalocker
 from boltons.fileutils import atomic_rename, atomic_save
 
-from .compat import IS_WINDOWS, FileNotFoundError, os_makedirs
+from .compat import IS_WINDOWS
 
 
 __all__ = ['create_maildir_directories', 'lock_file', 'move_message']
@@ -47,11 +45,11 @@ class LockedFile(object):
 
 
 def create_maildir_directories(basedir, is_folder=False):
-    os_makedirs(basedir, 0o700, exist_ok=True)
+    os.makedirs(basedir, 0o700, exist_ok=True)
     new_path = None
     for subdir_name in ('tmp', 'cur', 'new'):
         subdir_path = os.path.join(basedir, subdir_name)
-        os_makedirs(subdir_path, 0o700, exist_ok=True)
+        os.makedirs(subdir_path, 0o700, exist_ok=True)
         if subdir_name == 'new':
             new_path = subdir_path
 
@@ -68,15 +66,8 @@ def create_maildir_directories(basedir, is_folder=False):
     return new_path
 
 
-def is_path_like(path):
-    if hasattr(os, 'PathLike'):
-        return isinstance(path, os.PathLike)
-    # support Python 2 with pathlib2
-    return hasattr(path, '__fspath__')
-
-
 def find_messages(queue_basedir, log, queue_folder='new'):
-    if is_path_like(queue_basedir) and not hasattr(os, 'PathLike'):
+    if isinstance(queue_basedir, os.PathLike) and not hasattr(os, 'PathLike'):
         queue_basedir = str(queue_basedir)
     path_new = os.path.join(queue_basedir, queue_folder)
     try:

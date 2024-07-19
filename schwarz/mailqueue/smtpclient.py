@@ -4,14 +4,10 @@
 # it under "Python License 2.0" is in order. However my own contributions
 # can also be used under the MIT license.
 
-from __future__ import absolute_import, print_function, unicode_literals
-
 import logging
 import re
 import socket
 from contextlib import contextmanager
-
-import six
 
 from .lib.smtplib_py37 import (
     CRLF,
@@ -49,7 +45,7 @@ class SMTPClient(SMTP):
     def sendmail(self, from_addr, to_addrs, msg, mail_options=(), rcpt_options=()):
         self.ehlo_or_helo_if_needed()
         esmtp_opts = []
-        if isinstance(msg, six.string_types):
+        if isinstance(msg, str):
             msg = _fix_eols(msg).encode('ascii')
         if self.does_esmtp:
             if self.has_extn('size'):
@@ -63,7 +59,7 @@ class SMTPClient(SMTP):
             else:
                 self._rset()
             raise SMTPSenderRefused(code, resp, from_addr)
-        if isinstance(to_addrs, six.string_types):
+        if isinstance(to_addrs, str):
             to_addrs = [to_addrs]
         for each in to_addrs:
             (code, resp) = self.rcpt(each, rcpt_options)

@@ -1,15 +1,8 @@
 # -*- coding: utf-8 -*-
 # SPDX-License-Identifier: MIT
 
-from __future__ import absolute_import, print_function, unicode_literals
-
 import os
-
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
+from unittest import mock
 
 from pkg_resources import Distribution, EntryPoint, WorkingSet
 from schwarz.log_utils import l_

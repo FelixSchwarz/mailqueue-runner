@@ -1,18 +1,15 @@
 # -*- coding: utf-8 -*-
 # SPDX-License-Identifier: MIT
 
-from __future__ import absolute_import, print_function, unicode_literals
-
 import email.utils
 import logging
 import os
+import queue
 import time
 from mailbox import Maildir, _sync_close
 
-from boltons.timeutils import dt_to_timestamp
-
 from .app_helpers import init_app, init_smtp_mailer
-from .compat import IS_WINDOWS, queue
+from .compat import IS_WINDOWS
 from .maildir_utils import create_maildir_directories, find_messages, move_message
 from .message_handler import BaseMsg, MessageHandler
 from .message_utils import SendResult, dt_now, msg_as_bytes, parse_message_envelope
@@ -92,13 +89,7 @@ def _email_address_as_bytes(address):
     return address.encode('ascii')
 
 def _dt_to_str(dt):
-    if hasattr(email.utils, 'format_datetime'):
-        # Python 3.3+
-        return email.utils.format_datetime(dt)
-    # (Python 2)
-    # localtime=True means formatdate() will not convert the DateTime instance
-    # to UTC timezone but use the provided timezone.
-    return email.utils.formatdate(dt_to_timestamp(dt), localtime=True)
+    return email.utils.format_datetime(dt)
 
 
 
@@ -113,6 +104,8 @@ class MaildirBackend(object):
         if msg.msg_id:
             log_msg += ' <%s>' % msg.msg_id
         self.log.info(log_msg)
+        if msg.fp is not None:
+            msg.fp.close()
         return SendResult(True, queued=True, transport='maildir')
 
 

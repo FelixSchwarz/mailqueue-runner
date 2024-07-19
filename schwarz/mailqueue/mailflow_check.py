@@ -1,15 +1,13 @@
 # -*- coding: utf-8 -*-
 # SPDX-License-Identifier: MIT
 
-from __future__ import absolute_import, print_function, unicode_literals
-
 from datetime import datetime as DateTime
 from email.message import Message
+from email.utils import format_datetime, make_msgid
 
 from boltons.timeutils import LocalTZ
 
 from .app_helpers import init_app, init_smtp_mailer
-from .compat import format_datetime_rfc2822, make_msgid
 from .message_handler import InMemoryMsg, MessageHandler
 from .message_utils import msg_as_bytes
 
@@ -22,7 +20,7 @@ def build_check_message(recipient, sender=None):
     mail['From'] = sender
     mail['To'] = recipient
     now = DateTime.now(tz=LocalTZ)
-    mail['Date'] = format_datetime_rfc2822(now)
+    mail['Date'] = format_datetime(now)
     # if no domain is specified for ".make_msgid()" the function can take
     # a long time in case "socket.getfqdn()" must make some network
     # requests (e.g. flaky network connection).
