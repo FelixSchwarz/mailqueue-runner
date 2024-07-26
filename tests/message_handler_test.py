@@ -8,7 +8,12 @@ from unittest.mock import MagicMock
 
 import pytest
 from schwarz.log_utils import l_
-from schwarz.puzzle_plugins import SignalRegistry, connect_signals
+
+
+try:
+    from schwarz.puzzle_plugins import SignalRegistry, connect_signals
+except ImportError:
+    SignalRegistry = None
 from testfixtures import LogCapture
 
 from schwarz.mailqueue import DebugMailer, MessageHandler, create_maildir_directories, lock_file
@@ -191,6 +196,7 @@ def test_can_enqueue_message_with_multiple_recipients_after_failed_sending(path_
     assert stored_msg.to_addrs == recipients
 
 @pytest.mark.parametrize('delivery_successful', [True, False])
+@pytest.mark.skipif(SignalRegistry is None, reason='requires PuzzlePluginSystem')
 def test_can_notify_plugin_after_delivery(path_maildir, delivery_successful):
     if delivery_successful:
         signal = MQSignal.delivery_successful
@@ -219,6 +225,7 @@ def test_can_notify_plugin_after_delivery(path_maildir, delivery_successful):
     assert not send_result.queued
     assert send_result.transport == 'debug'
 
+@pytest.mark.skipif(SignalRegistry is None, reason='requires PuzzlePluginSystem')
 def test_plugin_can_discard_message_after_failed_delivery(path_maildir):
     mailer = DebugMailer(simulate_failed_sending=True)
     sender = 'foo@site.example'
@@ -241,6 +248,7 @@ def test_plugin_can_discard_message_after_failed_delivery(path_maildir):
     assert not send_result.queued
     assert send_result.discarded
 
+@pytest.mark.skipif(SignalRegistry is None, reason='requires PuzzlePluginSystem')
 def test_plugin_can_access_number_of_failed_deliveries(path_maildir):
     registry = SignalRegistry()
     def discard_after_two_attempts(sender, msg, send_result):

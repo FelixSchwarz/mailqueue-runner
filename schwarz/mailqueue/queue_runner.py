@@ -302,4 +302,5 @@ def one_shot_queue_run(queue_dir, config_path=None, options=None, settings=None)
     mailer = init_smtp_mailer(settings) if (not mh) else None
     plugin_loader = settings['plugin_loader']
     send_all_queued_messages(queue_dir, mailer, plugins=registry, mh=mh)
-    plugin_loader.terminate_all_activated_plugins()
+    if plugin_loader is not None:
+        plugin_loader.terminate_all_activated_plugins()

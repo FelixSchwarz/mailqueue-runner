@@ -75,6 +75,8 @@ loggers depending on the type of delivery:
 
 The library allows customization of message handling via plugins. Plugins are built
 with the [Puzzle Plugin System](https://github.com/FelixSchwarz/puzzle-plugin-system) ([blinker](https://github.com/jek/blinker)+setuptools).
+Plugin support is optional and requires the additional `PuzzlePluginSystem`
+dependency (`pip install mailqueue-runner[plugins]`).
 
 Features which can be implemented by plugins:
 

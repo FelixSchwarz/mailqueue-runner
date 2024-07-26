@@ -4,10 +4,16 @@
 import os
 from unittest import mock
 
+from dotmap import DotMap
 from pkg_resources import Distribution, EntryPoint, WorkingSet
 from schwarz.log_utils import l_
-from schwarz.puzzle_plugins import connect_signals, disconnect_signals
-from schwarz.puzzle_plugins.lib import AttrDict
+
+
+try:
+    from schwarz.puzzle_plugins import SignalRegistry, connect_signals, disconnect_signals
+except ImportError:
+    SignalRegistry = None
+import pytest
 
 from schwarz.mailqueue import (
     DebugMailer,
@@ -24,6 +30,7 @@ from schwarz.mailqueue.testutils import create_ini, inject_example_message
 # entries=() so the WorkingSet contains our entries only, nothing is
 # picked up from the system
 @mock.patch('schwarz.mailqueue.app_helpers._working_set', new=WorkingSet(entries=()))
+@pytest.mark.skipif(SignalRegistry is None, reason='requires PuzzlePluginSystem')
 def test_mq_runner_can_load_plugins(tmp_path):
     queue_basedir = os.path.join(str(tmp_path), 'mailqueue')
     create_maildir_directories(queue_basedir)
@@ -95,8 +102,9 @@ def create_fake_plugin(signal_map):
         _registry = context['registry']
         disconnect_signals(_connected_signals, _registry)
 
-    fake_plugin = AttrDict({
-        'initialize': fake_initialize,
-        'terminate': fake_terminate,
-    })
+    fake_plugin = DotMap(
+        _dynamic=False,
+        initialize=fake_initialize,
+        terminate=fake_terminate,
+    )
     return fake_plugin

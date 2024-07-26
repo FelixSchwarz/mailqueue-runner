@@ -7,10 +7,8 @@ import logging.config
 import os
 import sys
 
-from schwarz.puzzle_plugins import PluginLoader, parse_list_str
-
 from .mailer import SMTPMailer
-from .plugins import registry
+from .plugins import PluginLoader, parse_list_str, registry
 
 
 __all__ = [
@@ -28,14 +26,18 @@ def init_app(config_path, options=None, settings=None):
     configure_logging(settings, options or {})
 
     log = logging.getLogger('mailqueue')
-    enabled_plugins = parse_list_str(settings.get('plugins', '*'))
-    plugin_loader = PluginLoader(
-        'mailqueue.plugins',
-        enabled_plugins = enabled_plugins,
-        working_set     = _working_set,
-        log             = log,
-    )
-    plugin_loader.initialize_plugins(registry)
+    if registry is not None:
+        enabled_plugins = parse_list_str(settings.get('plugins', '*'))
+        plugin_loader = PluginLoader(
+            'mailqueue.plugins',
+            enabled_plugins = enabled_plugins,
+            working_set     = _working_set,
+            log             = log,
+        )
+        plugin_loader.initialize_plugins(registry)
+    else:
+        log.debug('plugin initialization skipped because PuzzlePluginSystem is not available')
+        plugin_loader = None
     settings['plugin_loader'] = plugin_loader
 
     return settings

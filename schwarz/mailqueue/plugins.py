@@ -1,12 +1,22 @@
 # -*- coding: utf-8 -*-
 # SPDX-License-Identifier: MIT
 
-from schwarz.puzzle_plugins import SignalRegistry
 
+__all__ = [
+    'registry', 'MQAction', 'MQSignal',
+    'parse_list_str',
+    'PluginLoader',
+]
 
-__all__ = ['registry', 'MQAction', 'MQSignal']
+try:
+    from schwarz.puzzle_plugins import PluginLoader, SignalRegistry, parse_list_str
+except ImportError:
+    registry = None
+    PluginLoader = None
+    parse_list_str = None
+else:
+    registry = SignalRegistry()
 
-registry = SignalRegistry()
 
 class MQSignal(object):
     delivery_successful = 'mq:delivery_successful'  # (msg, send_result)
