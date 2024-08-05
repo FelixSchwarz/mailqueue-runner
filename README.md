@@ -39,12 +39,12 @@ was_queued = (getattr(send_result, 'queued', None) is not False)
 
 The `mq-run` script sends all queued messages to an SMTP server:
 
-    mq-run /path/to/config.ini /path/to/queue
+    mq-run --config=/path/to/config.ini /path/to/queue
 
 If you want to test your configuration you can send a test message to ensure
 the mail flow is set up correctly:
 
-    mq-send-test /path/to/config.ini /path/to/queue --to=recipient@site.example
+    mq-send-test --config=/path/to/config.ini /path/to/queue --to=recipient@site.example
 
 ### Configuration (mq-run)
 

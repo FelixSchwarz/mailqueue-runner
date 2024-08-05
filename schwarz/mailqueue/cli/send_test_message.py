@@ -5,6 +5,7 @@ import sys
 
 import docopt
 
+from ..app_helpers import guess_config_path
 from ..mailflow_check import send_test_message
 
 
@@ -18,15 +19,16 @@ def send_test_message_main(argv=sys.argv, return_rc_code=False):
     Send a test message to ensure all SMTP credentials are correct.
 
     Usage:
-        mq-send-test [options] <config> --to=EMAIL
+        mq-send-test [options] --to=EMAIL
 
     Options:
-        --verbose -v    more verbose program output
+        -C, --config=<CFG>  Path to the config file
         --quiet         suppress (most) logging
         --from=FROM     sender email address
+        --verbose -v        more verbose program output
     """
     arguments = docopt.docopt(send_test_message_main.__doc__, argv=argv[1:])
-    config_path = arguments['<config>']
+    config_path = guess_config_path(arguments['--config'])
     cli_options = {
         'verbose': arguments['--verbose'],
         'recipient': arguments['--to'],

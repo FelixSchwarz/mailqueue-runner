@@ -42,7 +42,7 @@ def test_mq_runner_can_load_plugins(tmp_path):
     inject_plugin_into_working_set('testplugin', fake_plugin)
     config_path = create_ini('host.example', port=12345, dir_path=str(tmp_path))
 
-    cmd = ['mq-run', config_path, queue_basedir]
+    cmd = ['mq-run', f'--config={config_path}', queue_basedir]
     mailer = DebugMailer(simulate_failed_sending=True)
     with mock.patch('schwarz.mailqueue.queue_runner.init_smtp_mailer', new=lambda s: mailer):
         rc = one_shot_queue_run_main(argv=cmd, return_rc_code=True)
@@ -59,7 +59,7 @@ def test_mq_runner_works_without_plugins(tmp_path):
     inject_example_message(queue_basedir)
     config_path = create_ini('host.example', port=12345, dir_path=str(tmp_path))
 
-    cmd = ['mq-run', config_path, queue_basedir]
+    cmd = ['mq-run', f'--config={config_path}', queue_basedir]
     mailer = DebugMailer(simulate_failed_sending=True)
     with mock.patch('schwarz.mailqueue.queue_runner.init_smtp_mailer', new=lambda s: mailer):
         rc = one_shot_queue_run_main(argv=cmd, return_rc_code=True)

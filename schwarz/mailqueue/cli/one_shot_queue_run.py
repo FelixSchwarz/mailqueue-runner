@@ -5,6 +5,7 @@ import sys
 
 import docopt
 
+from ..app_helpers import guess_config_path
 from ..queue_runner import one_shot_queue_run
 
 
@@ -16,13 +17,14 @@ def one_shot_queue_run_main(argv=sys.argv, return_rc_code=False):
     """mq-run.
 
     Usage:
-        mq-run [options] <config> <queue_dir>
+        mq-run [options] <queue_dir>
 
     Options:
-        --verbose -v    more verbose program output
+        -C, --config=<CFG>  Path to the config file
+        --verbose -v        more verbose program output
     """
     arguments = docopt.docopt(one_shot_queue_run_main.__doc__, argv=argv[1:])
-    config_path = arguments['<config>']
+    config_path = guess_config_path(arguments['--config'])
     queue_dir = arguments['<queue_dir>']
     cli_options = {
         'verbose': arguments['--verbose'],

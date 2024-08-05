@@ -33,7 +33,13 @@ def ctx():
 def test_mq_send_test_can_send_test_message(ctx, tmp_path):
     config_path = create_ini(ctx.hostname, ctx.listen_port, dir_path=str(tmp_path))
 
-    cmd = ['mq-send-test', config_path, '--quiet', '--from=bar@site.example', '--to=foo@site.example']  # noqa: E501 (line too long)
+    cmd = [
+        'mq-send-test',
+        f'--config={config_path}',
+        '--quiet',
+        '--from=bar@site.example',
+        '--to=foo@site.example',
+    ]
     rc = send_test_message_main(argv=cmd, return_rc_code=True)
     assert rc == 0
 
