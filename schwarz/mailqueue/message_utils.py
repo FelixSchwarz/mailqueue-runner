@@ -4,11 +4,11 @@
 import calendar
 import email.utils
 import re
-from collections import namedtuple
 from datetime import datetime as DateTime, timedelta as TimeDelta
 from email.header import decode_header
 from email.parser import FeedParser, HeaderParser
 from io import BytesIO, TextIOWrapper
+from typing import BinaryIO, NamedTuple, Optional, Sequence
 
 from boltons.timeutils import ConstantTZInfo, LocalTZ
 
@@ -67,7 +67,14 @@ def dt_now():
     return DateTime.now(tz=LocalTZ)
 
 
-_MsgInfo = namedtuple('_MsgInfo', ('from_addr', 'to_addrs', 'msg_fp', 'queue_date', 'last', 'retries'))  # noqa: E501 (line too long)
+class _MsgInfo(NamedTuple):
+    from_addr  : str
+    to_addrs   : Sequence
+    msg_fp     : BinaryIO
+    queue_date : Optional[DateTime]
+    last       : Optional[DateTime]
+    retries    : int = 0
+
 
 class MsgInfo(_MsgInfo):
     def __new__(cls, from_addr, to_addrs, msg_fp, queue_date=None, last=None, retries=None):
