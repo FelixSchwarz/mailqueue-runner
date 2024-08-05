@@ -90,7 +90,10 @@ def _mq_sendmail(cli_params, msg, *, ctx):
     cli_params = [f'--config={config_path}'] + cli_params
     cmd = [sys.executable, '-m', 'schwarz.mailqueue.mq_sendmail'] + cli_params
     msg_bytes = msg.encode('utf-8')
-    proc = subprocess.run(cmd, input=msg_bytes, capture_output=True)
+    if sys.version_info >= (3, 7):
+        proc = subprocess.run(cmd, input=msg_bytes, capture_output=True)
+    else:
+        proc = subprocess.run(cmd, input=msg_bytes, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     if proc.stderr:
         # sys.stderr.buffer.write(proc.stderr)
