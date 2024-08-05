@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: MIT
 
 import email
+import os
 import re
 import subprocess
 import sys
@@ -134,7 +135,11 @@ def test_mq_sendmail_with_queueing(ctx):
     assert msg.to_addrs == ('foo@site.example',)
     assert msg.msg_id is None  # not added automatically
     assert msg.retries == 0
-    assert msg.msg_bytes == rfc_msg.encode('utf-8')
+    assert msg.msg_bytes == _to_platform_bytes(rfc_msg)
+
+
+def _to_platform_bytes(msg_str: str) -> bytes:
+    return msg_str.replace('\n', os.linesep).encode('utf-8')
 
 
 def _mq_sendmail(cli_params, msg, *, ctx=None, config_path=None):
