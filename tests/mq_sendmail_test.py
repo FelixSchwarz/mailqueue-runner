@@ -80,7 +80,7 @@ def _almost_now(dt):
     return dt - DateTime.now(timezone.utc) < TimeDelta(seconds=1)
 
 def _is_email_address(s):
-    pattern = r'^\w+@[\w.]+$'
+    pattern = r'^\w+@[\w.\-]+$'
     return re.match(pattern, s) is not None
 
 def _mq_sendmail(cli_params, msg, *, ctx):
