@@ -1,2 +1,2 @@
-include *.txt
-include *.ini
+include pytest.ini
+include VERSION.txt
