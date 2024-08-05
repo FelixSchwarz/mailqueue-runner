@@ -91,6 +91,9 @@ def guess_config_path(cfg_path: str) -> Optional[Path]:
 
 
 def parse_config(config_path, section_name=None):
+    if not config_path:
+        sys.stderr.write('No config file found.\n')
+        sys.exit(20)
     filename = os.path.basename(config_path)
     if not os.path.exists(config_path):
         sys.stderr.write('config file "%s" not found.\n' % filename)
