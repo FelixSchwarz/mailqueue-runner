@@ -5,11 +5,12 @@ Usage:
     mq-sendmail [options] <recipients>...
 
 Options:
-  -C, --config=<CFG>  Path to the config file (default: /etc/mailqueue-runner.ini)
-  --set-date-header   Add a "Date" header to the message (if not present)
-  --set-from-header   Set the "From:" header in the outgoing mail based on the unix user
-  --set-msgid-header  Add a "Message-ID" header to the message (if not present)
-  --verbose, -v       more verbose program output
+  --aliases=<ALIAS_FN>  Path to aliases file
+  -C, --config=<CFG>    Path to the config file
+  --set-date-header     Add a "Date" header to the message (if not present)
+  --set-from-header     Add "From:" header to the message (if not present)
+  --set-msgid-header    Add a "Message-ID" header to the message (if not present)
+  --verbose, -v         more verbose program output
 """
 
 import os
@@ -23,6 +24,7 @@ from io import BytesIO
 
 from docopt import docopt
 
+from schwarz.mailqueue.aliases_parser import _parse_aliases, lookup_adresses
 from schwarz.mailqueue.app_helpers import guess_config_path, init_app, init_smtp_mailer
 from schwarz.mailqueue.message_handler import InMemoryMsg, MessageHandler
 
@@ -32,12 +34,16 @@ __all__ = ['mq_sendmail_main']
 def mq_sendmail_main(argv=sys.argv, return_rc_code=False):
     arguments = docopt(__doc__, argv=argv[1:])
     config_path = guess_config_path(arguments['--config'])
-    recipients = arguments['<recipients>']
+    recipient_params = arguments['<recipients>']
     verbose = arguments['--verbose']
 
+    aliases_fn = arguments['--aliases']
     set_date_header = arguments['--set-date-header']
     set_from_header = arguments['--set-from-header']
     set_msgid_header = arguments['--set-msgid-header']
+
+    aliases = _parse_aliases(aliases_fn) if aliases_fn else None
+    recipients = lookup_adresses(recipient_params, aliases)
 
     msg_bytes = sys.stdin.buffer.read()
     try:
