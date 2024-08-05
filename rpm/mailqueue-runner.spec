@@ -15,6 +15,11 @@ BuildRequires:  python3-devel
 BuildRequires:  python3dist(pytest)
 BuildRequires:  python3dist(pytest-xdist)
 BuildRequires:  python3dist(testfixtures)
+%if 0%{?fedora}
+# only packaged for Fedora
+BuildRequires:  python3dist(dotmap)
+BuildRequires:  python3dist(time-machine)
+%endif
 
 
 %global _description %{expand:
@@ -25,7 +30,7 @@ external SMTP server.}
 
 %prep
 %autosetup -p1 -n mailqueue_runner-%{version}
-
+rm -rf *.egg-info
 
 %generate_buildrequires
 %pyproject_buildrequires
@@ -54,8 +59,11 @@ external SMTP server.}
 %check
 # not packaged at all
 pip install pymta schwarzlog
+%if 0%{?rhel}
 # not packaged in EPEL 9
 pip install time-machine dotmap
+%endif
+
 # tests requiring pymta just hang when run in mock (LATER: debug issue)
 %pytest -n auto -k "not test_mq_send_test and not test_mq_sendmail and not test_can_send_message"
 

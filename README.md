@@ -19,6 +19,17 @@ As a nice bonus, the library is pretty modular so you can plug in custom code an
 adapt the library to your needs.
 
 
+### Installation
+
+    $ pip install mailqueue-runner
+
+If you are not interested in the Python integration and only want to use
+`mq-sendmail`, you can use my [COPR repo for Fedora and RHEL](https://copr.fedorainfracloud.org/coprs/fschwarz/mailqueue-runner/):
+
+    $ dnf copr enable fschwarz/mailqueue-runner
+    $ dnf install mailqueue-runner
+
+
 ### Usage `mq-sendmail` (CLI)
 
 The code provides a CLI application named `mq-sendmail` which provides (basic)
