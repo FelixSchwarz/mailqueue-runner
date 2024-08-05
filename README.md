@@ -1,19 +1,68 @@
 
 ## mailqueue-runner
 
-This library helps sending email messages to an SMTP server. Its main feature
-is a queuing system to handle (temporary) errors when sending the message
+This library provides a robust way to send email messages to an external SMTP
+server. The API was designed for easy integration into your Python (web) application.
+Additionally, there is a CLI script which is compatible with `/usr/bin/sendmail`
+(with a very limited feature set) so this software is also an alternative to
+[msmtp](https://github.com/marlam/msmtp) and [ssmtp](https://packages.qa.debian.org/s/ssmtp.html).
+
+Its main feature is a queuing system to handle (temporary) errors when sending the message
 (e.g. interrupted network connection) and detailed error logging.
 
-When a message can not be sent via SMTP it can be stored in a maildir-like queue
+When a message cannot be sent via SMTP it can be stored in a maildir-like queue
 on disk. An external helper script (`mq-run`) picks them up at a later time and
 tries to deliver these messages again. The helper script must be called
 regularly (e.g. via cron).
 
-As a nice bonus the library is pretty modular so you can plug in custom code and
+As a nice bonus, the library is pretty modular so you can plug in custom code and
 adapt the library to your needs.
 
-### Usage (mail submission)
+
+### Usage `mq-sendmail` (CLI)
+
+The code provides a CLI application named `mq-sendmail` which provides (basic)
+compatibility with the common Un*x `/usr/bin/sendmail` application. Additionally,
+it supports some convenient parameters added by [msmtp](https://github.com/marlam/msmtp).
+
+    $ mq-sendmail --set-date-header --set-msgid-header root <<<MAIL
+    Subject: Test email
+    From: me@site.example
+    Mime-Version: 1.0
+    Content-Transfer-Encoding: 8bit
+    Content-Type: text/plain; charset=UTF-8
+
+    mail body
+    MAIL
+
+By default, the configuration read from `~/.mailqueue-runner.conf` or
+`/etc/mailqueue-runner.conf` though you can also specify the config file
+explicitly using `--config=...`. Similar to other `sendmail` implementations,
+the application parses `/etc/aliases` to look up the recipient's email address.
+
+Please note that the code will only enqueue the message after a failed delivery
+if the configuration file contains the `queue_dir` option.
+
+
+### Configuration (CLI scripts)
+
+The configuration file uses the traditional "ini"-like format:
+
+    [mqrunner]
+    smtp_hostname = hostname
+    smtp_port = 587
+    smtp_username = someuser@site.example
+    smtp_password = secret
+    # optional but the CLI scripts will not queue messages if this is not set
+    queue_dir = /path/to/mailqueue
+    # optional, format as described in
+    # https://docs.python.org/3/library/logging.config.html#logging-config-fileformat
+    logging_conf = /path/to/logging.conf
+
+For more information about wrapping `mq-run` (e.g. to reuse an existing configuration format) please read [Cookbook: Custom wrapper for mq-run](#cookbook-custom-wrapper-for-mq-run).
+
+
+### Usage (mail submission/Python integration)
 
 ```python
 from schwarz.mailqueue import init_smtp_mailer, MaildirBackend, MessageHandler
@@ -37,29 +86,15 @@ was_queued = (getattr(send_result, 'queued', None) is not False)
 
 ### Usage (mq-run)
 
-The `mq-run` script sends all queued messages to an SMTP server:
+If you use queueing to handle temporary delivery problems, you need to run
+a script periodically to retry delivery. `mq-run` provides that ability:
 
-    mq-run --config=/path/to/config.ini /path/to/queue
+    $ mq-run
 
 If you want to test your configuration you can send a test message to ensure
 the mail flow is set up correctly:
 
-    mq-send-test --config=/path/to/config.ini /path/to/queue --to=recipient@site.example
-
-### Configuration (mq-run)
-
-The configuration file uses the traditional "ini"-like format:
-
-    [mqrunner]
-    smtp_hostname = hostname
-    smtp_port = 587
-    smtp_username = someuser@site.example
-    smtp_password = secret
-    # optional, format as described in
-    # https://docs.python.org/3/library/logging.config.html#logging-config-fileformat
-    logging_conf = /path/to/logging.conf
-
-For more information about wrapping `mq-run` (e.g. to reuse an existing configuration format) please read [Cookbook: Custom wrapper for mq-run](#cookbook-custom-wrapper-for-mq-run).
+    $ mq-send-test --to=recipient@site.example
 
 
 ### Logging

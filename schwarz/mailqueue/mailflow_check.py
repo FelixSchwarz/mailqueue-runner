@@ -42,6 +42,9 @@ def send_test_message(config_path, options):
     msg_bytes = msg_as_bytes(check_msg)
     msg = InMemoryMsg(msg_sender, (recipient,), msg_bytes)
 
+    # The idea of sending a test message is to provide immediate feedback so
+    # we use the SMTP transport only even when a queue directory might be set
+    # in the configuration file.
     mh = MessageHandler(transports=(mailer,))
     was_sent = mh.send_message(msg)
     return was_sent

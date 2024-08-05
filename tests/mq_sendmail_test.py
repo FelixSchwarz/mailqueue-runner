@@ -113,7 +113,7 @@ def _create_alias_file(aliases, dir_path) -> str:
     return str(aliases_path)
 
 
-def test_mq_sendmail_with_queueing(ctx):
+def test_mq_sendmail_with_queuing(ctx):
     rfc_msg = _example_message(to='baz@site.example')
     unused_port = ctx.listen_port + 1
     queue_dir = ctx.tmp_path / 'queue'

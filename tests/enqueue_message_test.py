@@ -14,7 +14,7 @@ def path_maildir(tmp_path):
     return os.path.join(str(tmp_path), 'mailqueue')
 
 
-def test_can_create_missing_maildir_folders_before_enqueueing_message(path_maildir):
+def test_can_create_missing_maildir_folders_before_enqueuing_message(path_maildir):
     # important for regression test: mailqueue parent folder exists but
     # "new"/"cur"/"tmp" are missing.
     for sub_dir in ('new', 'cur', 'tmp'):
