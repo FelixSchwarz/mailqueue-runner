@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 from datetime import datetime as DateTime
+from email.message import Message
 from io import BytesIO
 
 from boltons.timeutils import LocalTZ
@@ -42,6 +43,25 @@ def test_can_parse_encoded_header():
     msg_info = parse_message_envelope(queue_fp)
     assert msg_info.from_addr == 'foo@site.example'
     assert msg_info.to_addrs == ('foo.bar@site.example',)
+
+def test_can_parse_message_with_utf8_data():
+    msg = Message()
+    msg['Message-ID'] = '<foo@id.example>'
+    msg['Mime-Version'] = '1.0'
+    msg['Content-Transfer-Encoding'] = '8bit'
+    msg['Content-Type'] = 'text/plain; charset=UTF-8'
+    msg.set_payload(b'some \xc2\xbbnon-ascii\xc2\xab text')
+
+    queue_fp = build_queued_message(
+        sender='foo@site.example',
+        recipient='bar@site.example',
+        msg=msg,
+    )
+    msg_info = parse_message_envelope(queue_fp)
+    assert msg_info.from_addr == 'foo@site.example'
+    assert msg_info.to_addrs == ('bar@site.example',)
+    assert msg_info.msg_id == 'foo@id.example'
+    assert msg_info.msg_fp.read() == msg.as_bytes()
 
 def test_can_parse_queue_metadata():
     queue_date = DateTime(2020, 10, 1, hour=15, minute=42, second=21, tzinfo=LocalTZ)

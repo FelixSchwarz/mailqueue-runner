@@ -6,8 +6,8 @@ import email.utils
 import re
 from datetime import datetime as DateTime, timedelta as TimeDelta
 from email.header import decode_header
-from email.parser import FeedParser, HeaderParser
-from io import BytesIO, TextIOWrapper
+from email.parser import BytesHeaderParser, FeedParser
+from io import BytesIO
 from typing import BinaryIO, NamedTuple, Optional, Sequence
 
 from boltons.timeutils import ConstantTZInfo, LocalTZ
@@ -92,14 +92,11 @@ class MsgInfo(_MsgInfo):
     def msg_id(self):
         old_pos = self.msg_fp.tell()
         self.msg_fp.seek(0)
-        # Unfortunately Python's TextIOWrapper always closes wrapped files:
-        #    https://bugs.python.org/issue21363
-        msg_str_fp = TextIOWrapper(UnclosableWrapper(self.msg_fp), encoding='ascii')
-        msg_headers = HeaderParser().parse(msg_str_fp, headersonly=True)
-        # message ids are usually enclosed in angle brackets but these do NOT
-        # belong to the message id.
+        msg_headers = BytesHeaderParser().parse(self.msg_fp, headersonly=True)
         msg_id_value = msg_headers['Message-ID']
         self.msg_fp.seek(old_pos)
+        # message ids are usually enclosed in angle brackets but these do NOT
+        # belong to the message id.
         return strip_brackets(msg_id_value)
 
     @property
@@ -109,18 +106,6 @@ class MsgInfo(_MsgInfo):
         data = self.msg_fp.read()
         self.msg_fp.seek(old_pos)
         return data
-
-
-class UnclosableWrapper(object):
-    def __init__(self, wrapped_instance):
-        self.wrapped_instance = wrapped_instance
-
-    def __getattr__(self, name):
-        return getattr(self.wrapped_instance, name)
-
-    def close(self):
-        pass
-
 
 
 _re_angle_brackets = re.compile(br'^<?(.+?)>?$')
