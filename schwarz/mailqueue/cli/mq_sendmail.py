@@ -40,8 +40,13 @@ def mq_sendmail_main(argv=sys.argv, return_rc_code=False):
     set_msgid_header = arguments['--set-msgid-header']
 
     msg_bytes = sys.stdin.buffer.read()
+    try:
+        username = os.getlogin()
+    except OSError:
+        # GitHub Actions: "[Errno 6] No such device or address"
+        username = 'root'
     smtp_sender_domain = platform.uname().node
-    msg_sender = os.getlogin() + '@' + smtp_sender_domain
+    msg_sender = f'{username}@{smtp_sender_domain}'
 
     cli_options = {
         'verbose': verbose,
