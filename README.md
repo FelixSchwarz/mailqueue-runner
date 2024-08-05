@@ -55,6 +55,8 @@ The configuration file uses the traditional "ini"-like format:
     smtp_password = secret
     # optional but the CLI scripts will not queue messages if this is not set
     queue_dir = /path/to/mailqueue
+    # optional, SMTP envelope from (also used when "--set-from-header" is given)
+    from = user@host.example
     # optional, format as described in
     # https://docs.python.org/3/library/logging.config.html#logging-config-fileformat
     logging_conf = /path/to/logging.conf

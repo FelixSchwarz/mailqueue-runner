@@ -62,6 +62,23 @@ def _retrieve_sent_message(mta):
     return smtp_msg
 
 
+@pytest.mark.parametrize('set_via', ['config', 'cli-param'])
+def test_mq_sendmail_set_from(ctx, set_via):
+    smtp_sender = 'sender@host.example'
+    cfg_from = smtp_sender if (set_via == 'config') else None
+    config_path = create_ini(ctx.hostname, ctx.listen_port, ctx.tmp_path, from_=cfg_from)
+
+    rfc_msg = _example_message(to='baz@site.example')
+    _cmd = [f'--from={smtp_sender}'] if set_via == 'cli-param' else []
+    _mq_sendmail(_cmd + ['foo@site.example'], msg=rfc_msg, config_path=config_path)
+
+    smtp_msg = _retrieve_sent_message(ctx.mta)
+    assert smtp_msg.smtp_from == smtp_sender
+    assert tuple(smtp_msg.smtp_to) == ('foo@site.example',)
+    assert smtp_msg.username is None  # no smtp user name set in config
+    assert smtp_msg.msg_data == rfc_msg
+
+
 def test_mq_sendmail_can_add_headers(ctx):
     sent_msg = _example_message(to='baz@site.example')
     cli_params = [
