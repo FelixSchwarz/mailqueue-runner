@@ -80,18 +80,19 @@ def test_mq_sendmail_set_from(ctx, set_via):
 
 
 def test_mq_sendmail_can_add_headers(ctx):
-    sent_msg = _example_message(to='baz@site.example')
+    sent_msg = _example_message(to=None)
     cli_params = [
         '--set-from-header',
         '--set-date-header',
         '--set-msgid-header',
+        '--set-to-header',
         'foo@site.example',
     ]
     _mq_sendmail(cli_params, msg=sent_msg, ctx=ctx)
 
     smtp_msg = _retrieve_sent_message(ctx.mta)
     msg = email.message_from_string(smtp_msg.msg_data)
-    assert msg['To'] == 'baz@site.example'
+    assert msg['To'] == 'foo@site.example'
     assert _is_email_address(msg['From'])
     msg_date = parsedate_to_datetime(msg['Date'])
     assert _almost_now(msg_date)
