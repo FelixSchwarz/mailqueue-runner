@@ -11,7 +11,9 @@ from email.utils import parsedate_to_datetime
 import pytest
 from dotmap import DotMap
 from pymta.test_util import SMTPTestHelper
+from schwarz.log_utils import l_
 
+from schwarz.mailqueue.queue_runner import MaildirBackedMsg, assemble_queue_with_new_messages
 from schwarz.mailqueue.testutils import create_ini
 
 
@@ -110,9 +112,35 @@ def _create_alias_file(aliases, dir_path) -> str:
     return str(aliases_path)
 
 
-def _mq_sendmail(cli_params, msg, *, ctx):
-    cfg_dir = str(ctx.tmp_path)
-    config_path = create_ini(ctx.hostname, ctx.listen_port, dir_path=cfg_dir)
+def test_mq_sendmail_with_queueing(ctx):
+    rfc_msg = _example_message(to='baz@site.example')
+    unused_port = ctx.listen_port + 1
+    queue_dir = ctx.tmp_path / 'queue'
+    config_path = create_ini(
+        ctx.hostname,
+        port      = unused_port,
+        dir_path  = ctx.tmp_path,
+        queue_dir = queue_dir,
+    )
+    _mq_sendmail(['foo@site.example'], msg=rfc_msg, config_path=config_path)
+
+    received_queue = ctx.mta.get_received_messages()
+    assert received_queue.qsize() == 0
+
+    fs_queue = assemble_queue_with_new_messages(queue_dir, log=l_(None))
+    assert fs_queue.qsize() == 1
+    path_queued_msg = fs_queue.get()
+    msg = MaildirBackedMsg(path_queued_msg)
+    assert msg.to_addrs == ('foo@site.example',)
+    assert msg.msg_id is None  # not added automatically
+    assert msg.retries == 0
+    assert msg.msg_bytes == rfc_msg.encode('utf-8')
+
+
+def _mq_sendmail(cli_params, msg, *, ctx=None, config_path=None):
+    if config_path is None:
+        cfg_dir = str(ctx.tmp_path)
+        config_path = create_ini(ctx.hostname, ctx.listen_port, dir_path=cfg_dir)
 
     cli_params = [f'--config={config_path}'] + cli_params
     cmd = [sys.executable, '-m', 'schwarz.mailqueue.mq_sendmail'] + cli_params

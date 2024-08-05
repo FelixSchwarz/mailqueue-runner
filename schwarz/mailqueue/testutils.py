@@ -47,12 +47,14 @@ def inject_example_message(queue_path, sender=b'foo@site.example', recipient=Non
         msg_path = move_message(msg_path, target_folder=target_folder, open_file=False)
     return MaildirBackedMsg(msg_path)
 
-def create_ini(hostname, port, dir_path):
+def create_ini(hostname, port, dir_path, *, queue_dir=None):
     config_str = '\n'.join([
         '[mqrunner]',
         'smtp_hostname = %s' % hostname,
         'smtp_port = %d' % port,
     ])
+    if queue_dir:
+        config_str += f'\nqueue_dir = {queue_dir}'
     if not dir_path:
         return config_str
     config_path = os.path.join(dir_path, 'config.ini')
