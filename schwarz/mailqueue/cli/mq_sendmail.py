@@ -23,7 +23,7 @@ from io import BytesIO
 
 from docopt import docopt
 
-from schwarz.mailqueue.app_helpers import init_app, init_smtp_mailer
+from schwarz.mailqueue.app_helpers import guess_config_path, init_app, init_smtp_mailer
 from schwarz.mailqueue.message_handler import InMemoryMsg, MessageHandler
 
 
@@ -31,7 +31,7 @@ __all__ = ['mq_sendmail_main']
 
 def mq_sendmail_main(argv=sys.argv, return_rc_code=False):
     arguments = docopt(__doc__, argv=argv[1:])
-    config_path = arguments['--config']
+    config_path = guess_config_path(arguments['--config'])
     recipients = arguments['<recipients>']
     verbose = arguments['--verbose']
 

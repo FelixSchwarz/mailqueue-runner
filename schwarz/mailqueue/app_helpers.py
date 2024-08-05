@@ -6,12 +6,15 @@ import logging
 import logging.config
 import os
 import sys
+from pathlib import Path
+from typing import Optional
 
 from .mailer import SMTPMailer
 from .plugins import PluginLoader, parse_list_str, registry
 
 
 __all__ = [
+    'guess_config_path',
     'init_app',
     'init_smtp_mailer',
 ]
@@ -72,6 +75,19 @@ def _contains_duplicate_option(e):
     # ConfigParser in Python 2 raises an Exception for duplicate options so
     # we don't have to care about the missing "DuplicateOptionError".
     return isinstance(e, configparser.DuplicateOptionError)
+
+
+def guess_config_path(cfg_path: str) -> Optional[Path]:
+    if cfg_path:
+        return Path(cfg_path)
+
+    candidates = [os.path.expanduser('~/.mailqueue-runner.conf')]
+    if sys.platform == 'linux':
+        candidates.append('/etc/mailqueue-runner.conf')
+    for candidate in candidates:
+        if os.path.exists(candidate):
+            return Path(candidate)
+    return None
 
 
 def parse_config(config_path, section_name=None):
