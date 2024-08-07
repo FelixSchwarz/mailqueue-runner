@@ -1,12 +1,11 @@
 Name:           mailqueue-runner
-Version:        0.10.0.20240805
+Version:        0.11.0
 Release:        1%{?dist}
 Summary:        SMTP client for CLI scripts
 
 License:        MIT
 URL:            https://github.com/FelixSchwarz/mailqueue-runner
-#Source:         %%{url}/archive/refs/tags/v%%{version}.tar.gz
-Source:         mailqueue_runner-%{version}.tar.gz
+Source:         %pypi_source
 Source1:        mailqueue-runner.conf
 
 BuildArch:      noarch
@@ -80,5 +79,8 @@ restorecon %{_sysconfdir}/mailqueue-runner.conf
 %dir %{_localstatedir}/spool/mailqueue-runner
 
 %changelog
+* Wed Aug 07 2024 Felix Schwarz <felix.schwarz@oss.schwarz.eu> - 0.11.0-1
+- update to 0.11.0
+
 * Mon Aug 05 2024 Felix Schwarz <felix.schwarz@oss.schwarz.eu> - 0.10.0.20240805-1
 - initial spec file
