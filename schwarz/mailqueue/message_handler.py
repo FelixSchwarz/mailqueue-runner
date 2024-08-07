@@ -3,6 +3,7 @@
 
 import logging
 from io import BytesIO
+from typing import Optional
 
 from .message_utils import MsgInfo, SendResult, dt_now, msg_as_bytes
 from .plugins import MQAction, MQSignal
@@ -16,7 +17,7 @@ class MessageHandler(object):
         self.delivery_log = delivery_log or logging.getLogger('mailqueue.delivery_log')
         self.plugins = plugins
 
-    def send_message(self, msg, **kwargs):
+    def send_message(self, msg, **kwargs) -> Optional[SendResult]:
         msg_wrapper = self._wrap_msg(msg)
         result = msg_wrapper.start_delivery()
         if not result:

@@ -17,8 +17,9 @@ from .lib import Result
 
 __all__ = ['dt_now', 'parse_message_envelope', 'MsgInfo', 'SendResult']
 
-def SendResult(was_sent, queued=None, transport=None):
-    return Result(was_sent, queued=queued, transport=transport, discarded=None)
+class SendResult(Result):
+    def __init__(self, was_sent, queued=None, transport=None):
+        super().__init__(was_sent, queued=queued, transport=transport, discarded=None)
 
 
 def parse_message_envelope(fp):
