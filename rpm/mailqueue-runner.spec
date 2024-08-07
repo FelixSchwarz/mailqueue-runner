@@ -28,7 +28,7 @@ external SMTP server.}
 %description %_description
 
 %prep
-%autosetup -p1 -n mailqueue_runner-%{version}
+%autosetup -p1 -n mailqueue-runner-%{version}
 rm -rf *.egg-info
 
 %generate_buildrequires
