@@ -47,7 +47,7 @@ def test_can_parse_encoded_header():
 def test_can_parse_message_with_utf8_data():
     msg = Message()
     msg['Message-ID'] = '<foo@id.example>'
-    msg['Mime-Version'] = '1.0'
+    msg['MIME-Version'] = '1.0'
     msg['Content-Transfer-Encoding'] = '8bit'
     msg['Content-Type'] = 'text/plain; charset=UTF-8'
     msg.set_payload(b'some \xc2\xbbnon-ascii\xc2\xab text')

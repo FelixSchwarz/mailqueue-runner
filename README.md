@@ -43,7 +43,7 @@ it supports some convenient parameters added by [msmtp](https://github.com/marla
     $ mq-sendmail --set-date-header --set-msgid-header root <<<MAIL
     Subject: Test email
     From: me@site.example
-    Mime-Version: 1.0
+    MIME-Version: 1.0
     Content-Transfer-Encoding: 8bit
     Content-Type: text/plain; charset=UTF-8
 

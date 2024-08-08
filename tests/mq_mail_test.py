@@ -58,7 +58,7 @@ def test_mq_mail(ctx):
     msg_date = parsedate_to_datetime(msg['Date'])
     assert almost_now(msg_date)
     assert msg['Message-ID']
-    assert msg['Mime-Version'] == '1.0'
+    assert msg['MIME-Version'] == '1.0'
     assert msg['Content-Transfer-Encoding'] == '8bit'
     assert msg['Content-Type'] == 'text/plain; charset="UTF-8"'
     assert msg.get_payload() == 'mail body'

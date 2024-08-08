@@ -67,7 +67,7 @@ def mq_mail_main(argv=sys.argv, return_rc_code=False):
         sys.exit(81)
 
     stub_msg = email.message_from_bytes(msg_body)
-    stub_msg['Mime-Version'] = '1.0'
+    stub_msg['MIME-Version'] = '1.0'
     stub_msg['Content-Transfer-Encoding'] = '8bit'
     stub_msg['Content-Type'] = 'text/plain; charset="UTF-8"'
     if subject:
