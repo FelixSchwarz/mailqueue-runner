@@ -64,7 +64,7 @@ pip install time-machine dotmap
 %endif
 
 # tests requiring pymta just hang when run in mock (LATER: debug issue)
-%pytest -n auto -k "not test_mq_send_test and not test_mq_sendmail and not test_can_send_message"
+%pytest -n auto -k "not test_mq_send_test and not test_mq_sendmail and not test_can_send_message and not test_mq_mail"
 
 
 %post
@@ -73,6 +73,7 @@ restorecon %{_sysconfdir}/mailqueue-runner.conf
 %files -f %{pyproject_files}
 %doc README.md
 %config(noreplace) %{_sysconfdir}/mailqueue-runner.conf
+%{_bindir}/mq-mail
 %{_bindir}/mq-run
 %{_bindir}/mq-send-test
 %{_bindir}/mq-sendmail

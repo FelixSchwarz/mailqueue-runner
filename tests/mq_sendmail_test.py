@@ -6,7 +6,6 @@ import re
 import subprocess
 import sys
 import textwrap
-from datetime import datetime as DateTime, timedelta as TimeDelta, timezone
 from email.utils import parsedate_to_datetime
 
 import pytest
@@ -15,7 +14,12 @@ from pymta.test_util import SMTPTestHelper
 from schwarz.log_utils import l_
 
 from schwarz.mailqueue.queue_runner import MaildirBackedMsg, assemble_queue_with_new_messages
-from schwarz.mailqueue.testutils import create_ini
+from schwarz.mailqueue.testutils import (
+    almost_now,
+    create_alias_file,
+    create_ini,
+    retrieve_sent_message,
+)
 
 
 @pytest.fixture
@@ -48,18 +52,11 @@ def test_mq_sendmail(ctx):
     rfc_msg = _example_message(to='baz@site.example')
     _mq_sendmail(['foo@site.example'], msg=rfc_msg, ctx=ctx)
 
-    smtp_msg = _retrieve_sent_message(ctx.mta)
+    smtp_msg = retrieve_sent_message(ctx.mta)
     # smtp from is auto-generated from current user+host, so not easy to test
     assert tuple(smtp_msg.smtp_to) == ('foo@site.example',)
     assert smtp_msg.username is None  # no smtp user name set in config
     assert smtp_msg.msg_data == rfc_msg
-
-
-def _retrieve_sent_message(mta):
-    received_queue = mta.get_received_messages()
-    assert received_queue.qsize() == 1
-    smtp_msg = received_queue.get(block=False)
-    return smtp_msg
 
 
 @pytest.mark.parametrize('set_via', ['config', 'cli-param'])
@@ -72,7 +69,7 @@ def test_mq_sendmail_set_from(ctx, set_via):
     _cmd = [f'--from={smtp_sender}'] if set_via == 'cli-param' else []
     _mq_sendmail(_cmd + ['foo@site.example'], msg=rfc_msg, config_path=config_path)
 
-    smtp_msg = _retrieve_sent_message(ctx.mta)
+    smtp_msg = retrieve_sent_message(ctx.mta)
     assert smtp_msg.smtp_from == smtp_sender
     assert tuple(smtp_msg.smtp_to) == ('foo@site.example',)
     assert smtp_msg.username is None  # no smtp user name set in config
@@ -90,16 +87,14 @@ def test_mq_sendmail_can_add_headers(ctx):
     ]
     _mq_sendmail(cli_params, msg=sent_msg, ctx=ctx)
 
-    smtp_msg = _retrieve_sent_message(ctx.mta)
+    smtp_msg = retrieve_sent_message(ctx.mta)
     msg = email.message_from_string(smtp_msg.msg_data)
     assert msg['To'] == 'foo@site.example'
     assert _is_email_address(msg['From'])
     msg_date = parsedate_to_datetime(msg['Date'])
-    assert _almost_now(msg_date)
+    assert almost_now(msg_date)
     assert msg['Message-ID']
 
-def _almost_now(dt):
-    return dt - DateTime.now(timezone.utc) < TimeDelta(seconds=1)
 
 def _is_email_address(s):
     pattern = r'^\w+@[\w.\-]+$'
@@ -107,28 +102,18 @@ def _is_email_address(s):
 
 
 def test_mq_sendmail_with_aliases(ctx, tmp_path):
-    aliases_path = _create_alias_file({'foo': 'staff@site.example'}, tmp_path)
+    aliases_path = create_alias_file({'foo': 'staff@site.example'}, tmp_path)
 
     rfc_msg = _example_message(to='baz@site.example')
     _mq_sendmail([f'--aliases={aliases_path}', 'foo'], msg=rfc_msg, ctx=ctx)
 
-    smtp_msg = _retrieve_sent_message(ctx.mta)
+    smtp_msg = retrieve_sent_message(ctx.mta)
     expected_recipient = 'staff@site.example'
     assert tuple(smtp_msg.smtp_to) == (expected_recipient,)
     assert smtp_msg.msg_data == rfc_msg
     msg = email.message_from_string(smtp_msg.msg_data)
     # "From" header should not be changed by mq_sendmail
     assert msg['To'] == 'baz@site.example'
-
-
-def _create_alias_file(aliases, dir_path) -> str:
-    aliases_contents = ''
-    for alias, target in aliases.items():
-        aliases_contents += f'{alias}: {target}\n'
-
-    aliases_path = dir_path / 'aliases'
-    aliases_path.write_text(aliases_contents)
-    return str(aliases_path)
 
 
 def test_mq_sendmail_with_queuing(ctx):

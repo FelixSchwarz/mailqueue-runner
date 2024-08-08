@@ -3,12 +3,16 @@
 
 This library provides a robust way to send email messages to an external SMTP
 server. The API was designed for easy integration into your Python (web) application.
-Additionally, there is a CLI script which is compatible with `/usr/bin/sendmail`
-(with a very limited feature set) so this software is also an alternative to
-[msmtp](https://github.com/marlam/msmtp) and [ssmtp](https://packages.qa.debian.org/s/ssmtp.html).
 
-Its main feature is a queuing system to handle (temporary) errors when sending the message
-(e.g. interrupted network connection) and detailed error logging.
+Additionally, there are CLI scripts (with a very limited feature set) to enable
+applications to send email via CLI as done traditionally with `/usr/bin/sendmail`
+and `/usr/bin/mail`. So for very simple use cases this software is also an
+alternative to [msmtp](https://github.com/marlam/msmtp) and
+[ssmtp](https://packages.qa.debian.org/s/ssmtp.html).
+
+At the core the code contains a queuing system to handle (temporary) errors
+when sending the message (e.g. interrupted network connection) and provides
+detailed error logging.
 
 When a message cannot be sent via SMTP it can be stored in a maildir-like queue
 on disk. An external helper script (`mq-run`) picks them up at a later time and
@@ -50,6 +54,24 @@ By default, the configuration read from `~/.mailqueue-runner.conf` or
 `/etc/mailqueue-runner.conf` though you can also specify the config file
 explicitly using `--config=...`. Similar to other `sendmail` implementations,
 the application parses `/etc/aliases` to look up the recipient's email address.
+
+Please note that the code will only enqueue the message after a failed delivery
+if the configuration file contains the `queue_dir` option.
+
+
+### Usage `mq-mail` (CLI)
+
+The code provides a CLI application named `mq-mail` which provides (basic)
+compatibility with `/usr/bin/mail` application.
+
+    $ mq-mail --from-address="me@site.example" --subject "subject" root <<<MAIL
+    mail body
+    MAIL
+
+By default, the configuration read from `~/.mailqueue-runner.conf` or
+`/etc/mailqueue-runner.conf` though you can also specify the config file
+explicitly using `--config=...`. The application parses `/etc/aliases` to look
+up the recipient's email address.
 
 Please note that the code will only enqueue the message after a failed delivery
 if the configuration file contains the `queue_dir` option.

@@ -3,6 +3,7 @@
 
 import logging
 import os
+from datetime import datetime as DateTime, timedelta as TimeDelta, timezone
 from email.message import Message
 from io import BytesIO
 from unittest import mock
@@ -18,12 +19,17 @@ from .smtpclient import SMTPClient
 
 __all__ = [
     'assert_did_log_message',
+    'create_alias_file',
     'create_ini',
     'fake_smtp_client',
     'info_logger',
     'inject_example_message',
+    'retrieve_sent_message',
     'SocketMock',
 ]
+
+def almost_now(dt):
+    return dt - DateTime.now(timezone.utc) < TimeDelta(seconds=1)
 
 def message():
     msg = Message()
@@ -64,6 +70,15 @@ def create_ini(hostname, port, dir_path, *, queue_dir=None, from_='testuser@host
         config_fp.write(config_str.encode('ascii'))
     return config_path
 
+
+def create_alias_file(aliases, dir_path) -> str:
+    aliases_contents = ''
+    for alias, target in aliases.items():
+        aliases_contents += f'{alias}: {target}\n'
+
+    aliases_path = dir_path / 'aliases'
+    aliases_path.write_text(aliases_contents)
+    return str(aliases_path)
 
 
 # --- helpers to capture/check logged messages --------------------------------
@@ -106,6 +121,12 @@ def assert_did_log_message(log_capture, expected_msg):
 
 
 # --- test helpers to simulate a SMTP server ----------------------------------
+
+def retrieve_sent_message(mta):
+    received_queue = mta.get_received_messages()
+    assert received_queue.qsize() == 1
+    smtp_msg = received_queue.get(block=False)
+    return smtp_msg
 
 def stub_socket_creation(socket_mock):
     connect_override = socket_mock._overrides.get('connect', None)
