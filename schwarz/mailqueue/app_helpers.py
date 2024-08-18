@@ -157,26 +157,34 @@ def configure_logging(settings, options):
 
     verbose = options.get('verbose')
     quiet = options.get('quiet')
-    assert not (verbose and quiet)
+    ui_log_level = _ui_log_level(verbose, quiet)
+    add_ui_logger(ui_log_level)
 
+
+def _ui_log_level(verbose, quiet):
+    if verbose and quiet:
+        raise ValueError('Cannot use both "--verbose" and "--quiet".')
     if verbose:
-        ui_logging = logging.DEBUG
+        return logging.DEBUG
     elif quiet:
-        ui_logging = logging.FATAL
+        return logging.FATAL
     else:
-        ui_logging = logging.INFO
+        return logging.INFO
+
+
+def add_ui_logger(ui_log_level):
     # This logger is responsible for user output
     UIHandler = logging.StreamHandler(sys.stderr)
     # the "handler" log level takes priority over so you might think that just
     # setting "DEBUG" here would be enough to implement "--verbose".
     # That is not enough, so we need to set the level also on the logger (see below).
-    UIHandler.setLevel(ui_logging)
+    UIHandler.setLevel(ui_log_level)
     UIHandler.setFormatter(logging.Formatter('%(message)s'))
     mq_logger = logging.getLogger('mailqueue')
     # If not we don't set a level for the "mailqueue" logger all other loggers
     # will inherit the root logger's log level (which is WARNING by default).
     # That will suppress a lot of log messages.
-    mq_logger.setLevel(ui_logging)
+    mq_logger.setLevel(ui_log_level)
     mq_logger.addHandler(UIHandler)
     # messages from the "mailqueue" handler should typically not bubble up to
     # the root logger (this might lead to duplicate lines shown to the user,
