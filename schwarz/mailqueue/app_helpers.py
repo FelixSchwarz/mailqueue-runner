@@ -141,16 +141,16 @@ def parse_config(config_path, section_name=None):
 
 
 def configure_logging(settings, options):
-    log_path = settings.get('logging_config')
+    path_logging_config = settings.get('logging_config')
     basic_logging_configured = settings.get('basic_logging_configured', False)
-    if log_path:
-        if not os.path.exists(log_path):
-            sys.stderr.write('No log configuration file "%s".\n' % log_path)
+    if path_logging_config:
+        if not os.path.exists(path_logging_config):
+            sys.stderr.write('No log configuration file "%s".\n' % path_logging_config)
             sys.exit(25)
         try:
-            logging.config.fileConfig(log_path)
+            logging.config.fileConfig(path_logging_config)
         except Exception as e:
-            sys.stderr.write('Malformed logging configuration file "%s": %s\n' % (log_path, e))
+            sys.stderr.write('Malformed logging configuration file "%s": %s\n' % (path_logging_config, e))  # noqa: E501 (line-too-long)
             sys.exit(26)
     elif not basic_logging_configured:
         logging.basicConfig()
