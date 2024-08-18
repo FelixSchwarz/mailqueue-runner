@@ -68,12 +68,12 @@ def _decode_header(header_value):
     strs = [str_part.decode(part_encoding) for (str_part, part_encoding) in header_parts]
     return ''.join(strs)
 
-def test_mq_mail_with_aliases(ctx, tmp_path):
+def test_mq_mail_with_aliases(ctx):
     aliases = {
         'dbuser': 'staff@site.example',
         'root': 'operations@corp.example',
     }
-    aliases_path = create_alias_file(aliases, tmp_path)
+    aliases_path = create_alias_file(aliases, ctx.tmp_path)
 
     mail_params = [f'--aliases={aliases_path}', '-r', 'dbuser', 'root']
     _mq_mail(mail_params, msg_body='mail body', ctx=ctx)
