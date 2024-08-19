@@ -143,6 +143,7 @@ def parse_config(config_path, section_name=None):
 def configure_logging(settings, options):
     path_logging_config = settings.get('logging_config')
     basic_logging_configured = settings.get('basic_logging_configured', False)
+    log_file = None
     if path_logging_config:
         if not os.path.exists(path_logging_config):
             sys.stderr.write('No log configuration file "%s".\n' % path_logging_config)
@@ -152,8 +153,30 @@ def configure_logging(settings, options):
         except Exception as e:
             sys.stderr.write('Malformed logging configuration file "%s": %s\n' % (path_logging_config, e))  # noqa: E501 (line-too-long)
             sys.exit(26)
-    elif not basic_logging_configured:
+    elif basic_logging_configured:
+        pass
+    else:
         logging.basicConfig()
+        if 'logfile' in settings:
+            log_file = settings['logfile']
+
+    if log_file:
+        path_log_file = Path(log_file)
+        log_dir = path_log_file.parent
+        if not log_dir.exists():
+            try:
+                log_dir.mkdir(parents=True)
+            except OSError as e:
+                sys.stderr.write('Cannot create log directory "%s": %s\n' % (log_dir, e))
+                sys.exit(27)
+
+        _h_logfile = logging.FileHandler(path_log_file)
+        _h_logfile.setFormatter(logging.Formatter('%(asctime)s %(message)s'))
+        for key in ('mailqueue.delivery_log', 'mailqueue.queue_log'):
+            _logger = logging.getLogger(key)
+            _logger.addHandler(_h_logfile)
+            _logger.setLevel(logging.INFO)
+            _logger.propagate = False
 
     verbose = options.get('verbose')
     quiet = options.get('quiet')

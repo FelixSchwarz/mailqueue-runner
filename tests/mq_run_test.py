@@ -27,21 +27,32 @@ from schwarz.mailqueue.maildir_utils import find_messages
 from schwarz.mailqueue.testutils import create_ini, inject_example_message
 
 
-def test_mq_run_failed_delivery_without_plugins(tmp_path):
-    queue_basedir = os.path.join(str(tmp_path), 'mailqueue')
+@pytest.mark.parametrize('failed_sending', [False, True])
+def test_mq_run_delivery_without_plugins(failed_sending, tmp_path):
+    queue_basedir = str(tmp_path / 'mailqueue')
     create_maildir_directories(queue_basedir)
     inject_example_message(queue_basedir)
-    config_path = create_ini('host.example', port=12345, dir_path=str(tmp_path))
+    log_path = tmp_path / 'mq_sendmail.log'
+    config_path = create_ini('host.example', port=12345, dir_path=tmp_path, log_path=log_path)
 
     cmd = ['mq-run', f'--config={config_path}', queue_basedir]
-    mailer = DebugMailer(simulate_failed_sending=True)
+    mailer = DebugMailer(simulate_failed_sending=failed_sending)
     with mock.patch('schwarz.mailqueue.queue_runner.init_smtp_mailer', new=lambda s: mailer):
         rc = one_shot_queue_run_main(argv=cmd, return_rc_code=True)
     assert rc == 0
 
-    assert len(mailer.sent_mails) == 0
-    assert len(tuple(find_messages(queue_basedir, log=l_(None)))) == 1, \
-        'message should have been queued for later delivery'
+    queued_messages = tuple(find_messages(queue_basedir, log=l_(None)))
+    if failed_sending:
+        assert len(mailer.sent_mails) == 0
+        assert len(queued_messages) == 1, 'message should have been queued for later delivery'
+        assert log_path.read_text() == ''
+    else:
+        assert len(mailer.sent_mails) == 1
+        assert len(queued_messages) == 0
+        assert log_path.exists()
+        log_line, = log_path.read_text().splitlines()
+        assert 'foo@site.example => bar@site.example' in log_line
+
 
 
 # entries=() so the WorkingSet contains our entries only, nothing is

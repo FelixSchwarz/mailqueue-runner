@@ -49,6 +49,10 @@ rm -rf *.egg-info
     --parents \
     --mode=0700 \
     %{buildroot}%{_localstatedir}/spool/mailqueue-runner
+/usr/bin/mkdir \
+    --parents \
+    --mode=0700 \
+    %{buildroot}%{_localstatedir}/log/mailqueue-runner
 
 # https://bugzilla.redhat.com/show_bug.cgi?id=1935266
 # namespace packages not fully supported ("schwarz/mailqueue" does not work)
@@ -78,6 +82,8 @@ restorecon %{_sysconfdir}/mailqueue-runner.conf
 %{_bindir}/mq-send-test
 %{_bindir}/mq-sendmail
 %dir %{_localstatedir}/spool/mailqueue-runner
+%dir %{_localstatedir}/log/mailqueue-runner
+
 
 %changelog
 * Wed Aug 07 2024 Felix Schwarz <felix.schwarz@oss.schwarz.eu> - 0.11.0-1
