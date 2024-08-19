@@ -48,7 +48,7 @@ rm -rf *.egg-info
 /usr/bin/mkdir \
     --parents \
     --mode=0700 \
-    %{buildroot}%{_localstatedir}/spool/mailqueue-runner
+    %{buildroot}%{_localstatedir}/spool/mailqueue-runner/{new,cur,tmp}
 /usr/bin/mkdir \
     --parents \
     --mode=0700 \
@@ -82,6 +82,9 @@ restorecon %{_sysconfdir}/mailqueue-runner.conf
 %{_bindir}/mq-send-test
 %{_bindir}/mq-sendmail
 %dir %{_localstatedir}/spool/mailqueue-runner
+%dir %{_localstatedir}/spool/mailqueue-runner/new
+%dir %{_localstatedir}/spool/mailqueue-runner/cur
+%dir %{_localstatedir}/spool/mailqueue-runner/tmp
 %dir %{_localstatedir}/log/mailqueue-runner
 
 
