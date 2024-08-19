@@ -50,7 +50,7 @@ it supports some convenient parameters added by [msmtp](https://github.com/marla
     mail body
     MAIL
 
-By default, the configuration read from `~/.mailqueue-runner.conf` or
+By default, the configuration is read from `~/.mailqueue-runner.conf` or
 `/etc/mailqueue-runner.conf` though you can also specify the config file
 explicitly using `--config=...`. Similar to other `sendmail` implementations,
 the application parses `/etc/aliases` to look up the recipient's email address.
@@ -68,7 +68,7 @@ compatibility with `/usr/bin/mail` application.
     mail body
     MAIL
 
-By default, the configuration read from `~/.mailqueue-runner.conf` or
+By default, the configuration is read from `~/.mailqueue-runner.conf` or
 `/etc/mailqueue-runner.conf` though you can also specify the config file
 explicitly using `--config=...`. The application parses `/etc/aliases` to look
 up the recipient's email address.
@@ -249,7 +249,7 @@ if __name__ == '__main__':
 
 The default configuration shown above tries to send messages via SMTP if possible and only serialize the data to persistent storage (filesystem) when the SMTP delivery failed. That approach is usually a good compromise between performance (serializing to disk is slow) while ensuring that messages will be sent eventually.
 
-However sometimes it is really important that you never loose a single message even if mailqueue-runner has a bug and crashes directly after trying to send the message with SMTP. To mitigate this risk you can use mailqueue-runner to store the message persistently before even trying to send it via SMTP:
+However sometimes it is really important that you never loose a single message even if mailqueue-runner has a bug and crashes directly after trying to send the message with SMTP. To mitigate this risk you can store the message persistently before even trying to send it via SMTP:
 
 ```python
 from schwarz.mailqueue import enqueue_message, MessageHandler
