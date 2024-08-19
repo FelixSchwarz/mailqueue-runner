@@ -31,7 +31,7 @@ from schwarz.mailqueue.testutils import create_ini, inject_example_message
 # picked up from the system
 @mock.patch('schwarz.mailqueue.app_helpers._working_set', new=WorkingSet(entries=()))
 @pytest.mark.skipif(SignalRegistry is None, reason='requires PuzzlePluginSystem')
-def test_mq_runner_can_load_plugins(tmp_path):
+def test_mq_run_failed_delivery_with_plugins(tmp_path):
     queue_basedir = os.path.join(str(tmp_path), 'mailqueue')
     create_maildir_directories(queue_basedir)
     inject_example_message(queue_basedir)
@@ -53,7 +53,7 @@ def test_mq_runner_can_load_plugins(tmp_path):
     assert len(tuple(find_messages(queue_basedir, log=l_(None)))) == 0, \
         'plugin should have discarded the message after failed delivery'
 
-def test_mq_runner_works_without_plugins(tmp_path):
+def test_mq_run_failed_delivery_without_plugins(tmp_path):
     queue_basedir = os.path.join(str(tmp_path), 'mailqueue')
     create_maildir_directories(queue_basedir)
     inject_example_message(queue_basedir)
