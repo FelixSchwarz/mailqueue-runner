@@ -27,6 +27,23 @@ from schwarz.mailqueue.maildir_utils import find_messages
 from schwarz.mailqueue.testutils import create_ini, inject_example_message
 
 
+def test_mq_run_failed_delivery_without_plugins(tmp_path):
+    queue_basedir = os.path.join(str(tmp_path), 'mailqueue')
+    create_maildir_directories(queue_basedir)
+    inject_example_message(queue_basedir)
+    config_path = create_ini('host.example', port=12345, dir_path=str(tmp_path))
+
+    cmd = ['mq-run', f'--config={config_path}', queue_basedir]
+    mailer = DebugMailer(simulate_failed_sending=True)
+    with mock.patch('schwarz.mailqueue.queue_runner.init_smtp_mailer', new=lambda s: mailer):
+        rc = one_shot_queue_run_main(argv=cmd, return_rc_code=True)
+    assert rc == 0
+
+    assert len(mailer.sent_mails) == 0
+    assert len(tuple(find_messages(queue_basedir, log=l_(None)))) == 1, \
+        'message should have been queued for later delivery'
+
+
 # entries=() so the WorkingSet contains our entries only, nothing is
 # picked up from the system
 @mock.patch('schwarz.mailqueue.app_helpers._working_set', new=WorkingSet(entries=()))
@@ -52,23 +69,6 @@ def test_mq_run_failed_delivery_with_plugins(tmp_path):
     mock_fn.assert_called_once()
     assert len(tuple(find_messages(queue_basedir, log=l_(None)))) == 0, \
         'plugin should have discarded the message after failed delivery'
-
-def test_mq_run_failed_delivery_without_plugins(tmp_path):
-    queue_basedir = os.path.join(str(tmp_path), 'mailqueue')
-    create_maildir_directories(queue_basedir)
-    inject_example_message(queue_basedir)
-    config_path = create_ini('host.example', port=12345, dir_path=str(tmp_path))
-
-    cmd = ['mq-run', f'--config={config_path}', queue_basedir]
-    mailer = DebugMailer(simulate_failed_sending=True)
-    with mock.patch('schwarz.mailqueue.queue_runner.init_smtp_mailer', new=lambda s: mailer):
-        rc = one_shot_queue_run_main(argv=cmd, return_rc_code=True)
-    assert rc == 0
-
-    assert len(mailer.sent_mails) == 0
-    assert len(tuple(find_messages(queue_basedir, log=l_(None)))) == 1, \
-        'message should have been queued for later delivery'
-
 
 
 def inject_plugin_into_working_set(plugin_id, plugin):
