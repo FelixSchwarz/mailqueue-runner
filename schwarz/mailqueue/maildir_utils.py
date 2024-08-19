@@ -67,8 +67,6 @@ def create_maildir_directories(basedir, is_folder=False):
 
 
 def find_messages(queue_basedir, log, queue_folder='new'):
-    if isinstance(queue_basedir, os.PathLike) and not hasattr(os, 'PathLike'):
-        queue_basedir = str(queue_basedir)
     if not os.path.exists(queue_basedir):
         log.error(f'Queue directory "{queue_basedir}" does not exist.')
     else:
