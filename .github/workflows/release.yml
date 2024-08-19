@@ -4,17 +4,37 @@ on:
   - workflow_dispatch
 
 jobs:
-  wheels:
+  artifacts:
     runs-on: ubuntu-latest
+    container:
+      image: fedora:latest
     timeout-minutes: 10
 
     steps:
     - name: checkout code
       uses: actions/checkout@v4
 
+    - name: install python modules to create wheel
+      run: |
+        dnf install -y python3-setuptools python3-wheel
+
     - name: create Python wheel and sdist
       run: |
-        python setup.py sdist bdist_wheel
+        python3 setup.py sdist bdist_wheel
+
+    - name: install rpmbuild
+      run: |
+          dnf install -y /usr/bin/rpmbuild
+
+    - name: create src.rpm
+      run: |
+        set -x
+        cd rpm
+        mkdir SOURCES
+        cp -a ../dist/*.tar.gz SOURCES/
+        mv mailqueue-runner{.conf,.logrotate} ./SOURCES/
+        /usr/bin/rpmbuild --define "_topdir `pwd`" -bs *.spec
+        mv SRPMS/*.src.rpm ../dist/
 
     - name: upload release artifacts
       uses: actions/upload-artifact@v4
