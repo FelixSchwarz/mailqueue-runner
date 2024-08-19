@@ -69,15 +69,18 @@ def create_maildir_directories(basedir, is_folder=False):
 def find_messages(queue_basedir, log, queue_folder='new'):
     if isinstance(queue_basedir, os.PathLike) and not hasattr(os, 'PathLike'):
         queue_basedir = str(queue_basedir)
-    path_new = os.path.join(queue_basedir, queue_folder)
-    try:
-        filenames = os.listdir(path_new)
-    except FileNotFoundError:
-        log.error('Queue directory %s does not exist.', path_new)
+    if not os.path.exists(queue_basedir):
+        log.error(f'Queue directory "{queue_basedir}" does not exist.')
     else:
-        for filename in filenames:
-            path = os.path.join(path_new, filename)
-            yield path
+        path_new = os.path.join(queue_basedir, queue_folder)
+        try:
+            filenames = os.listdir(path_new)
+        except FileNotFoundError:
+            pass
+        else:
+            for filename in filenames:
+                path = os.path.join(path_new, filename)
+                yield path
 
 
 def lock_file(path, timeout=None):
