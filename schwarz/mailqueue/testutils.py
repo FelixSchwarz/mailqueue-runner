@@ -54,7 +54,7 @@ def inject_example_message(queue_path, sender=b'foo@site.example', recipient=Non
     return MaildirBackedMsg(msg_path)
 
 def create_ini(hostname, port, dir_path, *, queue_dir=None,
-               from_='testuser@host.example', log_path=None):
+               from_='testuser@host.example', log_dir=None):
     config_str = '\n'.join([
         '[mqrunner]',
         'smtp_hostname = %s' % hostname,
@@ -64,8 +64,11 @@ def create_ini(hostname, port, dir_path, *, queue_dir=None,
         config_str += f'\nqueue_dir = {queue_dir}'
     if from_:
         config_str += f'\nfrom = {from_}'
-    if log_path:
-        config_str += f'\nlogfile = {log_path}'
+    if log_dir:
+        delivery_log = str(log_dir / 'mq_delivery.log')
+        config_str += f'\ndelivery_log = {delivery_log}'
+        queue_log = str(log_dir / 'mq_queue.log')
+        config_str += f'\nqueue_log = {queue_log}'
     if not dir_path:
         return config_str
     config_path = os.path.join(dir_path, 'config.ini')

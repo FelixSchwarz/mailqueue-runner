@@ -143,7 +143,9 @@ def parse_config(config_path, section_name=None):
 def configure_logging(settings, options):
     path_logging_config = settings.get('logging_config')
     basic_logging_configured = settings.get('basic_logging_configured', False)
-    log_file = None
+    delivery_log_file = None
+    queue_log_file = None
+
     if path_logging_config:
         if not os.path.exists(path_logging_config):
             sys.stderr.write('No log configuration file "%s".\n' % path_logging_config)
@@ -157,31 +159,39 @@ def configure_logging(settings, options):
         pass
     else:
         logging.basicConfig()
-        if 'logfile' in settings:
-            log_file = settings['logfile']
+        if 'delivery_log' in settings:
+            delivery_log_file = settings['delivery_log']
+        if 'queue_log' in settings:
+            queue_log_file = settings['queue_log']
 
-    if log_file:
-        path_log_file = Path(log_file)
-        log_dir = path_log_file.parent
-        if not log_dir.exists():
-            try:
-                log_dir.mkdir(parents=True)
-            except OSError as e:
-                sys.stderr.write('Cannot create log directory "%s": %s\n' % (log_dir, e))
-                sys.exit(27)
-
-        _h_logfile = logging.FileHandler(path_log_file)
-        _h_logfile.setFormatter(logging.Formatter('%(asctime)s %(message)s'))
-        for key in ('mailqueue.delivery_log', 'mailqueue.queue_log'):
-            _logger = logging.getLogger(key)
-            _logger.addHandler(_h_logfile)
-            _logger.setLevel(logging.INFO)
-            _logger.propagate = False
+    if delivery_log_file:
+        _setup_file_logger(Path(delivery_log_file), logger_key='mailqueue.delivery_log')
+    if queue_log_file:
+        _setup_file_logger(Path(queue_log_file), logger_key='mailqueue.queue_log')
 
     verbose = options.get('verbose')
     quiet = options.get('quiet')
     ui_log_level = _ui_log_level(verbose, quiet)
     add_ui_logger(ui_log_level)
+
+
+def _setup_file_logger(path_log_file, logger_key):
+    log_dir = path_log_file.parent
+    log_display_name = 'delivery log' if ('delivery' in logger_key) else 'queue log'
+    if not log_dir.exists():
+        try:
+            log_dir.mkdir(parents=True)
+        except OSError as e:
+            err_msg = f'Cannot create log directory "{log_dir}" for {log_display_name} log: {e}'
+            sys.stderr.write(err_msg + '\n')
+            sys.exit(27)
+
+    _h_logfile = logging.FileHandler(path_log_file)
+    _h_logfile.setFormatter(logging.Formatter('%(asctime)s %(message)s'))
+    _logger = logging.getLogger(logger_key)
+    _logger.addHandler(_h_logfile)
+    _logger.setLevel(logging.INFO)
+    _logger.propagate = False
 
 
 def _ui_log_level(verbose, quiet):

@@ -58,9 +58,9 @@ def test_mq_sendmail(ctx):
     assert smtp_msg.username is None  # no smtp user name set in config
     assert smtp_msg.msg_data == rfc_msg
 
-    log_path = ctx.tmp_path / 'mq_sendmail.log'
-    assert log_path.exists()
-    log_line, = log_path.read_text().splitlines()
+    path_delivery_log = ctx.tmp_path / 'mq_delivery.log'
+    assert path_delivery_log.exists()
+    log_line, = path_delivery_log.read_text().splitlines()
     assert 'testuser@host.example => foo@site.example' in log_line
 
 
@@ -125,13 +125,12 @@ def test_mq_sendmail_with_queuing(ctx):
     rfc_msg = _example_message(to='baz@site.example')
     unused_port = ctx.listen_port + 1
     queue_dir = ctx.tmp_path / 'queue'
-    log_path = ctx.tmp_path / 'mq_sendmail.log'
     config_path = create_ini(
         ctx.hostname,
         port      = unused_port,
         dir_path  = ctx.tmp_path,
         queue_dir = queue_dir,
-        log_path  = log_path,
+        log_dir  = ctx.tmp_path,
     )
     _mq_sendmail(['foo@site.example'], msg=rfc_msg, config_path=config_path)
 
@@ -147,9 +146,9 @@ def test_mq_sendmail_with_queuing(ctx):
     assert msg.retries == 0
     assert msg.msg_bytes == _to_platform_bytes(rfc_msg)
 
-    assert log_path.exists()
-    log_line, = log_path.read_text().splitlines()
-    assert 'testuser@host.example => foo@site.example' in log_line
+    path_delivery_log = ctx.tmp_path / 'mq_delivery.log'
+    assert path_delivery_log.exists()
+    assert path_delivery_log.read_text() == ''
 
 
 def _to_platform_bytes(msg_str: str) -> bytes:
@@ -158,9 +157,9 @@ def _to_platform_bytes(msg_str: str) -> bytes:
 
 def _mq_sendmail(cli_params, msg, *, ctx=None, config_path=None):
     if config_path is None:
-        cfg_dir = str(ctx.tmp_path)
-        log_path = ctx.tmp_path / 'mq_sendmail.log'
-        config_path = create_ini(ctx.hostname, ctx.listen_port, dir_path=cfg_dir, log_path=log_path)
+        tmp_path = ctx.tmp_path
+        cfg_dir = str(tmp_path)
+        config_path = create_ini(ctx.hostname, ctx.listen_port, dir_path=cfg_dir, log_dir=tmp_path)
 
     cli_params = [f'--config={config_path}'] + cli_params
     cmd = [sys.executable, '-m', 'schwarz.mailqueue.mq_sendmail'] + cli_params

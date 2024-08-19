@@ -63,9 +63,9 @@ def test_mq_mail(ctx):
     assert msg['Content-Type'] == 'text/plain; charset="UTF-8"'
     assert msg.get_payload() == 'mail body'
 
-    log_path = ctx.tmp_path / 'mq_mail.log'
-    assert log_path.exists()
-    log_line, = log_path.read_text().splitlines()
+    path_delivery_log = ctx.tmp_path / 'mq_delivery.log'
+    assert path_delivery_log.exists()
+    log_line, = path_delivery_log.read_text().splitlines()
     assert 'dbuser@worker.example => foo@site.example' in log_line
 
 def _decode_header(header_value):
@@ -95,13 +95,12 @@ def test_mq_mail_with_aliases(ctx):
 def test_mq_mail_with_queuing(tmp_path):
     unused_port = random.randint(60000, 65535)
     queue_dir = tmp_path / 'queue'
-    log_path = tmp_path / 'mq_mail.log'
     config_path = create_ini(
         'localhost',
         port      = unused_port,
         dir_path  = tmp_path,
         queue_dir = queue_dir,
-        log_path = log_path,
+        log_dir = tmp_path,
     )
     mail_params = [
         '--from-address=dbuser@worker.example',
@@ -121,16 +120,16 @@ def test_mq_mail_with_queuing(tmp_path):
     assert msg['From'] == 'dbuser@worker.example'
     assert msg['To'] == 'foo@site.example'
 
-    assert log_path.exists()
-    log_line, = log_path.read_text().splitlines()
-    assert 'dbuser@worker.example => foo@site.example' in log_line
+    path_delivery_log = tmp_path / 'mq_delivery.log'
+    assert path_delivery_log.exists()
+    assert path_delivery_log.read_text() == ''
 
 
 def _mq_mail(mail_params, msg_body, *, ctx=None, config_path=None):
     if config_path is None:
-        cfg_dir = str(ctx.tmp_path)
-        log_path = ctx.tmp_path / 'mq_mail.log'
-        config_path = create_ini(ctx.hostname, ctx.listen_port, dir_path=cfg_dir, log_path=log_path)
+        tmp_path = ctx.tmp_path
+        cfg_dir = str(tmp_path)
+        config_path = create_ini(ctx.hostname, ctx.listen_port, dir_path=cfg_dir, log_dir=tmp_path)
 
     cli_params = [f'--config={config_path}'] + mail_params
     cmd = [sys.executable, '-m', 'schwarz.mailqueue.mq_mail'] + cli_params

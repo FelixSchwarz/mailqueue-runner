@@ -140,6 +140,12 @@ loggers depending on the type of delivery:
 - `mailqueue.delivery_log`: message was delivered to the SMTP server
 - `mailqueue.queue_log`: message was queued and will be delivered later by `mq-run`
 
+For CLI applications (e.g. `mq-run`, `mq-sendmail`, `mq-mail`) you can set
+`delivery_log = /path/to/delivery.log` and `queue_log = ...` in the config file
+to store log messages. These config options are ignored if you set a completely
+custom logging configuration (`logging_config = ...`) or when you use
+mailqueue-runner as a plain Python library.
+
 
 ### Plugins
 

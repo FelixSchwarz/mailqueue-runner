@@ -32,8 +32,7 @@ def test_mq_run_delivery_without_plugins(failed_sending, tmp_path):
     queue_basedir = str(tmp_path / 'mailqueue')
     create_maildir_directories(queue_basedir)
     inject_example_message(queue_basedir)
-    log_path = tmp_path / 'mq_sendmail.log'
-    config_path = create_ini('host.example', port=12345, dir_path=tmp_path, log_path=log_path)
+    config_path = create_ini('host.example', port=12345, dir_path=tmp_path, log_dir=tmp_path)
 
     cmd = ['mq-run', f'--config={config_path}', queue_basedir]
     mailer = DebugMailer(simulate_failed_sending=failed_sending)
@@ -42,16 +41,19 @@ def test_mq_run_delivery_without_plugins(failed_sending, tmp_path):
     assert rc == 0
 
     queued_messages = tuple(find_messages(queue_basedir, log=l_(None)))
+    path_delivery_log = tmp_path / 'mq_delivery.log'
+    path_queue_log = tmp_path / 'mq_queue.log'
     if failed_sending:
         assert len(mailer.sent_mails) == 0
         assert len(queued_messages) == 1, 'message should have been queued for later delivery'
-        assert log_path.read_text() == ''
+        assert path_delivery_log.read_text() == ''
+        assert path_queue_log.read_text() == ''
     else:
         assert len(mailer.sent_mails) == 1
         assert len(queued_messages) == 0
-        assert log_path.exists()
-        log_line, = log_path.read_text().splitlines()
+        log_line, = path_delivery_log.read_text().splitlines()
         assert 'foo@site.example => bar@site.example' in log_line
+        assert path_queue_log.read_text() == ''
 
 
 
