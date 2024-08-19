@@ -92,7 +92,11 @@ The configuration file uses the traditional "ini"-like format:
     from = user@host.example
     # optional, format as described in
     # https://docs.python.org/3/library/logging.config.html#logging-config-fileformat
-    logging_conf = /path/to/logging.conf
+    # logging_conf = /path/to/logging.conf
+    # optional, ignored if "logging_conf" is set
+    delivery_log = /path/to/delivery.log
+    # optional, ignored if "logging_conf" is set
+    queue_log = /path/to/queue.log
 
 For more information about wrapping `mq-run` (e.g. to reuse an existing configuration format) please read [Cookbook: Custom wrapper for mq-run](#cookbook-custom-wrapper-for-mq-run).
 
