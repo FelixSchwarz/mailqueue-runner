@@ -7,6 +7,9 @@ License:        MIT
 URL:            https://github.com/FelixSchwarz/mailqueue-runner
 Source:         %pypi_source
 Source1:        mailqueue-runner.conf
+Source2:        mailqueue-runner.logrotate
+
+Recommends:     logrotate
 
 BuildArch:      noarch
 BuildRequires:  python3-devel
@@ -53,6 +56,12 @@ rm -rf *.egg-info
     --parents \
     --mode=0700 \
     %{buildroot}%{_localstatedir}/log/mailqueue-runner
+/usr/bin/mkdir \
+    --parents \
+    --mode=0644 \
+    %{SOURCE2} \
+    %{buildroot}/%{_sysconfdir}/logrotate.d/mailqueue-runner.conf
+
 
 # https://bugzilla.redhat.com/show_bug.cgi?id=1935266
 # namespace packages not fully supported ("schwarz/mailqueue" does not work)
@@ -77,6 +86,8 @@ restorecon %{_sysconfdir}/mailqueue-runner.conf
 %files -f %{pyproject_files}
 %doc README.md
 %config(noreplace) %{_sysconfdir}/mailqueue-runner.conf
+%dir %{_sysconfdir}/logrotate.d
+%config(noreplace) %{_sysconfdir}/logrotate.d/mailqueue-runner.conf
 %{_bindir}/mq-mail
 %{_bindir}/mq-run
 %{_bindir}/mq-send-test

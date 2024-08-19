@@ -1,0 +1,6 @@
+/var/log/mailqueue-runner/*log {
+    missingok
+    notifempty
+    compress
+    delaycompress
+}
