@@ -104,7 +104,8 @@ class MessageHandler(object):
 
 
 class BaseMsg(object):
-    def __init__(self):
+    def __init__(self, msg: Optional[MsgInfo]=None):
+        self._msg = msg
         self._from = None
         self._to_addrs = None
         self._retries = None
@@ -119,6 +120,10 @@ class BaseMsg(object):
 
     def delivery_successful(self):
         pass
+
+    @property
+    def msg(self):
+        return self._msg
 
     @property
     def from_addr(self):
@@ -160,9 +165,9 @@ class BaseMsg(object):
 
 class InMemoryMsg(BaseMsg):
     def __init__(self, from_addr, to_addrs, msg_bytes):
-        super(InMemoryMsg, self).__init__()
         msg_fp = BytesIO(msg_as_bytes(msg_bytes))
-        self.msg = MsgInfo(from_addr, to_addrs, msg_fp)
+        msg = MsgInfo(from_addr, to_addrs, msg_fp)
+        super().__init__(msg=msg)
 
     def start_delivery(self):
         return True
