@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# SPDX-License-Identifier: Python-2.0 or MIT
+# SPDX-License-Identifier: Python-2.0
 # The code in this file heavily relies on Python's smtplib so I guess licensing
 # it under "Python License 2.0" is in order. However my own contributions
 # can also be used under the MIT license.
