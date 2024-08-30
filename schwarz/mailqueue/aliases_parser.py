@@ -1,5 +1,6 @@
 """Parse /etc/aliases"""
 
+import itertools
 import os
 import re
 from pathlib import Path
@@ -22,9 +23,14 @@ def lookup_address(
     return _resolve_alias(address, aliases)
 
 
-def lookup_adresses(recipients: Sequence[str], aliases: Optional[dict]) -> Tuple[str]:
+def lookup_adresses(
+        recipients: Sequence[str],
+        aliases: Optional[dict],
+        msg_recipients: Optional[Sequence[str]] = None,
+        ) -> Tuple[str]:
     email_addresses = []
-    for recipient in recipients:
+    all_recipients = tuple(itertools.chain(recipients, (msg_recipients or [])))
+    for recipient in all_recipients:
         targets = lookup_address(recipient, aliases)
         email_addresses = _extend(email_addresses, targets)
     return tuple(email_addresses)

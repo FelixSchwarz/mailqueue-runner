@@ -7,6 +7,7 @@ import re
 import subprocess
 import sys
 import textwrap
+from email.header import Header
 
 import pytest
 from dotmap import DotMap
@@ -38,14 +39,16 @@ def ctx(tmp_path):
         mta_helper.stop_mta()
 
 
-def _example_message(to) -> str:
+def _example_message(to=None, cc=None, bcc=None) -> str:
     base_msg = textwrap.dedent('''
         Subject: Test message
 
         Mail body
     ''').strip()
     to_line = f'To: {to}\n' if to else ''
-    return to_line + base_msg
+    cc_line = f'CC: {cc}\n' if cc else ''
+    bcc_line = f'BCC: {bcc}\n' if bcc else ''
+    return to_line + cc_line + bcc_line + base_msg
 
 
 def test_mq_sendmail(ctx):
@@ -53,7 +56,6 @@ def test_mq_sendmail(ctx):
     _mq_sendmail(['foo@site.example'], msg=rfc_msg, ctx=ctx)
 
     smtp_msg = retrieve_sent_message(ctx.mta)
-    # smtp from is auto-generated from current user+host, so not easy to test
     assert tuple(smtp_msg.smtp_to) == ('foo@site.example',)
     assert smtp_msg.username is None  # no smtp user name set in config
     assert smtp_msg.msg_data == rfc_msg
@@ -106,8 +108,90 @@ def _is_email_address(s):
     return re.match(pattern, s) is not None
 
 
-def test_mq_sendmail_with_aliases(ctx, tmp_path):
-    aliases_path = create_alias_file({'foo': 'staff@site.example'}, tmp_path)
+@pytest.mark.parametrize('long_option', [True, False])
+def test_mq_sendmail_read_recipients_optional_parameter(ctx, long_option):
+    msg = _example_message(
+        to='to@site.example',
+        cc='cc1@site.example, cc2@site.example',
+        bcc='bcc@site.example',
+    )
+    cli_params = [
+        '--read-recipients' if long_option else '-t',
+        # no positional "recipient" parameter to ensure it is optional
+    ]
+    _mq_sendmail(cli_params, msg=msg, ctx=ctx)
+
+    smtp_msg = retrieve_sent_message(ctx.mta)
+    expected_recipients = {
+        'to@site.example',
+        'cc1@site.example',
+        'cc2@site.example',
+        'bcc@site.example',
+    }
+    assert set(smtp_msg.smtp_to) == expected_recipients
+
+
+@pytest.mark.parametrize('header', ['To', 'CC', 'BCC'])
+def test_mq_sendmail_read_recipients_missing_headers(ctx, header):
+    # not all headers are present in the message, should not crash
+    msg_str = _example_message(**{header.lower(): 'foo@site.example'})
+    # check test setup
+    msg = email.message_from_string(msg_str)
+    for missing_header in ({'To', 'CC', 'BCC'} - {header}):
+        assert msg[missing_header] is None, f'header "{header}" should not be present'
+
+    cli_params = [
+        '--read-recipients',
+    ]
+    _mq_sendmail(cli_params, msg=msg_str, ctx=ctx)
+
+    smtp_msg = retrieve_sent_message(ctx.mta)
+    assert set(smtp_msg.smtp_to) == {'foo@site.example'}
+
+
+def test_mq_sendmail_recipient_required(ctx):
+    msg = _example_message()
+    cli_params = [
+        '--read-recipients',
+        # no positional "recipient" parameter
+    ]
+    proc = _mq_sendmail(cli_params, msg=msg, ctx=ctx, expect_error=True)
+
+    assert proc.returncode == 1
+    assert b'No recipient addresses found in message.' in proc.stderr
+
+
+@pytest.mark.parametrize('duplicate_recipient', [True, False])
+def test_mq_sendmail_read_recipients_deduplicate_recipients(ctx, duplicate_recipient):
+    cc_line = 'foo@site.example' if duplicate_recipient else None
+    msg = _example_message(to='bar@site.example', cc=cc_line)
+    cli_params = [
+        '--read-recipients',
+        'foo@site.example',
+    ]
+    _mq_sendmail(cli_params, msg=msg, ctx=ctx)
+
+    smtp_msg = retrieve_sent_message(ctx.mta)
+    assert len(smtp_msg.smtp_to) == 2  # no duplicated recipients
+    assert set(smtp_msg.smtp_to) == {'foo@site.example', 'bar@site.example'}
+
+
+@pytest.mark.parametrize('recipient_name', ['Zoë Matthews', 'Bar, Foo'])
+def test_mq_sendmail_read_recipients_decode_header(ctx, recipient_name):
+    encoded_name = str(Header(recipient_name, 'utf-8'))
+    to = email.utils.formataddr((encoded_name, 'zoe.matthews@site.example'))
+    msg = _example_message(to=to)
+    cli_params = [
+        '--read-recipients',
+    ]
+    _mq_sendmail(cli_params, msg=msg, ctx=ctx)
+
+    smtp_msg = retrieve_sent_message(ctx.mta)
+    assert tuple(smtp_msg.smtp_to) == ('zoe.matthews@site.example',)
+
+
+def test_mq_sendmail_with_aliases(ctx):
+    aliases_path = create_alias_file({'foo': 'staff@site.example'}, ctx.tmp_path)
 
     rfc_msg = _example_message(to='baz@site.example')
     _mq_sendmail([f'--aliases={aliases_path}', 'foo'], msg=rfc_msg, ctx=ctx)
@@ -155,7 +239,7 @@ def _to_platform_bytes(msg_str: str) -> bytes:
     return msg_str.replace('\n', os.linesep).encode('utf-8')
 
 
-def _mq_sendmail(cli_params, msg, *, ctx=None, config_path=None):
+def _mq_sendmail(cli_params, msg, *, ctx=None, config_path=None, expect_error=False):
     if config_path is None:
         tmp_path = ctx.tmp_path
         cfg_dir = str(tmp_path)
@@ -169,12 +253,14 @@ def _mq_sendmail(cli_params, msg, *, ctx=None, config_path=None):
     else:
         proc = subprocess.run(cmd, input=msg_bytes, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
+    if expect_error:
+        return proc
     if proc.returncode != 0:
         if proc.stdout:
-            sys.stderr.buffer.write(proc.stdout)
+            sys.stdout.buffer.write(proc.stdout)
         if proc.stderr:
             sys.stderr.buffer.write(proc.stderr)
-        assert proc.returncode == 0
+        raise AssertionError(f'mq-sendmail exited with returncode {proc.returncode}')
     if proc.stderr:
         raise AssertionError(proc.stderr)
     assert not proc.stdout
