@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 # SPDX-License-Identifier: MIT
 
+import email.utils
 from datetime import datetime as DateTime
 from email.message import Message
-from email.utils import format_datetime, make_msgid
 
 from boltons.timeutils import LocalTZ
 
@@ -20,11 +20,11 @@ def build_check_message(recipient, sender=None):
     mail['From'] = sender
     mail['To'] = recipient
     now = DateTime.now(tz=LocalTZ)
-    mail['Date'] = format_datetime(now)
+    mail['Date'] = email.utils.format_datetime(now)
     # if no domain is specified for ".make_msgid()" the function can take
     # a long time in case "socket.getfqdn()" must make some network
     # requests (e.g. flaky network connection).
-    mail['Message-ID'] = make_msgid(domain='mqrunner.example')
+    mail['Message-ID'] = email.utils.make_msgid(domain='mqrunner.example')
     mail['Subject'] = 'Test message from mailqueue-runner'
     mail.set_payload('This is a test message was generated to test your mailqueue delivery.')
     return mail

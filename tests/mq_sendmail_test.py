@@ -1,12 +1,12 @@
 # SPDX-License-Identifier: MIT
 
 import email
+import email.utils
 import os
 import re
 import subprocess
 import sys
 import textwrap
-from email.utils import parsedate_to_datetime
 
 import pytest
 from dotmap import DotMap
@@ -96,7 +96,7 @@ def test_mq_sendmail_can_add_headers(ctx):
     msg = email.message_from_string(smtp_msg.msg_data)
     assert msg['To'] == 'foo@site.example'
     assert _is_email_address(msg['From'])
-    msg_date = parsedate_to_datetime(msg['Date'])
+    msg_date = email.utils.parsedate_to_datetime(msg['Date'])
     assert almost_now(msg_date)
     assert msg['Message-ID']
 

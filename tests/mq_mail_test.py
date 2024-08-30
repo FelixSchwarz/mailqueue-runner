@@ -1,10 +1,10 @@
 # SPDX-License-Identifier: MIT
 
 import email
+import email.utils
 import random
 import subprocess
 import sys
-from email.utils import parsedate_to_datetime
 
 import pytest
 from dotmap import DotMap
@@ -55,7 +55,7 @@ def test_mq_mail(ctx):
     assert subject_header.upper().startswith('=?UTF-8?Q?')
     assert _decode_header(subject_header) == 'Mail »Subject«'
     assert msg['From'] == 'dbuser@worker.example'
-    msg_date = parsedate_to_datetime(msg['Date'])
+    msg_date = email.utils.parsedate_to_datetime(msg['Date'])
     assert almost_now(msg_date)
     assert msg['Message-ID']
     assert msg['MIME-Version'] == '1.0'
