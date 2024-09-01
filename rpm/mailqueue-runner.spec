@@ -56,9 +56,9 @@ rm -rf *.egg-info
     --parents \
     --mode=0700 \
     %{buildroot}%{_localstatedir}/log/mailqueue-runner
-/usr/bin/mkdir \
-    --parents \
+/usr/bin/install --preserve-timestamps \
     --mode=0644 \
+    -D \
     %{SOURCE2} \
     %{buildroot}/%{_sysconfdir}/logrotate.d/mailqueue-runner.conf
 
