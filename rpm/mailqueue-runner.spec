@@ -22,6 +22,16 @@ BuildRequires:  python3dist(testfixtures)
 BuildRequires:  python3dist(dotmap)
 BuildRequires:  python3dist(time-machine)
 %endif
+Requires(post):    %{_sbindir}/alternatives
+Requires(postun):  %{_sbindir}/alternatives
+
+Provides: /usr/bin/mail
+%if "%{_sbindir}" == "%{_bindir}"
+# Compat symlinks for Requires in other packages.
+# We rely on filesystem to create the symlinks for us.
+Requires: filesystem(unmerged-sbin-symlinks)
+Provides: /usr/sbin/sendmail
+%endif
 
 
 %global _description %{expand:
@@ -82,6 +92,17 @@ pip install time-machine dotmap
 
 %post
 restorecon %{_sysconfdir}/mailqueue-runner.conf
+%{_sbindir}/alternatives --install %{_sbindir}/sendmail mta %{_bindir}/mq-sendmail 30
+%{_sbindir}/alternatives --install %{_bindir}/mailx mailx %{_bindir}/mq-mail 30 \
+    --slave %{_bindir}/mail mail %{_bindir}/mq-mail
+
+
+%postun
+if [ $1 -eq 0 ] ; then
+    %{_sbindir}/alternatives --remove mta %{_bindir}/mq-sendmail
+    %{_sbindir}/alternatives --remove mailx %{_bindir}/mq-sendmail
+fi
+
 
 %files -f %{pyproject_files}
 %doc README.md
@@ -92,6 +113,9 @@ restorecon %{_sysconfdir}/mailqueue-runner.conf
 %{_bindir}/mq-run
 %{_bindir}/mq-send-test
 %{_bindir}/mq-sendmail
+%ghost %{_bindir}/mail
+%ghost %{_bindir}/mailx
+%ghost %{_bindir}/sendmail
 %dir %{_localstatedir}/spool/mailqueue-runner
 %dir %{_localstatedir}/spool/mailqueue-runner/new
 %dir %{_localstatedir}/spool/mailqueue-runner/cur
