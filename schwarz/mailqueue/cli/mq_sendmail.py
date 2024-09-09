@@ -59,7 +59,7 @@ def mq_sendmail_main(argv=sys.argv, return_rc_code=False):
         usage_str = printable_usage(__doc__)
         sys.stdout.write(usage_str + '\n')
         sys.stderr.write('At least one recipient address is required.\n')
-        sys.exit(1)
+        sys.exit(2)
 
     msg_bytes = sys.stdin.buffer.read()
     input_headers = BytesHeaderParser().parsebytes(msg_bytes)
@@ -71,7 +71,7 @@ def mq_sendmail_main(argv=sys.argv, return_rc_code=False):
     recipients = lookup_adresses(recipient_params, aliases, msg_recipients=msg_recipients)
     if not recipients:
         sys.stderr.write('No recipient addresses found in message.\n')
-        sys.exit(1)
+        sys.exit(2)
 
     cli_options = {
         'verbose': verbose,

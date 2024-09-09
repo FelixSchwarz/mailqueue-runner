@@ -158,7 +158,7 @@ def test_mq_sendmail_recipient_required(ctx):
     ]
     proc = _mq_sendmail(cli_params, msg=msg, ctx=ctx, expect_error=True)
 
-    assert proc.returncode == 1
+    assert proc.returncode == 2
     assert b'No recipient addresses found in message.' in proc.stderr
 
 
