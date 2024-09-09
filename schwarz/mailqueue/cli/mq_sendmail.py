@@ -10,23 +10,25 @@ least one email address in the "To", "CC" or "BCC" header.
 Options:
   --aliases=<ALIAS_FN>  Path to aliases file
   -C, --config=<CFG>    Path to the config file
-  -f, --from=address    set envelope from address
+  -f, --from=address    Set envelope from address
   --set-date-header     Add a "Date" header to the message (if not present)
   --set-from-header     Add "From:" header to the message (if not present)
   --set-msgid-header    Add a "Message-ID" header to the message (if not present)
-  --set-to-header       add a "To" header to the message (if not present)
-  -t, --read-recipients   read additional recipients from the message
-  --verbose, -v         more verbose program output
+  --set-to-header       Add a "To" header to the message (if not present)
+  -t, --read-recipients   Read additional recipients from the message
+  --verbose, -v         More verbose program output
 """
 
 import email.utils
 import sys
+import textwrap
+from argparse import ArgumentParser
 from datetime import datetime as DateTime, timezone
 from email.message import EmailMessage
 from email.parser import BytesHeaderParser
 from typing import Sequence
 
-from docopt import docopt, printable_usage
+from docopt import printable_usage
 
 from schwarz.mailqueue.aliases_parser import _parse_aliases, lookup_adresses
 from schwarz.mailqueue.app_helpers import guess_config_path, init_app, init_smtp_mailer
@@ -37,7 +39,7 @@ from schwarz.mailqueue.queue_runner import MaildirBackend
 __all__ = ['mq_sendmail_main']
 
 def mq_sendmail_main(argv=sys.argv, return_rc_code=False):
-    arguments = docopt(__doc__, argv=argv[1:])
+    arguments = _parse_cli_parameters(argv)
     config_path = guess_config_path(arguments['--config'])
     recipient_params = arguments['<recipients>']
     verbose = arguments['--verbose']
@@ -107,6 +109,61 @@ def mq_sendmail_main(argv=sys.argv, return_rc_code=False):
     if return_rc_code:
         return exit_code
     sys.exit(exit_code)
+
+
+def _parse_cli_parameters(argv):
+    # docopt (and docopt-ng) do not support long option names starting with
+    # a singe dash: https://github.com/jazzband/docopt-ng/issues/69
+    # arguments = docopt(__doc__, argv=argv[1:])
+
+    tool_description = textwrap.dedent('''
+        Command line tool to send an email message.
+        The CLI parameters are a (extremly limited) subset of the Unix
+        "sendmail" command.
+    ''').strip()
+    parser = ArgumentParser(description=tool_description)
+
+    # Remember to keep the argument specification in sync with the docstring.
+    # The docstring is only used in case neither a recipient nor "-t" was given.
+    parser.add_argument('recipients', nargs='*', help='recipient address(es) of the message')
+
+    parser.add_argument('--aliases', help='Path to aliases file')
+    parser.add_argument('-C', '--config', help='Path to the config file')
+    parser.add_argument('-f', '--from', help='Set envelope from address')
+    parser.add_argument('-t', '--read-recipients',
+        action='store_true',
+        help='Read additional recipients from the message')
+
+    parser.add_argument('--set-date-header',
+        action='store_true',
+        help='Add a "Date" header to the message (if not present)')
+    parser.add_argument('--set-from-header',
+        action='store_true',
+        help='Add "From:" header to the message (if not present)')
+    parser.add_argument('--set-msgid-header',
+        action='store_true',
+        help='Add a "Message-ID" header to the message (if not present)')
+    parser.add_argument('--set-to-header',
+        action='store_true',
+        help='Add a "To" header to the message (if not present)')
+
+    parser.add_argument('--verbose', '-v',
+        action='store_true',
+        help='More verbose program output')
+
+    arguments = parser.parse_args(args=argv[1:])
+    return {
+        '--aliases'         : arguments.aliases,
+        '--config'          : arguments.config,
+        '--from'            : arguments.__dict__['from'],
+        '--read-recipients' : arguments.read_recipients,
+        '--set-date-header' : arguments.set_date_header,
+        '--set-from-header' : arguments.set_from_header,
+        '--set-msgid-header': arguments.set_msgid_header,
+        '--set-to-header'   : arguments.set_to_header,
+        '--verbose'         : arguments.verbose,
+        '<recipients>'      : arguments.recipients,
+    }
 
 
 def _recipients_from_message(input_headers) -> Sequence[str]:
