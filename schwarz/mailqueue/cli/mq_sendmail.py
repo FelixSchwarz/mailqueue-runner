@@ -17,6 +17,9 @@ Options:
   --set-to-header       Add a "To" header to the message (if not present)
   -t, --read-recipients   Read additional recipients from the message
   --verbose, -v         More verbose program output
+
+For compatibility with the traditional "sendmail" command as used by cronie,
+some other flags are accepted but have no effect.
 """
 
 import email.utils
@@ -60,11 +63,11 @@ def mq_sendmail_main(argv=sys.argv, return_rc_code=False):
 
     msg_bytes = sys.stdin.buffer.read()
     input_headers = BytesHeaderParser().parsebytes(msg_bytes)
-    aliases = _parse_aliases(aliases_fn) if aliases_fn else None
     if read_recipients:
         msg_recipients = _recipients_from_message(input_headers)
     else:
         msg_recipients = None
+    aliases = _parse_aliases(aliases_fn) if aliases_fn else None
     recipients = lookup_adresses(recipient_params, aliases, msg_recipients=msg_recipients)
     if not recipients:
         sys.stderr.write('No recipient addresses found in message.\n')
@@ -76,7 +79,8 @@ def mq_sendmail_main(argv=sys.argv, return_rc_code=False):
     }
     settings = init_app(config_path, options=cli_options)
     if envelope_from:
-        msg_sender = envelope_from
+        from_addresses = lookup_adresses([envelope_from], aliases)
+        msg_sender = from_addresses[0] if from_addresses else envelope_from
     else:
         msg_sender = settings.get('from')
     if not msg_sender:
@@ -119,7 +123,8 @@ def _parse_cli_parameters(argv):
     tool_description = textwrap.dedent('''
         Command line tool to send an email message.
         The CLI parameters are a (extremly limited) subset of the Unix
-        "sendmail" command.
+        "sendmail" command sufficient to accept messages from cron daemons
+        like cronie.
     ''').strip()
     parser = ArgumentParser(description=tool_description)
 
@@ -150,6 +155,22 @@ def _parse_cli_parameters(argv):
     parser.add_argument('--verbose', '-v',
         action='store_true',
         help='More verbose program output')
+
+    # compatibility for cronie calls
+    parser.add_argument('-F',
+        help='sendmail compatibility: ...')
+    parser.add_argument('-i',
+        action='store_true',
+        help='sendmail compatibility, no effect in mq-sendmail')
+    parser.add_argument('-odi',
+        action='store_true',
+        help='sendmail compatibility: synchronous delivery (always on)')
+    parser.add_argument('-oem',
+        action='store_true',
+        help='sendmail compatibility, no effect in mq-sendmail')
+    parser.add_argument('-oi',
+        action='store_true',
+        help='sendmail compatibility, no effect in mq-sendmail')
 
     arguments = parser.parse_args(args=argv[1:])
     return {
