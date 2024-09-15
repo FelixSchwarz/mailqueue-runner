@@ -115,7 +115,11 @@ fi
 %{_bindir}/mq-sendmail
 %ghost %{_bindir}/mail
 %ghost %{_bindir}/mailx
+%if "%{_sbindir}" == "%{_bindir}"
 %ghost %{_bindir}/sendmail
+%else
+%ghost %{_sbindir}/sendmail
+%endif
 %dir %{_localstatedir}/spool/mailqueue-runner
 %dir %{_localstatedir}/spool/mailqueue-runner/new
 %dir %{_localstatedir}/spool/mailqueue-runner/cur
