@@ -91,16 +91,21 @@ pip install time-machine dotmap
 
 
 %post
+# set -x
 restorecon %{_sysconfdir}/mailqueue-runner.conf
+# using two different alternatives allows the administrator to use some other
+# software alongside mailqueue-runner. For example "msmtp" provides a "sendmail"
+# alternative so with two alternatives, we can still provide "/usr/bin/mail".
 %{_sbindir}/alternatives --install %{_sbindir}/sendmail mta %{_bindir}/mq-sendmail 30
-%{_sbindir}/alternatives --install %{_bindir}/mailx mailx %{_bindir}/mq-mail 30 \
-    --slave %{_bindir}/mail mail %{_bindir}/mq-mail
+%{_sbindir}/alternatives --install %{_bindir}/mail mail %{_bindir}/mq-mail 30 \
+    --slave %{_bindir}/mailx mailx %{_bindir}/mq-mail
 
 
 %postun
+# set -x
 if [ $1 -eq 0 ] ; then
     %{_sbindir}/alternatives --remove mta %{_bindir}/mq-sendmail
-    %{_sbindir}/alternatives --remove mailx %{_bindir}/mq-sendmail
+    %{_sbindir}/alternatives --remove mail %{_bindir}/mq-mail
 fi
 
 
