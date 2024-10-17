@@ -4,8 +4,9 @@
 import calendar
 import email.utils
 import re
-from datetime import datetime as DateTime, timedelta as TimeDelta
+from datetime import datetime as DateTime, timedelta as TimeDelta, timezone
 from email.header import decode_header
+from email.message import EmailMessage
 from email.parser import BytesHeaderParser, FeedParser
 from io import BytesIO
 from typing import BinaryIO, NamedTuple, Optional, Sequence
@@ -15,7 +16,7 @@ from boltons.timeutils import ConstantTZInfo, LocalTZ
 from .lib import Result
 
 
-__all__ = ['dt_now', 'parse_message_envelope', 'MsgInfo', 'SendResult']
+__all__ = ['autogenerate_headers', 'dt_now', 'parse_message_envelope', 'MsgInfo', 'SendResult']
 
 class SendResult(Result):
     def __init__(self, was_sent, queued=None, transport=None):
@@ -165,3 +166,32 @@ def msg_as_bytes(msg):
     else:
         msg_bytes = msg
     return msg_bytes
+
+
+def autogenerate_headers(
+        input_headers,
+        set_date_header, set_from_header, set_msgid_header,
+        set_to_header,
+        msg_sender,
+        recipients,
+    ) -> bytes:
+    extra_headers = EmailMessage()
+    input_msg_date = input_headers.get('Date')
+    if set_date_header and not input_msg_date:
+        extra_headers['Date'] = email.utils.format_datetime(DateTime.now(timezone.utc))
+    input_msg_from = input_headers.get('From')
+    if set_from_header and not input_msg_from:
+        extra_headers['From'] = msg_sender
+    input_msg_to = input_headers.get('To')
+    if set_to_header and (not input_msg_to) and recipients:
+        extra_headers['To'] = ', '.join(recipients)
+    input_msg_id = input_headers.get('Message-ID')
+    if set_msgid_header and not input_msg_id:
+        _, smtp_sender_domain = msg_sender.split('@', 1)
+        extra_headers['Message-ID'] = email.utils.make_msgid(domain=smtp_sender_domain)
+
+    prepended_header_lines = b''
+    if extra_headers:
+        fake_msg_bytes = extra_headers.as_bytes()
+        prepended_header_lines = fake_msg_bytes.split(b'\n\n', 1)[0] + b'\n'
+    return prepended_header_lines
