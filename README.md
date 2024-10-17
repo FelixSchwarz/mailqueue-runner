@@ -313,7 +313,7 @@ solid piece of software. I wrote yet another library because I wanted
 
 The project uses GitHub Actions to run the test suite. Hopefully this means all
 tested versions are suitable for production.
-At the moment I test Python 3.6-3.12 as well as pypy3 on Linux.
+At the moment I test Python 3.6-3.13 as well as pypy3 on Linux.
 Deployment on Windows is not recommended as all locking will be disabled on
 Windows (due to its inability to delete/move open files) but development on
 a Windows machine should be fine.
