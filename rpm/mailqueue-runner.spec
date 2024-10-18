@@ -1,5 +1,5 @@
 Name:           mailqueue-runner
-Version:        0.12.1
+Version:        0.13.0
 Release:        1%{?dist}
 Summary:        SMTP client for CLI scripts
 
@@ -133,6 +133,9 @@ fi
 
 
 %changelog
+* Fri Oct 18 2024 Felix Schwarz <felix.schwarz@oss.schwarz.eu> - 0.13.0-1
+- update to 0.13.0
+
 * Sun Sep 15 2024 Felix Schwarz <felix.schwarz@oss.schwarz.eu> - 0.12.1-1
 - update to 0.12.1
 
