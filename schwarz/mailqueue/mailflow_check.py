@@ -14,7 +14,7 @@ from .message_utils import msg_as_bytes
 
 __all__ = ['build_check_message', 'send_test_message']
 
-def build_check_message(recipient, sender=None):
+def build_check_message(recipient, sender=None) -> Message:
     mail = Message()
     sender = sender or recipient
     mail['From'] = sender

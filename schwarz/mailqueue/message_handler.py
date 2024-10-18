@@ -164,8 +164,8 @@ class BaseMsg(object):
 
 
 class InMemoryMsg(BaseMsg):
-    def __init__(self, from_addr, to_addrs, msg_bytes):
-        msg_fp = BytesIO(msg_as_bytes(msg_bytes))
+    def __init__(self, from_addr, to_addrs, msg_bytes: bytes):
+        msg_fp = BytesIO(msg_bytes)
         msg = MsgInfo(from_addr, to_addrs, msg_fp)
         super().__init__(msg=msg)
 
