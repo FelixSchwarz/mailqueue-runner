@@ -7,7 +7,7 @@ import re
 from datetime import datetime as DateTime, timedelta as TimeDelta, timezone
 from email.header import decode_header
 from email.message import EmailMessage
-from email.parser import BytesHeaderParser, FeedParser
+from email.parser import BytesFeedParser, BytesHeaderParser
 from io import BytesIO
 from typing import BinaryIO, NamedTuple, Optional, Sequence
 
@@ -33,16 +33,14 @@ def parse_message_envelope(fp):
         'X-Queue-Meta-End',
     }
 
-    parser = FeedParser()
+    parser = BytesFeedParser()
     parser._set_headersonly()
     while True:
         line = read_header_line(fp)
         if line == b'':
             raise ValueError('Header "X-Queue-Meta-End" not found.')
-        # similar to Python's BytesFeedParser (Python 3.3+)
-        line_str = line.decode('ascii', 'surrogateescape')
-        parser.feed(line_str)
-        if 'X-Queue-Meta-End' in line_str:
+        parser.feed(line)
+        if line.startswith(b'X-Queue-Meta-End: '):
             break
     meta_msg = parser.close()
     queue_meta = dict(meta_msg.items())
