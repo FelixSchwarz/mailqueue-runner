@@ -12,11 +12,10 @@ from .message_handler import InMemoryMsg, MessageHandler
 from .message_utils import msg_as_bytes
 
 
-__all__ = ['build_check_message', 'send_test_message']
+__all__ = ['send_test_message']
 
-def build_check_message(recipient, sender=None) -> Message:
+def _build_check_message(recipient: str, sender: str) -> Message:
     mail = Message()
-    sender = sender or recipient
     mail['From'] = sender
     mail['To'] = recipient
     now = DateTime.now(tz=LocalTZ)
@@ -35,9 +34,11 @@ def send_test_message(config_path, options):
     recipient = options['recipient']
 
     settings = init_app(config_path, options=options)
+    if not sender:
+        sender = settings.get('from') or recipient
     mailer = init_smtp_mailer(settings)
 
-    check_msg = build_check_message(recipient, sender=sender)
+    check_msg = _build_check_message(recipient, sender=sender)
     msg_sender = check_msg['From']
     msg_bytes = msg_as_bytes(check_msg)
     msg = InMemoryMsg(msg_sender, (recipient,), msg_bytes)
