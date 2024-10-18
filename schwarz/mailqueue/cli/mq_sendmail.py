@@ -26,7 +26,6 @@ import email.utils
 import sys
 import textwrap
 from argparse import ArgumentParser
-from email.parser import BytesHeaderParser
 from typing import Sequence
 
 from docopt import printable_usage
@@ -34,7 +33,7 @@ from docopt import printable_usage
 from schwarz.mailqueue.aliases_parser import _parse_aliases, lookup_adresses
 from schwarz.mailqueue.app_helpers import guess_config_path, init_app, init_smtp_mailer
 from schwarz.mailqueue.message_handler import InMemoryMsg, MessageHandler
-from schwarz.mailqueue.message_utils import autogenerate_headers
+from schwarz.mailqueue.message_utils import autogenerate_headers, msg_as_bytes
 from schwarz.mailqueue.queue_runner import MaildirBackend
 
 
@@ -60,10 +59,16 @@ def mq_sendmail_main(argv=sys.argv, return_rc_code=False):
         sys.stderr.write('At least one recipient address is required.\n')
         sys.exit(2)
 
-    msg_bytes = sys.stdin.buffer.read()
-    input_headers = BytesHeaderParser().parsebytes(msg_bytes)
+    input_msg_bytes = sys.stdin.buffer.read()
+    # It might seem wasteful to parse the full message (instead of just the
+    # headers) but that is actually important because the SMTP wire protocol
+    # mandates CRLF line endings and (Linux/Mac) users should be able to just
+    # pipe in some text.
+    # `msg_as_bytes(input_msg)` will convert the message in the correct format
+    # which is usable for SMTP.
+    input_msg = email.message_from_bytes(input_msg_bytes)
     if read_recipients:
-        msg_recipients = _recipients_from_message(input_headers)
+        msg_recipients = _recipients_from_message(input_msg)
     else:
         msg_recipients = None
     aliases = _parse_aliases(aliases_fn) if aliases_fn else None
@@ -87,7 +92,7 @@ def mq_sendmail_main(argv=sys.argv, return_rc_code=False):
         sys.exit(81)
 
     extra_header_lines = autogenerate_headers(
-        input_headers,
+        input_msg,
         set_date_header,
         set_from_header,
         set_msgid_header,
@@ -95,7 +100,8 @@ def mq_sendmail_main(argv=sys.argv, return_rc_code=False):
         msg_sender,
         recipients,
     )
-    msg = InMemoryMsg(msg_sender, recipients, extra_header_lines + msg_bytes)
+    msg_bytes = extra_header_lines + msg_as_bytes(input_msg)
+    msg = InMemoryMsg(msg_sender, recipients, msg_bytes)
 
     transports = [init_smtp_mailer(settings)]
     queue_dir = settings.get('queue_dir')

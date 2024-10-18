@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import calendar
+import email.policy
 import email.utils
 import re
 from datetime import datetime as DateTime, timedelta as TimeDelta, timezone
@@ -36,7 +37,7 @@ def parse_message_envelope(fp):
     parser = BytesFeedParser()
     parser._set_headersonly()
     while True:
-        line = read_header_line(fp)
+        line = fp.readline()
         if line == b'':
             raise ValueError('Header "X-Queue-Meta-End" not found.')
         parser.feed(line)
@@ -112,8 +113,6 @@ _re_angle_brackets = re.compile(br'^<?(.+?)>?$')
 _re_angle_brackets_str = re.compile('^<?(.+?)>?$')
 _re_header_list = re.compile(r'\s*,\s*')
 
-def read_header_line(fp):
-    return fp.readline()
 
 def decode_header_value(encoded_str):
     header_str = ''
@@ -156,13 +155,23 @@ def parse_number(number_str):
         return None
     return int(re.search(r'^(\d+)$', number_str).group(1))
 
-def msg_as_bytes(msg):
+def msg_as_bytes(msg) -> bytes:
+    """
+    Convert a message-like instance to bytes. In particular, it uses an
+    SMTP-compatible serialization with CRLF line endings ("\r\n") instead of
+    plain "\n".
+    See also: https://github.com/python/cpython/issues/42554
+    """
     if hasattr(msg, 'as_bytes'):
-        msg_bytes = msg.as_bytes()
-    elif hasattr(msg, 'read'):
+        # email.Message
+        return msg.as_bytes(policy=email.policy.SMTP)
+    if hasattr(msg, 'read'):
         msg_bytes = msg.read()
-    else:
+    elif isinstance(msg, bytes):
+        # LATER: check if message is CLRF-terminated
         msg_bytes = msg
+    else:
+        raise ValueError('"msg" must be an email.Message, bytes or a file-like object.')
     return msg_bytes
 
 
@@ -190,6 +199,6 @@ def autogenerate_headers(
 
     prepended_header_lines = b''
     if extra_headers:
-        fake_msg_bytes = extra_headers.as_bytes()
-        prepended_header_lines = fake_msg_bytes.split(b'\n\n', 1)[0] + b'\n'
+        fake_msg_bytes = msg_as_bytes(extra_headers)
+        prepended_header_lines = fake_msg_bytes.split(b'\r\n\r\n', 1)[0] + b'\r\n'
     return prepended_header_lines

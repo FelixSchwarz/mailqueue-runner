@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # SPDX-License-Identifier: MIT
 
+import email
 from datetime import datetime as DateTime
 from email.message import Message
 from io import BytesIO
@@ -15,12 +16,12 @@ def test_can_parse_simple_message_envelope():
     queue_fp = build_queued_message(
         sender='foo@site.example',
         recipient='bar@site.example',
-        msg=b'RFC-821 MESSAGE',
+        msg=b'RFC-821 MESSAGE\r\nsecond line',
     )
     msg_info = parse_message_envelope(queue_fp)
     assert msg_info.from_addr == 'foo@site.example'
     assert msg_info.to_addrs == ('bar@site.example',)
-    assert msg_info.msg_fp.read() == b'RFC-821 MESSAGE'
+    assert msg_info.msg_fp.read() == b'RFC-821 MESSAGE\r\nsecond line'
 
 def test_can_parse_return_path_with_angle_brackets():
     # Exim puts angle brackets around the return path
@@ -32,7 +33,7 @@ def test_can_parse_return_path_with_angle_brackets():
 def _assert_return_path_has_angle_brackets(queue_fp):
     sender_line = queue_fp.readline()
     queue_fp.seek(0)
-    assert sender_line == b'Return-path: <foo@site.example>\n'
+    assert sender_line == b'Return-path: <foo@site.example>\r\n'
 
 def test_can_parse_encoded_header():
     # repoze.sendmail encodes all (envelope) header values
@@ -61,7 +62,7 @@ def test_can_parse_message_with_utf8_data():
     assert msg_info.from_addr == 'foo@site.example'
     assert msg_info.to_addrs == ('bar@site.example',)
     assert msg_info.msg_id == 'foo@id.example'
-    assert msg_info.msg_fp.read() == msg.as_bytes()
+    assert msg_info.msg_fp.read() == msg.as_bytes(policy=email.policy.SMTP)
 
 def test_can_parse_queue_metadata():
     queue_date = DateTime(2020, 10, 1, hour=15, minute=42, second=21, tzinfo=LocalTZ)

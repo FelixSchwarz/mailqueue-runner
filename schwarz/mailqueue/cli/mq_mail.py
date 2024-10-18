@@ -29,7 +29,7 @@ from argparse import ArgumentParser
 from schwarz.mailqueue.aliases_parser import _parse_aliases, lookup_adresses
 from schwarz.mailqueue.app_helpers import guess_config_path, init_app, init_smtp_mailer
 from schwarz.mailqueue.message_handler import InMemoryMsg, MessageHandler
-from schwarz.mailqueue.message_utils import autogenerate_headers
+from schwarz.mailqueue.message_utils import autogenerate_headers, msg_as_bytes
 from schwarz.mailqueue.queue_runner import MaildirBackend
 
 
@@ -63,12 +63,26 @@ def mq_mail_main(argv=sys.argv, return_rc_code=False):
         sys.stderr.write('No sender address given (use "--from-address=...").\n')
         sys.exit(81)
 
-    stub_msg = email.message_from_bytes(msg_body)
+    stub_msg = email.message.Message()
     stub_msg['MIME-Version'] = '1.0'
     stub_msg['Content-Transfer-Encoding'] = '8bit'
     stub_msg['Content-Type'] = 'text/plain; charset="UTF-8"'
     if subject:
-        stub_msg['Subject'] = subject
+        # `.as_bytes(policy=email.policy.SMTP)` will raise a `UnicodeEncodeError`
+        # for header values with non-ascii characters unless we encode the
+        # header ourself.
+        #
+        # Notes:
+        # - This is not necessary for Python >= 3.11 on Linux. For some reason,
+        #   this affects all Python 3 versions on Windows (even 3.13).
+        # - Unfortunately, Python's email API contains many weird edge cases
+        #   when it comes to bytes and unicode handling. This github issue
+        #   acknowledges the problem and states that there was a lack of
+        #   time/effort during the Python 3 transition and now Python 3 is stuck
+        #   with the inconsistent API due to backwards compatibility:
+        #   https://github.com/python/cpython/issues/85479
+        _subject = email.header.Header(subject, 'utf-8').encode()
+        stub_msg['Subject'] = _subject
 
     extra_header_lines = autogenerate_headers(
         input_headers=stub_msg,
@@ -79,7 +93,16 @@ def mq_mail_main(argv=sys.argv, return_rc_code=False):
         msg_sender=msg_sender,
         recipients=recipients,
     )
-    msg_bytes = extra_header_lines + stub_msg.as_bytes()
+    # `msg_as_bytes(stub_msg)` also ensures that the mail body is CRLF-terminated
+    # as required by SMTP. The implicit conversion is helpful so that Linux
+    # users can just pipe the message body to `mq-mail` without having to format
+    # the email message with \r\n.
+    # That way the SMTP protocol requirements are just an implementation detail
+    # (as they should be). Most servers also accept LF-terminated messages but
+    # some providers reject these (probably to weed out spammers or because they
+    # decided to stick to the RFCs).
+    stub_msg.set_payload(msg_body)
+    msg_bytes = extra_header_lines + msg_as_bytes(stub_msg)
     msg = InMemoryMsg(msg_sender, recipients, msg_bytes)
 
     transports = [init_smtp_mailer(settings)]

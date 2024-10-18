@@ -2,7 +2,6 @@
 
 import email
 import email.utils
-import os
 import re
 import subprocess
 import sys
@@ -15,6 +14,7 @@ from pymta.test_util import SMTPTestHelper
 from schwarz.log_utils import l_
 
 from schwarz.mailqueue.queue_runner import MaildirBackedMsg, assemble_queue_with_new_messages
+from schwarz.mailqueue.smtpclient import CRLF
 from schwarz.mailqueue.testutils import (
     almost_now,
     create_alias_file,
@@ -54,11 +54,15 @@ def _example_message(*, from_=None, to=None, cc=None, bcc=None) -> str:
 
 def test_mq_sendmail(ctx):
     rfc_msg = _example_message(to='baz@site.example')
+    assert CRLF not in rfc_msg
     _mq_sendmail(['foo@site.example'], msg=rfc_msg, ctx=ctx)
 
     smtp_msg = retrieve_sent_message(ctx.mta)
     assert tuple(smtp_msg.smtp_to) == ('foo@site.example',)
     assert smtp_msg.username is None  # no smtp user name set in config
+    # pymta strips the CRLF line endings automatically `msg_data` will contain
+    # a string with plain \n line endings. While that is a convenient developer
+    # API, it makes it impossible to test that `mq-sendmail` did send \r\n.
     assert smtp_msg.msg_data == rfc_msg
 
     path_delivery_log = ctx.tmp_path / 'mq_delivery.log'
@@ -208,6 +212,9 @@ def test_mq_sendmail_with_aliases(ctx):
 
 def test_mq_sendmail_with_queuing(ctx):
     rfc_msg = _example_message(to='baz@site.example')
+    # Linux users should be able to just pipe in the message without having to
+    # know about the SMTP wire protocol.
+    assert CRLF not in rfc_msg
     unused_port = ctx.listen_port + 1
     queue_dir = ctx.tmp_path / 'queue'
     config_path = create_ini(
@@ -229,15 +236,17 @@ def test_mq_sendmail_with_queuing(ctx):
     assert msg.to_addrs == ('foo@site.example',)
     assert msg.msg_id is None  # not added automatically
     assert msg.retries == 0
-    assert msg.msg_bytes == _to_platform_bytes(rfc_msg)
+    # The queued message should be stored with CRLF line endings so it can be
+    # sent via SMTP without further modification.
+    assert msg.msg_bytes == _to_crlf(rfc_msg)
 
     path_delivery_log = ctx.tmp_path / 'mq_delivery.log'
     assert path_delivery_log.exists()
     assert path_delivery_log.read_text() == ''
 
 
-def _to_platform_bytes(msg_str: str) -> bytes:
-    return msg_str.replace('\n', os.linesep).encode('utf-8')
+def _to_crlf(msg_str: str) -> bytes:
+    return msg_str.replace('\n', CRLF).encode('utf-8')
 
 
 def test_mq_sendmail_with_cronie_parameters(ctx):

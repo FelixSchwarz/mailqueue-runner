@@ -40,12 +40,12 @@ def path_maildir(tmp_path):
 @pytest.mark.parametrize('with_msg_id', [True, False])
 def test_can_send_message(path_maildir, with_msg_id):
     mailer = DebugMailer()
-    msg_header = b'X-Header: somevalue\n'
+    msg_header = b'X-Header: somevalue\r\n'
     if with_msg_id:
         msg_id = '%s@host.example' % uuid.uuid4()
-        msg_header += b'Message-ID: <%s>\n' % msg_id.encode('ascii')
-    msg_body = b'MsgBody\n'
-    msg_bytes = msg_header + b'\n' + msg_body
+        msg_header += b'Message-ID: <%s>\r\n' % msg_id.encode('ascii')
+    msg_body = b'MsgBody\r\n'
+    msg_bytes = msg_header + b'\r\n' + msg_body
     msg = inject_example_message(path_maildir,
         sender     = b'foo@site.example',
         recipient  = b'bar@site.example',
@@ -66,7 +66,8 @@ def test_can_send_message(path_maildir, with_msg_id):
     sent_msg, = mailer.sent_mails
     assert sent_msg.from_addr == 'foo@site.example'
     assert sent_msg.to_addrs == ('bar@site.example',)
-    assert sent_msg.msg_fp.read() == msg_nl(msg_bytes)
+    # The SMTP wire format uses CRLF line endings (even on Unix)
+    assert sent_msg.msg_fp.read() == msg_bytes
     assert not os.path.exists(msg.path)
     # ensure there are no left-overs/tmp files
     assert len(list_all_files(path_maildir)) == 0

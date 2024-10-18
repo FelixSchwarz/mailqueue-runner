@@ -52,7 +52,7 @@ def test_mq_mail(ctx):
     msg = email.message_from_string(smtp_msg.msg_data)
     assert msg['To'] == 'foo@site.example'
     subject_header = msg['Subject']
-    assert subject_header.upper().startswith('=?UTF-8?Q?')
+    assert '=?utf-8?q?' in subject_header.lower()
     assert _decode_header(subject_header) == 'Mail »Subject«'
     assert msg['From'] == 'dbuser@worker.example'
     msg_date = email.utils.parsedate_to_datetime(msg['Date'])
@@ -70,7 +70,10 @@ def test_mq_mail(ctx):
 
 def _decode_header(header_value):
     header_parts = email.header.decode_header(header_value)
-    strs = [str_part.decode(part_encoding) for (str_part, part_encoding) in header_parts]
+    strs = []
+    for (header_part, part_encoding) in header_parts:
+        _str_part = header_part.decode(part_encoding or 'ascii')
+        strs.append(_str_part)
     return ''.join(strs)
 
 def test_mq_mail_with_aliases(ctx):

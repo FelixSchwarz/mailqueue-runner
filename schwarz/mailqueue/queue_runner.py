@@ -47,7 +47,13 @@ def enqueue_message(msg, queue_path, sender, recipients, return_msg=False,
 def inject_message_into_maildir(msg_bytes, maildir, sub_dir='new', return_msg=False):
     tmp_fp = maildir._create_tmp()
     try:
-        maildir._dump_message(msg_bytes, tmp_fp)
+        # Unfortunately, Python's `mailbox.Maildir._dump_message()` provides a
+        # weird API: \n is replaced with platform-native line endings even when
+        # `msg_bytes` uses the correct line endings already (so `\r\n` becomes
+        # `\r\r\n` on Windows). This happens even when passing a `bytes` value.
+        # Thankfully, that function does not do anything special so we can just
+        # write to the tmp_fp directly.
+        tmp_fp.write(msg_bytes)
     except:
         tmp_fp.close()
         os.remove(tmp_fp.name)
@@ -79,7 +85,7 @@ def serialize_message_with_queue_data(msg, sender, recipients, queue_date=None,
         b'X-Queue-Meta-End: end',
         msg_as_bytes(msg)
     ])
-    queue_bytes = b'\n'.join(queue_lines)
+    queue_bytes = b'\r\n'.join(queue_lines)
     return queue_bytes
 
 def _email_address_as_bytes(address):
