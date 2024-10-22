@@ -102,11 +102,17 @@ def parse_config(config_path, section_name=None):
     parser = configparser.ConfigParser()
     exc_msg = None
     try:
-        parser.read(config_path)
+        # `ConfigParser.read()` silently ignores errors (e.g. "permission denied").
+        # Opening the config file first means we get an IOError with a more
+        # helpful error message.
+        with config_path.open('r') as config_fp:
+            parser.read_file(config_fp)
         # ConfigParser in Python 2 has no ".items()" (without parameters)
         sections = (section_name, ) if section_name else parser.sections()
         for section in sections:
             parser.items(section)
+    except IOError as io_exc:
+        exc_msg = f'Unable to open config file "{config_path}" ({io_exc})'
     except configparser.Error as e:
         line_detail = ''
         if hasattr(e, 'errors') and len(e.errors) > 0:
