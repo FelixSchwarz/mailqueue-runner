@@ -19,9 +19,6 @@ __all__ = [
     'init_smtp_mailer',
 ]
 
-# tests can override the working set to test plugin functionality
-_working_set = None
-
 def init_app(config_path, options=None, settings=None):
     assert (config_path is not None) ^ (settings is not None)
     if settings is None:
@@ -31,12 +28,7 @@ def init_app(config_path, options=None, settings=None):
     log = logging.getLogger('mailqueue')
     if registry is not None:
         enabled_plugins = parse_list_str(settings.get('plugins', '*'))
-        plugin_loader = PluginLoader(
-            'mailqueue.plugins',
-            enabled_plugins = enabled_plugins,
-            working_set     = _working_set,
-            log             = log,
-        )
+        plugin_loader = PluginLoader('mailqueue.plugins', enabled_plugins=enabled_plugins, log=log)
         plugin_loader.initialize_plugins(registry)
     else:
         log.debug('plugin initialization skipped because PuzzlePluginSystem is not available')

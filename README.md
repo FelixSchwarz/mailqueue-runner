@@ -154,7 +154,7 @@ mailqueue-runner as a plain Python library.
 ### Plugins
 
 The library allows customization of message handling via plugins. Plugins are built
-with the [Puzzle Plugin System](https://github.com/FelixSchwarz/puzzle-plugin-system) ([blinker](https://github.com/jek/blinker)+setuptools).
+with the [Puzzle Plugin System](https://github.com/FelixSchwarz/puzzle-plugin-system) ([blinker](https://github.com/jek/blinker)).
 Plugin support is optional and requires the additional `PuzzlePluginSystem`
 dependency (`pip install mailqueue-runner[plugins]`).
 

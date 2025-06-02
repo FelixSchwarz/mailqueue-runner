@@ -5,7 +5,6 @@ import os
 from unittest import mock
 
 from dotmap import DotMap
-from pkg_resources import Distribution, EntryPoint, WorkingSet
 from schwarz.log_utils import l_
 
 
@@ -19,7 +18,6 @@ from schwarz.mailqueue import (
     DebugMailer,
     MQAction,
     MQSignal,
-    app_helpers,
     create_maildir_directories,
 )
 from schwarz.mailqueue.cli import one_shot_queue_run_main
@@ -57,9 +55,6 @@ def test_mq_run_delivery_without_plugins(failed_sending, tmp_path):
 
 
 
-# entries=() so the WorkingSet contains our entries only, nothing is
-# picked up from the system
-@mock.patch('schwarz.mailqueue.app_helpers._working_set', new=WorkingSet(entries=()))
 @pytest.mark.skipif(SignalRegistry is None, reason='requires PuzzlePluginSystem')
 def test_mq_run_failed_delivery_with_plugins(tmp_path):
     queue_basedir = os.path.join(str(tmp_path), 'mailqueue')
@@ -69,12 +64,15 @@ def test_mq_run_failed_delivery_with_plugins(tmp_path):
     mock_fn = mock.MagicMock(return_value=MQAction.DISCARD, spec={})
     signal_map = {MQSignal.delivery_failed: mock_fn}
     fake_plugin = create_fake_plugin(signal_map)
-    inject_plugin_into_working_set('testplugin', fake_plugin)
+    fake_entry_points = create_fake_entry_points('testplugin', fake_plugin)
     config_path = create_ini('host.example', port=12345, dir_path=str(tmp_path))
 
     cmd = ['mq-run', f'--config={config_path}', queue_basedir]
     mailer = DebugMailer(simulate_failed_sending=True)
-    with mock.patch('schwarz.mailqueue.queue_runner.init_smtp_mailer', new=lambda s: mailer):
+    # mock the `entry_points()` function in PuzzlePlugins so it contains only
+    # our fake plugin and nothing is picked up from the system.
+    _mocked_symbol = 'schwarz.puzzle_plugins.plugin_loader.entry_points'
+    with mock.patch(_mocked_symbol, return_value=fake_entry_points):
         rc = one_shot_queue_run_main(argv=cmd, return_rc_code=True)
     assert rc == 0
 
@@ -82,24 +80,6 @@ def test_mq_run_failed_delivery_with_plugins(tmp_path):
     mock_fn.assert_called_once()
     assert len(tuple(find_messages(queue_basedir, log=l_(None)))) == 0, \
         'plugin should have discarded the message after failed delivery'
-
-
-def inject_plugin_into_working_set(plugin_id, plugin):
-    class FakeEntryPoint(EntryPoint):
-        def load(self, *args, **kwargs):
-            return plugin
-
-    entry_point = FakeEntryPoint.parse(plugin_id + ' = dummy_module:DummyPlugin')
-    dist = Distribution(version='1.0')
-    dist._ep_map = {
-        'mailqueue.plugins': {
-            plugin_id: entry_point
-        }
-    }
-    entry_point.dist = dist
-    working_set = app_helpers._working_set
-    working_set.add(dist, plugin_id)
-    return working_set
 
 
 def create_fake_plugin(signal_map):
@@ -121,3 +101,31 @@ def create_fake_plugin(signal_map):
         terminate=fake_terminate,
     )
     return fake_plugin
+
+
+def create_fake_entry_points(plugin_id, plugin):
+    """Create a fake entry_points() return value for importlib.metadata."""
+    class FakeEntryPoint:
+        def __init__(self, name, value, group):
+            self.name = name
+            self.value = value
+            self.module, self.attr = value.split(':')
+            self.group = group
+
+        def load(self):
+            return plugin
+
+    # `importlib.metadata.entry_points()` returns an `EntryPoints` instance
+    # (or `dict` in older versions of Python).
+    # We'll mimic the modern API `entry_points().select(group='mailqueue.plugins')`
+    # while still maintaining some compatibility with older versions.
+    fake_ep = FakeEntryPoint(plugin_id, 'dummy_module:DummyPlugin', 'mailqueue.plugins')
+
+    class FakeEntryPoints:
+        def select(self, group=None):
+            return [fake_ep] if (group == 'mailqueue.plugins') else []
+
+        def get(self, name, default=None):
+            return fake_ep if name == plugin_id else default
+
+    return FakeEntryPoints()
