@@ -14,13 +14,15 @@ jobs:
     - name: checkout code
       uses: actions/checkout@v4
 
-    - name: install python modules to create wheel
+    - name: install uv
       run: |
-        dnf install -y python3-setuptools python3-wheel
+        dnf install -y uv python3
 
     - name: create Python wheel and sdist
       run: |
-        python3 setup.py sdist bdist_wheel
+        set -eux
+        uv venv venv.release
+        uv build --sdist --wheel
 
     - name: install rpmbuild
       run: |
@@ -28,7 +30,7 @@ jobs:
 
     - name: create src.rpm
       run: |
-        set -x
+        set -eux
         cd rpm
         mkdir SOURCES
         cp -a ../dist/*.tar.gz SOURCES/

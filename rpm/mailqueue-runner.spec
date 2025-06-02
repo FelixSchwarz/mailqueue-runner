@@ -5,7 +5,7 @@ Summary:        SMTP client for CLI scripts
 
 License:        MIT
 URL:            https://github.com/FelixSchwarz/mailqueue-runner
-Source:         %pypi_source
+Source:         %{pypi_source mailqueue_runner}
 Source1:        mailqueue-runner.conf
 Source2:        mailqueue-runner.logrotate
 
