@@ -1,4 +1,4 @@
-name: run
+name: run tests
 
 on:
   push:
@@ -11,54 +11,45 @@ on:
 
 
 jobs:
-  # --- tests running on Ubuntu 20.04 -----------------------------------------
-  tests-py36:
-    # "ubuntu-latest" does not have Python 3.6
-    runs-on: ubuntu-20.04
-    timeout-minutes: 10
-
-    steps:
-      - uses: actions/checkout@v4
-      - name: Set up Python 3.6
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.6"
-
-      - name: Install dependencies
-        run: |
-          pip install --upgrade pip setuptools wheel
-          pip install -e .[testing]
-
-      - name: Run test suite
-        run: |
-          pytest
-
-
-  # --- testing non-ancient versions ------------------------------------------
-  tests-py3:
+  tests-cpython:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
-
     strategy:
       fail-fast: false
       matrix:
-        python-version: [3.7, 3.8, 3.9, "3.10", "3.11", "3.12", "3.13", pypy3.9]
+        python-version: [3.6, 3.7, 3.8, 3.9, "3.10", "3.11", "3.12", "3.13", "latest"]
+    container:
+      image: python:${{ matrix.python-version }}
 
     steps:
     - uses: actions/checkout@v4
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
-      with:
-        python-version: ${{ matrix.python-version }}
 
-    - name: Install dependencies
+    - name: Install dependencies and run tests
       run: |
-        pip install --upgrade pip setuptools wheel
+        python3 -m venv venv-test
+        . venv-test/bin/activate
         pip install -e .[testing]
-
-    - name: Run test suite
-      run: |
         pytest
+
+
+  tests_pypy:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        pypy-version: ["3.10", "3.11", "latest"]
+    container:
+        image: pypy:${{ matrix.pypy-version }}
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install dependencies and run tests
+      run: |
+        python3 -m venv venv-test
+        . venv-test/bin/activate
+        pip install -e .[testing]
+        pytest
+
 
   # --- testing on Windows ------------------------------------------
   tests-windows:
