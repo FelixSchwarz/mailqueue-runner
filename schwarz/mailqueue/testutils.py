@@ -10,11 +10,22 @@ from unittest import mock
 
 from pymta import SMTPCommandParser
 from pymta.test_util import BlackholeDeliverer
-from schwarz.log_utils import ForwardingLogger
 
 from .maildir_utils import move_message
 from .queue_runner import MaildirBackedMsg, enqueue_message
 from .smtpclient import SMTPClient
+
+
+try:
+    from schwarz.log_utils import ForwardingLogger
+except ImportError:
+    class ForwardingLogger:
+        def __init__(self, *a, **kw): pass
+        def debug(self, *a, **kw): pass
+        def info(self, *a, **kw): pass
+        def warning(self, *a, **kw): pass
+        def error(self, *a, **kw): pass
+        def critical(self, *a, **kw): pass
 
 
 __all__ = [
