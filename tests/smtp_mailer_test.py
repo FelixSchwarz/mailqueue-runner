@@ -9,6 +9,7 @@ from pymta.test_util import DummyAuthenticator
 from schwarz.log_utils.testutils import build_collecting_logger
 
 from schwarz.mailqueue import SMTPMailer
+from schwarz.mailqueue.smtpclient import SMTPRecipientRefused
 from schwarz.mailqueue.testutils import SocketMock, fake_smtp_client, stub_socket_creation
 
 
@@ -63,6 +64,40 @@ def test_can_handle_smtp_exception_after_from():
     msg_was_sent = mailer.send('foo@site.example', 'bar@site.example', message)
 
     assert not msg_was_sent
+    assert fake_client.server.received_messages.qsize() == 0
+
+
+def test_does_not_send_message_if_any_recipient_was_refused():
+    class RejectRecipientPolicy(IMTAPolicy):
+        def accept_rcpt_to(self, new_recipient, message):
+            return (new_recipient != 'baz@site.example')
+    fake_client = fake_smtp_client(policy=RejectRecipientPolicy())
+    logger, logs = build_collecting_logger()
+    mailer = SMTPMailer(client=fake_client, smtp_log=logger)
+    message = b'Header: value\n\nbody\n'
+    toaddrs = ('bar@site.example', 'baz@site.example', 'qux@site.example')
+    msg_was_sent = mailer.send('foo@site.example', toaddrs, message)
+
+    # Python's smtplib would deliver the message to all accepted recipients
+    # and only report the refused ones. mailqueue-runner must not do that:
+    # Otherwise we could only retry delivery to the refused recipients by
+    # sending the message again to all recipients.
+    assert not msg_was_sent
+    assert fake_client.server.received_messages.qsize() == 0
+
+def test_client_raises_recipient_refused_if_any_recipient_was_refused():
+    class RejectRecipientPolicy(IMTAPolicy):
+        def accept_rcpt_to(self, new_recipient, message):
+            return (new_recipient != 'baz@site.example')
+    fake_client = fake_smtp_client(policy=RejectRecipientPolicy())
+    message = b'Header: value\n\nbody\n'
+    toaddrs = ('bar@site.example', 'baz@site.example')
+    with pytest.raises(SMTPRecipientRefused) as exc_info:
+        fake_client.sendmail('foo@site.example', toaddrs, message)
+
+    exc = exc_info.value
+    assert exc.recipient == 'baz@site.example'
+    assert exc.smtp_code == 550
     assert fake_client.server.received_messages.qsize() == 0
 
 
