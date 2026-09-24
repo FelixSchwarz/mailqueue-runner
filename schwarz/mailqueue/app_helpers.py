@@ -57,18 +57,6 @@ def _subdict(d, prefix):
     return subdict
 
 
-def _no_section_headers(e):
-    return isinstance(e, configparser.MissingSectionHeaderError)
-
-def _contains_duplicate_section(e):
-    return isinstance(e, configparser.DuplicateSectionError)
-
-def _contains_duplicate_option(e):
-    # ConfigParser in Python 2 raises an Exception for duplicate options so
-    # we don't have to care about the missing "DuplicateOptionError".
-    return isinstance(e, configparser.DuplicateOptionError)
-
-
 def guess_config_path(cfg_path: str) -> Optional[Path]:
     if cfg_path:
         return Path(cfg_path)
@@ -107,15 +95,17 @@ def parse_config(config_path, section_name=None):
         exc_msg = f'Unable to open config file "{config_path}" ({io_exc})'
     except configparser.Error as e:
         line_detail = ''
-        if hasattr(e, 'errors') and len(e.errors) > 0:
-            line_nr, line_str = e.errors[0]
+        # "MissingSectionHeaderError" is a "ParsingError" without "errors"
+        errors = getattr(e, 'errors', None)
+        if errors:
+            line_nr, line_str = errors[0]
             line_detail = ' (line %d: "%s")' % (line_nr, line_str)
-        if _no_section_headers(e):
+        if isinstance(e, configparser.MissingSectionHeaderError):
             exc_msg = 'no section headers found: "[section]"'
-        elif _contains_duplicate_section(e):
+        elif isinstance(e, configparser.DuplicateSectionError):
             exc_msg = 'duplicate section [%s]' % e.section
             line_detail = ' (line %d)' % e.lineno
-        elif _contains_duplicate_option(e):
+        elif isinstance(e, configparser.DuplicateOptionError):
             exc_msg = 'duplicate option "%s" in [%s]' % (e.option, e.section)
             line_detail = ' (line %d)' % e.lineno
         else:
