@@ -148,7 +148,7 @@ def parse_datetime(dt_str):
 
     utc_offset = TimeDelta(seconds=utc_offset_s)
     tz = ConstantTZInfo(offset=utc_offset)
-    dt = DateTime.utcfromtimestamp(ts).replace(tzinfo=tz)
+    dt = DateTime.fromtimestamp(ts, tz=timezone.utc).replace(tzinfo=tz)
     return dt
 
 def parse_number(number_str):
