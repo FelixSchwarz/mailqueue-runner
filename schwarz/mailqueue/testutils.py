@@ -141,7 +141,7 @@ def stub_socket_creation(socket_mock):
             return connect_override()
         return socket_mock
 
-    socket_func = 'schwarz.mailqueue.lib.smtplib_py37.socket.create_connection'
+    socket_func = 'schwarz.mailqueue.smtpclient.socket.create_connection'
     if mock is None:
         raise ValueError('Please install the "mock" library.')
     return mock.patch(socket_func, new=mock_create_connection)

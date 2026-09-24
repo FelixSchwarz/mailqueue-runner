@@ -3,10 +3,9 @@
 
 import socket
 from io import BytesIO
-from smtplib import SMTPException
 
 from .message_utils import MsgInfo, SendResult
-from .smtpclient import SMTPClient
+from .smtpclient import SMTPClient, SMTPException
 
 
 __all__ = ['DebugMailer', 'SMTPMailer']
