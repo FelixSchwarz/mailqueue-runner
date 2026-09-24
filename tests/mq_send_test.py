@@ -13,7 +13,7 @@ from schwarz.mailqueue.testutils import create_ini
 
 
 # prevent nosetests from running this imported function as "test"
-send_test_message_main.__test__ = False
+send_test_message_main.__test__ = False  # ty: ignore[unresolved-attribute]
 
 
 @pytest.fixture

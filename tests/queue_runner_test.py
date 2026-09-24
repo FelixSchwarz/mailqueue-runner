@@ -42,6 +42,7 @@ def test_can_move_stale_messages_back_to_new(path_maildir):
     assert len(msg_files(path_maildir, folder='new')) == 0
     assert len(msg_files(path_maildir, folder='cur')) == 1
 
+    assert time_machine is not None
     dt_stale = DateTime.now() + TimeDelta(hours=1)
     # LogCapture: no logged warning about stale message on the command line
     with LogCapture():

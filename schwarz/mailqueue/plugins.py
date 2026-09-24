@@ -12,7 +12,7 @@ try:
     from schwarz.puzzle_plugins import PluginLoader, SignalRegistry, parse_list_str
 except ImportError:
     registry = None
-    PluginLoader = None
+    PluginLoader = None  # ty: ignore[invalid-assignment]
     parse_list_str = None
 else:
     registry = SignalRegistry()

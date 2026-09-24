@@ -6,7 +6,7 @@ import logging
 import os
 import queue
 import time
-from mailbox import Maildir, _sync_close
+from mailbox import Maildir, _sync_close  # ty: ignore[unresolved-import]
 
 from .app_helpers import init_app, init_smtp_mailer
 from .compat import IS_WINDOWS

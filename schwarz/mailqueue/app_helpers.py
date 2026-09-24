@@ -27,6 +27,8 @@ def init_app(config_path, options=None, settings=None):
 
     log = logging.getLogger('mailqueue')
     if registry is not None:
+        # PuzzlePluginSystem is available so these can not be None
+        assert (parse_list_str is not None) and (PluginLoader is not None)
         enabled_plugins = parse_list_str(settings.get('plugins', '*'))
         plugin_loader = PluginLoader('mailqueue.plugins', enabled_plugins=enabled_plugins, log=log)
         plugin_loader.initialize_plugins(registry)

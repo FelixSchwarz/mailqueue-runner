@@ -13,7 +13,7 @@ from schwarz.log_utils import l_
 try:
     from schwarz.puzzle_plugins import SignalRegistry, connect_signals
 except ImportError:
-    SignalRegistry = None
+    SignalRegistry = None  # ty: ignore[invalid-assignment]
 from testfixtures import LogCapture
 
 from schwarz.mailqueue import DebugMailer, MessageHandler, create_maildir_directories, lock_file

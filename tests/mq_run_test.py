@@ -11,7 +11,7 @@ from schwarz.log_utils import l_
 try:
     from schwarz.puzzle_plugins import SignalRegistry, connect_signals, disconnect_signals
 except ImportError:
-    SignalRegistry = None
+    SignalRegistry = None  # ty: ignore[invalid-assignment]
 import pytest
 
 from schwarz.mailqueue import (

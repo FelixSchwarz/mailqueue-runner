@@ -35,7 +35,7 @@ def parse_message_envelope(fp):
     }
 
     parser = BytesFeedParser()
-    parser._set_headersonly()
+    parser._set_headersonly()  # ty: ignore[unresolved-attribute]
     while True:
         line = fp.readline()
         if line == b'':

@@ -165,7 +165,7 @@ def fake_smtp_client(socket_mock=None, policy=None, overrides=None, **client_arg
         client = SMTPClient(host=remote_host, port=123, **client_args)
     if has_connect_override:
         client._host = hostname
-    client.server = socket_mock
+    client.server = socket_mock  # ty: ignore[unresolved-attribute]
     return client
 
 
