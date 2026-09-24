@@ -16,6 +16,17 @@ class SMTPMailer(object):
             raise TypeError('not enough parameters for __init__(): please specify at least "hostname" or "client"')  # noqa: E501 (line too long)
         self.hostname = hostname
         self.port = int(kwargs.pop('port', 25))
+        # "implicit": TLS right after connecting (SMTPS, usually port 465)
+        # "starttls": upgrade to TLS via "STARTTLS" if the server supports it
+        # Port 465 is reserved for implicit TLS (RFC 8314) so we never send
+        # anything in plain text there.
+        is_smtps_port = (self.port == 465)
+        default_tls = 'implicit' if is_smtps_port else 'starttls'
+        self.tls = kwargs.pop('tls', None) or default_tls
+        if self.tls not in ('implicit', 'starttls'):
+            raise ValueError('invalid value for "tls": %r (expected "implicit" or "starttls")' % self.tls)  # noqa: E501 (line too long)
+        if is_smtps_port and (self.tls != 'implicit'):
+            raise ValueError('port 465 requires implicit TLS (tls=%r)' % self.tls)
         self.username = kwargs.pop('username', None)
         self.password = kwargs.pop('password', None)
         self.connect_timeout = kwargs.pop('timeout', 10)
@@ -31,6 +42,7 @@ class SMTPMailer(object):
             self.port,
             timeout=self.connect_timeout,
             smtp_log=self.smtp_log,
+            implicit_tls=(self.tls == 'implicit'),
         )
         return smtp_client
 
@@ -47,8 +59,8 @@ class SMTPMailer(object):
                 connection = client
             connection.ehlo()
 
-            is_tls_supported = connection.has_extn('starttls')
-            if is_tls_supported:
+            use_starttls = (self.tls == 'starttls') and connection.has_extn('starttls')
+            if use_starttls:
                 connection.starttls()
                 connection.ehlo()
             if (self.username is not None) and (self.password is not None):

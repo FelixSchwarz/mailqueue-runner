@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import socket
+from unittest import mock
 
 import pytest
 from pymta.api import IMTAPolicy
@@ -116,6 +117,29 @@ def test_can_use_smtp_auth(auth_type):
     assert msg_was_sent
     received_queue = fake_client.server.received_messages
     assert received_queue.qsize() == 1
+
+@pytest.mark.parametrize('port, tls, expected_tls', [
+    (25,  None,       'starttls'),
+    (587, None,       'starttls'),
+    (465, None,       'implicit'),
+    (465, 'implicit', 'implicit'),
+    (587, 'implicit', 'implicit'),
+])
+def test_smtpmailer_can_use_implicit_tls(port, tls, expected_tls):
+    mailer = SMTPMailer('site.invalid', port=str(port), tls=tls)
+    assert mailer.tls == expected_tls
+    with mock.patch('schwarz.mailqueue.mailer.SMTPClient') as client_cls:
+        mailer.init_smtp_client()
+    _, kwargs = client_cls.call_args
+    assert kwargs['implicit_tls'] == (expected_tls == 'implicit')
+
+def test_smtpmailer_rejects_invalid_tls_setting():
+    with pytest.raises(ValueError):
+        SMTPMailer('site.invalid', tls='foo')
+
+def test_smtpmailer_always_uses_implicit_tls_for_port_465():
+    with pytest.raises(ValueError):
+        SMTPMailer('site.invalid', port=465, tls='starttls')
 
 # --- internal helpers ----------------------------------------------------
 def _build_policy(**method_results):
