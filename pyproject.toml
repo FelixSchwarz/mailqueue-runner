@@ -9,7 +9,7 @@ description     = "sends emails stored in a maildir repository via SMTP"
 readme          = "README.md"
 license         = "MIT AND Python-2.0"
 license-files   = ["LICENSE.txt"]
-requires-python = ">= 3.8"
+requires-python = ">= 3.9"
 dynamic         = ["version"]
 
 authors = [
@@ -21,7 +21,6 @@ classifiers = [
     "Intended Audience :: Developers",
     "Intended Audience :: System Administrators",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
