@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # SPDX-License-Identifier: MIT
 
 import configparser
@@ -85,15 +84,16 @@ def parse_config(config_path, section_name=None):
     exc_msg = None
     try:
         # `ConfigParser.read()` silently ignores errors (e.g. "permission denied").
-        # Opening the config file first means we get an IOError with a more
+        # Opening the config file first means we get an OSError with a more
         # helpful error message.
         with config_path.open('r') as config_fp:
             parser.read_file(config_fp)
-        # ConfigParser in Python 2 has no ".items()" (without parameters)
+        # ".items(section)" interpolates all values so interpolation errors
+        # are detected here.
         sections = (section_name, ) if section_name else parser.sections()
         for section in sections:
             parser.items(section)
-    except IOError as io_exc:
+    except OSError as io_exc:
         exc_msg = f'Unable to open config file "{config_path}" ({io_exc})'
     except configparser.Error as e:
         line_detail = ''

@@ -1,4 +1,3 @@
-# -*- coding: UTF-8 -*-
 # Copyright 2013 Felix Friedrich, Felix Schwarz
 # Copyright 2015, 2019 Felix Schwarz
 # The source code in this file is licensed under the MIT license.
@@ -7,7 +6,7 @@
 
 __all__ = ['Result']
 
-class Result(object):
+class Result:
     def __init__(self, value, **data):
         self.value = value
         self.data = data
@@ -31,8 +30,6 @@ class Result(object):
 
     def __bool__(self):
         return bool(self.value)
-    # Python 2 compatibility
-    __nonzero__ = __bool__
 
     def __len__(self):
         return len(self.value)

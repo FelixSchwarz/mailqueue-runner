@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # SPDX-License-Identifier: MIT
 
 import logging
@@ -11,7 +10,7 @@ from .plugins import MQAction, MQSignal
 
 __all__ = ['BaseMsg', 'InMemoryMsg', 'MessageHandler']
 
-class MessageHandler(object):
+class MessageHandler:
     def __init__(self, transports, delivery_log=None, plugins=None):
         self.transports = transports
         self.delivery_log = delivery_log or logging.getLogger('mailqueue.delivery_log')
@@ -103,7 +102,7 @@ class MessageHandler(object):
 
 
 
-class BaseMsg(object):
+class BaseMsg:
     def __init__(self, msg: Optional[MsgInfo]=None):
         self._msg = msg
         self._from = None

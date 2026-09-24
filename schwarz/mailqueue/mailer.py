@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
 # SPDX-License-Identifier: MIT
 
-import socket
 from io import BytesIO
 from smtplib import SMTPException
 
@@ -11,7 +9,7 @@ from .smtpclient import SMTPClient
 
 __all__ = ['DebugMailer', 'SMTPMailer']
 
-class SMTPMailer(object):
+class SMTPMailer:
     def __init__(self, hostname=None, **kwargs):
         if (hostname is None) and ('client' not in kwargs):
             raise TypeError('not enough parameters for __init__(): please specify at least "hostname" or "client"')  # noqa: E501 (line too long)
@@ -58,14 +56,14 @@ class SMTPMailer(object):
             connection.sendmail(fromaddr, toaddrs, message)
             msg_was_sent.value = True
             connection.quit()
-        except (SMTPException, OSError, socket.error) as e:
+        except (SMTPException, OSError) as e:
             if self.smtp_log:
                 log_msg = '%s (%s)' % (str(e), e.__class__.__name__)
                 self.smtp_log.warning(log_msg)
         return msg_was_sent
 
 
-class DebugMailer(object):
+class DebugMailer:
     def __init__(self, simulate_failed_sending=False, send_callback=None):
         self.simulate_failed_sending = simulate_failed_sending
         self.send_callback = send_callback

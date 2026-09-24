@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # SPDX-License-Identifier: MIT
 
 import email.utils
@@ -99,7 +98,7 @@ def _dt_to_str(dt):
 
 
 
-class MaildirBackend(object):
+class MaildirBackend:
     def __init__(self, queue_path, log=None):
         self.queue_path = queue_path
         self.log = log or logging.getLogger('mailqueue.queue_log')
@@ -118,7 +117,7 @@ class MaildirBackend(object):
 
 class MaildirBackedMsg(BaseMsg):
     def __init__(self, file_path, fp=None):
-        super(MaildirBackedMsg, self).__init__()
+        super().__init__()
         self.file_path = file_path
         self.fp = fp
         self._msg = None

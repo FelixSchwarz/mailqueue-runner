@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # SPDX-License-Identifier: MIT
 
 import logging
@@ -169,7 +168,7 @@ def fake_smtp_client(socket_mock=None, policy=None, overrides=None, **client_arg
     return client
 
 
-class FakeChannel(object):
+class FakeChannel:
     def __init__(self):
         self._ignore_write_operations = False
         self.server_responses = []
@@ -189,7 +188,7 @@ class FakeChannel(object):
         return response.encode('ASCII')
 
 
-class SocketMock(object):
+class SocketMock:
     def __init__(self, policy=None, overrides=None, authenticator=None):
         self.command_parser = None
         self.deliverer = BlackholeDeliverer()

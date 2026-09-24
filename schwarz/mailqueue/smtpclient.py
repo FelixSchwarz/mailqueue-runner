@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # SPDX-License-Identifier: Python-2.0
 # The code in this file heavily relies on Python's smtplib so I guess licensing
 # it under "Python License 2.0" is in order. However my own contributions
@@ -36,7 +35,7 @@ class SMTPClient(SMTP):
         if self.smtp_log:
             # ensure that "._print_debug()" is called whenever something interesting happens
             self.debuglevel = 1
-        super(SMTPClient, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     # ,------------------------------------------------------------------------
     # copied from "smtplib" shipped with Python 3.7
@@ -85,7 +84,7 @@ class SMTPClient(SMTP):
         # gets all the interesting info anyway so we can just disable all
         # logging here.
         with disable_debug(self):
-            _super_instance = super(SMTPClient, self)
+            _super_instance = super()
             return _super_instance.connect(host=host, port=port, source_address=source_address)
 
     def _get_socket(self, host, port, timeout):
@@ -113,12 +112,12 @@ class SMTPClient(SMTP):
                 log_tmpl += optional_str
             self.smtp_log.debug(log_tmpl, {'host': host, 'port': port})
         with disable_debug(self):
-            return super(SMTPClient, self)._get_socket(host, port, timeout)
+            return super()._get_socket(host, port, timeout)
 
     def data(self, msg):
         filter_ = lambda r: r.msg.startswith('data:')
         with filter_log_traces(self, filter_):
-            return super(SMTPClient, self).data(msg)
+            return super().data(msg)
 
     def send(self, s):
         if self.smtp_log:
@@ -136,7 +135,7 @@ class SMTPClient(SMTP):
                 cmd_str = s.rstrip(CRLF)
                 self.smtp_log.debug('=> %s', cmd_str)
         with disable_debug(self):
-            return super(SMTPClient, self).send(s)
+            return super().send(s)
 
     def getreply(self):
         # You might wonder why I'm not simply using "with disable_debug(...)"
@@ -152,12 +151,12 @@ class SMTPClient(SMTP):
         # merging done by smtplib).
         filter_ = lambda r: r.msg.startswith('reply: retcode ')
         with filter_log_traces(self, filter_):
-            return super(SMTPClient, self).getreply()
+            return super().getreply()
 
 
     def _print_debug(self, *args):
         if not self.smtp_log:
-            return super(SMTPClient, self)._print_debug(*args)
+            return super()._print_debug(*args)
 
         cmd = args[0]
         # no need to handle "send:" here as ".send()" disables debug printing
@@ -220,7 +219,7 @@ _bytes_repr_regex = re.compile("^b?'(.+?)(?:%s)?'" % _CRLF_STR)
 class FilteringWrapper(logging.Logger):
     def __init__(self, filter_, proxied_logger):
         logger_name = proxied_logger.name
-        super(FilteringWrapper, self).__init__(logger_name)
+        super().__init__(logger_name)
         self._filter = filter_
         self._proxied_logger = proxied_logger
 
