@@ -34,7 +34,7 @@ jobs:
       UV_LINK_MODE: copy
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7.0.1
     - uses: astral-sh/setup-uv@v10.1.0
       with:
         version: "latest-known"
@@ -62,7 +62,7 @@ jobs:
       image: python:${{ matrix.python-version }}
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7.0.1
     - uses: astral-sh/setup-uv@v10.1.0
       with:
         version: "latest-known"
@@ -93,7 +93,7 @@ jobs:
         image: pypy:${{ matrix.pypy-version }}
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7.0.1
     - uses: astral-sh/setup-uv@v10.1.0
       with:
         version: "latest-known"
@@ -125,7 +125,7 @@ jobs:
         python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7.0.1
     - uses: astral-sh/setup-uv@v10.1.0
       with:
         version: "latest-known"
