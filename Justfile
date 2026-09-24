@@ -26,3 +26,6 @@ build:
 # is used)
 update-workflow-actions *ARGS:
     ./tools/update-workflow-actions.py --cooldown-days=7 {{ARGS}}
+
+update-prek-hooks:
+    uv run --group quality prek update --freeze --cooldown-days=7
