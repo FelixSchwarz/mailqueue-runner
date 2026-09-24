@@ -37,6 +37,7 @@ def test_can_send_message(ctx):
     assert received_message.smtp_from == fromaddr
     assert tuple(received_message.smtp_to) == toaddrs
     assert received_message.username is None
-    # pymta converts this to a string automatically
-    expected_message = message.decode('ASCII')
+    # The message is sent with CRLF line endings. pymta converts line endings
+    # to "\n" and the final line break is part of the "end of data" marker.
+    expected_message = 'Header: value\n\nbody'
     assert received_message.msg_data == expected_message
