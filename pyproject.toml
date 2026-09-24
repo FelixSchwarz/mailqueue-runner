@@ -1,3 +1,65 @@
+[build-system]
+# >= 61: configuration in "pyproject.toml"
+requires = ["setuptools >= 61"]
+build-backend = "setuptools.build_meta"
+
+
+[project]
+name            = "mailqueue-runner"
+readme          = "README.md"
+license         = {text = "MIT and Python"}
+requires-python = ">= 3.8"
+dynamic         = ["version"]
+
+authors = [
+    {name = "Felix Schwarz", email = "felix.schwarz@oss.schwarz.eu"},
+]
+
+dependencies = [
+    "boltons",
+    "docopt",
+    "portalocker",
+]
+
+[project.optional-dependencies]
+plugins = [
+    # >= 0.8.0: switch to plain importlib instead of pkg_resources
+    "PuzzlePluginSystem >= 0.8.0",
+]
+colors = [
+    "colorama",
+]
+# "testutils" provides helpers to simplify testing (also usable by 3rd party code)
+testutils = [
+    # >= 0.8: SMTPCommandParser
+    "pymta >= 0.8",
+    "schwarzlog",
+]
+testing = [
+    "mailqueue-runner[plugins,testutils]",
+    "dotmap",
+    "time-machine; implementation_name != 'pypy'",
+    "pytest",
+    "testfixtures",
+]
+
+[project.urls]
+Homepage = "https://github.com/FelixSchwarz/mailqueue-runner"
+
+[project.scripts]
+mq-mail      = "schwarz.mailqueue.cli:mq_mail_main"
+mq-run       = "schwarz.mailqueue.cli:one_shot_queue_run_main"
+mq-send-test = "schwarz.mailqueue.cli:send_test_message_main"
+mq-sendmail  = "schwarz.mailqueue.cli:mq_sendmail_main"
+
+
+[tool.setuptools.dynamic]
+version = {file = "VERSION.txt"}
+
+[tool.setuptools.packages.find]
+include = ["schwarz*"]
+
+
 [tool.ruff]
 line-length = 100
 src = ["schwarz", "tests"]
