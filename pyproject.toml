@@ -79,6 +79,7 @@ build = [
 quality = [
     # >= 0.4.7 for "prek update --freeze --cooldown-days"
     "prek >= 0.4.7",
+    "ty",
 ]
 
 
@@ -101,6 +102,13 @@ include = [
 
 [tool.uv]
 exclude-newer = "7 days"
+
+
+[tool.ty.src]
+exclude = [
+    # copy of Python's smtplib (with small modifications), kept close to upstream
+    "schwarz/mailqueue/lib/smtplib_py37.py",
+]
 
 
 [tool.ruff]
