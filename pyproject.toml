@@ -5,6 +5,7 @@ build-backend = "hatchling.build"
 
 [project]
 name            = "mailqueue-runner"
+description     = "sends emails stored in a maildir repository via SMTP"
 readme          = "README.md"
 license         = "MIT AND Python-2.0"
 license-files   = ["LICENSE.txt"]
@@ -13,6 +14,22 @@ dynamic         = ["version"]
 
 authors = [
     {name = "Felix Schwarz", email = "felix.schwarz@oss.schwarz.eu"},
+]
+
+classifiers = [
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Intended Audience :: System Administrators",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Communications :: Email",
+    "Topic :: Communications :: Email :: Mail Transport Agents",
 ]
 
 dependencies = [
@@ -44,7 +61,9 @@ testing = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/FelixSchwarz/mailqueue-runner"
+Homepage        = "https://github.com/FelixSchwarz/mailqueue-runner"
+Code            = "https://github.com/FelixSchwarz/mailqueue-runner"
+"Issue tracker" = "https://github.com/FelixSchwarz/mailqueue-runner/issues"
 
 [project.scripts]
 mq-mail      = "schwarz.mailqueue.cli:mq_mail_main"
