@@ -12,7 +12,6 @@ try:
     import time_machine
 except ImportError:
     time_machine = None
-from testfixtures import LogCapture
 
 from schwarz.mailqueue import (
     DebugMailer,
@@ -43,10 +42,8 @@ def test_can_move_stale_messages_back_to_new(path_maildir):
     assert len(msg_files(path_maildir, folder='cur')) == 1
 
     dt_stale = DateTime.now() + TimeDelta(hours=1)
-    # LogCapture: no logged warning about stale message on the command line
-    with LogCapture():
-        with time_machine.travel(dt_stale):
-            send_all_queued_messages(path_maildir, mailer)
+    with time_machine.travel(dt_stale):
+        send_all_queued_messages(path_maildir, mailer)
     assert len(msg_files(path_maildir, folder='new')) == 0
     assert len(msg_files(path_maildir, folder='cur')) == 0
     assert len(mailer.sent_mails) == 1

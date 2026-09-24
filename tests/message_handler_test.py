@@ -14,7 +14,6 @@ try:
     from schwarz.puzzle_plugins import SignalRegistry, connect_signals
 except ImportError:
     SignalRegistry = None
-from testfixtures import LogCapture
 
 from schwarz.mailqueue import DebugMailer, MessageHandler, create_maildir_directories, lock_file
 from schwarz.mailqueue.compat import IS_WINDOWS
@@ -38,7 +37,7 @@ def path_maildir(tmp_path):
 
 
 @pytest.mark.parametrize('with_msg_id', [True, False])
-def test_can_send_message(path_maildir, with_msg_id):
+def test_can_send_message(path_maildir, with_msg_id, caplog):
     mailer = DebugMailer()
     msg_header = b'X-Header: somevalue\r\n'
     if with_msg_id:
@@ -53,14 +52,13 @@ def test_can_send_message(path_maildir, with_msg_id):
     )
     assert os.path.exists(msg.path)
 
-    with LogCapture() as lc:
-        mh = MessageHandler([mailer], info_logger(lc))
-        was_sent = mh.send_message(msg)
+    mh = MessageHandler([mailer], info_logger(caplog))
+    was_sent = mh.send_message(msg)
     assert bool(was_sent)
     expected_log_msg = '%s => %s' % ('foo@site.example', 'bar@site.example')
     if with_msg_id:
         expected_log_msg += ' <%s>' % msg_id
-    assert_did_log_message(lc, expected_msg=expected_log_msg)
+    assert_did_log_message(caplog, expected_msg=expected_log_msg)
 
     assert len(mailer.sent_mails) == 1
     sent_msg, = mailer.sent_mails

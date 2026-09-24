@@ -16,7 +16,6 @@ BuildRequires:  python3-devel
 # required to run the test suite
 BuildRequires:  python3dist(pytest)
 BuildRequires:  python3dist(pytest-xdist)
-BuildRequires:  python3dist(testfixtures)
 %if 0%{?fedora}
 # only packaged for Fedora
 BuildRequires:  python3dist(dotmap)

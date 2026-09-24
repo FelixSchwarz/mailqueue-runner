@@ -92,27 +92,21 @@ def info_logger(log_capture):
     return get_capture_logger(log_capture, level=logging.INFO)
 
 def get_capture_logger(log_capture, level):
+    """Return a logger which forwards all messages (>= "level") to the given
+    log capture.
+
+    "log_capture" can be pytest's "caplog" fixture or any "logging.Handler"
+    which stores the log records in a ".records" attribute.
+    """
     logger = logging.Logger('__dummy__')
     connect_to_log_capture(logger, log_capture)
     return ForwardingLogger(forward_to=logger, forward_minlevel=level)
 
 def connect_to_log_capture(logger, log_capture):
-    lc = log_capture
-    name = logger.name
-    # -------------------------------------------------------------------------
-    # code copied (with small adaptations) from Simplistix/testfixtures (MIT)
-    #    LogCapture.install() in testfixtures/logcapture.py (git 61683a80)
-    lc.old['levels'][name] = logger.level
-    lc.old['handlers'][name] = logger.handlers
-    lc.old['disabled'][name] = logger.disabled
-    lc.old['progagate'][name] = logger.propagate
-    logger.setLevel(lc.level)
-    logger.handlers = [lc]
+    # pytest's "caplog" fixture is not a handler itself
+    handler = getattr(log_capture, 'handler', log_capture)
+    logger.handlers = [handler]
     logger.disabled = False
-    if lc.propagate is not None:
-        logger.propagate = lc.propagate
-    lc.instances.add(lc)
-    # -------------------------------------------------------------------------
 
 def assert_did_log_message(log_capture, expected_msg):
     lc = log_capture
