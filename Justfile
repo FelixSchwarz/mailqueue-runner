@@ -11,3 +11,12 @@ update-dependencies:
 
 test:
     uv run --locked --extra testing pytest
+
+# Build isolation deliberately does not use "uv.lock". Export the locked build
+# backend and pass the resulting, hashed constraints to "uv build" instead.
+update-build-constraints:
+    uv lock --upgrade-package hatchling
+    uv export --frozen --only-group build --output-file build-constraints.txt
+
+build:
+    uv build --wheel --sdist --build-constraint build-constraints.txt --require-hashes

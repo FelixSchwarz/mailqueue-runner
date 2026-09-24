@@ -27,8 +27,7 @@ jobs:
     - name: create Python wheel and sdist
       run: |
         set -eux
-        uv venv venv.release
-        uv build --sdist --wheel
+        uv build --sdist --wheel --build-constraint build-constraints.txt --require-hashes
 
     - name: install rpmbuild
       run: |
