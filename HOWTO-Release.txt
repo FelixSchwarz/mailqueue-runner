@@ -1,0 +1,26 @@
+Releases are built by the "Create Release Artifacts" workflow, not locally:
+it runs the test suite against "uv.lock", builds wheel + sdist with the
+hash-pinned build backend from "build-constraints.txt", builds a src.rpm from
+that sdist, attests the build provenance, attaches the artifacts to a GitHub
+release and uploads wheel + sdist to pypi via trusted publishing.
+
+  1. optional: refresh the pinned dependencies
+     $ just update-dependencies
+     $ just update-build-constraints
+     $ just update-prek-hooks
+     $ just update-workflow-actions
+
+  2. set the release version in "VERSION.txt", update "Version" and
+     "%changelog" in "rpm/mailqueue-runner.spec" and commit both
+
+  3. push the tag, which triggers the release workflow
+     $ git tag "v$(cat VERSION.txt)"
+     $ git push origin main "v$(cat VERSION.txt)"
+
+  4. approve the deployment to the "pypi" environment in the workflow run,
+     which releases the artifacts to pypi and GitHub
+
+  5. set the next development version in "VERSION.txt" and commit it
+
+"just build" produces the same wheel + sdist locally, e.g. to test the
+packaging.
