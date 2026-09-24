@@ -221,11 +221,13 @@ class SocketMock(object):
 
     def readline(self, size):
         self._drain_responses()
+        assert self.reply_data is not None
         return self.reply_data.readline(size)
 
     def sendall(self, data):
         if isinstance(data, bytes):
             data = data.decode('ASCII')
+        assert self.command_parser is not None
         self.command_parser.process_new_data(data)
 
     def close(self):
@@ -233,6 +235,7 @@ class SocketMock(object):
 
     def _drain_responses(self):
         reply_bytes = self.channel.drain_responses()
+        assert self.reply_data is not None
         previous_position = self.reply_data.tell()
         self.reply_data.seek(0, os.SEEK_END)
         self.reply_data.write(reply_bytes)

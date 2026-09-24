@@ -245,7 +245,7 @@ def test_plugin_can_discard_message_after_failed_delivery(path_maildir):
     mh = MessageHandler([mailer], plugins=registry)
     send_result = mh.send_message(msg, sender=sender, recipient=recipient)
 
-    assert not send_result
+    assert (send_result is not None) and (not send_result)
     assert not send_result.queued
     assert send_result.discarded
 
@@ -264,7 +264,7 @@ def test_plugin_can_access_number_of_failed_deliveries(path_maildir):
     assert len(tuple(find_messages(path_maildir, log=l_(None)))) == 1
 
     send_result = mh.send_message(msg)
-    assert not send_result
+    assert (send_result is not None) and (not send_result)
     assert len(mailer.sent_mails) == 0
     assert len(tuple(find_messages(path_maildir, log=l_(None)))) == 0
     assert send_result.discarded

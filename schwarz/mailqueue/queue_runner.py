@@ -144,6 +144,7 @@ class MaildirBackedMsg(BaseMsg):
             last       = self.last_delivery_attempt,
             retries    = self.retries,
         )
+        assert self.fp is not None
         self.fp.seek(0)
         self.fp.write(queue_bytes)
         self.fp.truncate()
@@ -225,6 +226,7 @@ class MaildirBackedMsg(BaseMsg):
         os.unlink(file_path)
 
     def _move_message_back_to_new(self):
+        assert self.fp is not None
         if IS_WINDOWS:
             self.fp.close()
         move_message(self.fp, target_folder='new', open_file=False)

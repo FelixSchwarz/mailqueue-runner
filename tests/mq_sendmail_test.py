@@ -277,6 +277,7 @@ def test_mq_sendmail_with_cronie_parameters(ctx):
 
 def _mq_sendmail(cli_params, msg, *, ctx=None, config_path=None, expect_error=False):
     if config_path is None:
+        assert ctx is not None
         tmp_path = ctx.tmp_path
         cfg_dir = str(tmp_path)
         config_path = create_ini(ctx.hostname, ctx.listen_port, dir_path=cfg_dir, log_dir=tmp_path)

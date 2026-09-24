@@ -132,6 +132,7 @@ def strip_brackets(value):
     else:
         angle_regex = _re_angle_brackets_str
     match = angle_regex.search(value)
+    assert match is not None
     return match.group(1)
 
 def parse_envelope_addrs(header_str):
@@ -153,7 +154,9 @@ def parse_datetime(dt_str):
 def parse_number(number_str):
     if number_str is None:
         return None
-    return int(re.search(r'^(\d+)$', number_str).group(1))
+    match = re.search(r'^(\d+)$', number_str)
+    assert match is not None
+    return int(match.group(1))
 
 def msg_as_bytes(msg) -> bytes:
     """

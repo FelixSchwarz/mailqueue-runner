@@ -131,6 +131,7 @@ def test_mq_mail_with_queuing(tmp_path):
 
 def _mq_mail(mail_params, msg_body, *, ctx=None, config_path=None):
     if config_path is None:
+        assert ctx is not None
         tmp_path = ctx.tmp_path
         cfg_dir = str(tmp_path)
         config_path = create_ini(ctx.hostname, ctx.listen_port, dir_path=cfg_dir, log_dir=tmp_path)
