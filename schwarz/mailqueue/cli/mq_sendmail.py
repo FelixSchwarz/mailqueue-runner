@@ -26,7 +26,7 @@ import email.utils
 import sys
 import textwrap
 from argparse import ArgumentParser
-from typing import Sequence
+from collections.abc import Sequence
 
 from docopt import printable_usage
 

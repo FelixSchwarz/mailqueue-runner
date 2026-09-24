@@ -3,8 +3,9 @@
 import itertools
 import os
 import re
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Dict, List, Optional, Sequence, TextIO, Tuple, Union
+from typing import Optional, TextIO, Union
 
 
 __all__ = ['lookup_address', 'lookup_adresses']
@@ -13,8 +14,8 @@ StrPath = Union[str, os.PathLike]
 
 def lookup_address(
         address: str,
-        _aliases: Optional[Dict[str, List[str]]] = None,
-    ) -> Optional[Tuple[str, ...]]:
+        _aliases: Optional[dict[str, list[str]]] = None,
+    ) -> Optional[tuple[str, ...]]:
     if _is_email_address(address):
         return (address,)
     aliases = _load_aliases(_aliases)
@@ -27,7 +28,7 @@ def lookup_adresses(
         recipients: Sequence[str],
         aliases: Optional[dict],
         msg_recipients: Optional[Sequence[str]] = None,
-        ) -> Tuple[str, ...]:
+        ) -> tuple[str, ...]:
     email_addresses = []
     all_recipients = tuple(itertools.chain(recipients, (msg_recipients or [])))
     for recipient in all_recipients:
@@ -36,7 +37,7 @@ def lookup_adresses(
     return tuple(email_addresses)
 
 
-def _resolve_alias(address: str, aliases) -> Optional[Tuple[str, ...]]:
+def _resolve_alias(address: str, aliases) -> Optional[tuple[str, ...]]:
     if _is_email_address(address):
         return (address,)
 
@@ -74,7 +75,7 @@ def _load_aliases(aliases):
     return aliases
 
 
-def _parse_aliases(src: Union[StrPath, TextIO]) -> Dict[str, List[str]]:
+def _parse_aliases(src: Union[StrPath, TextIO]) -> dict[str, list[str]]:
     if isinstance(src, (os.PathLike, str)):
         with open(src) as aliases_fp:
             aliases_str = aliases_fp.read()
