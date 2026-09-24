@@ -1,7 +1,6 @@
 [build-system]
-# >= 61: configuration in "pyproject.toml"
-requires = ["setuptools >= 61"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 
 [project]
@@ -53,11 +52,21 @@ mq-send-test = "schwarz.mailqueue.cli:send_test_message_main"
 mq-sendmail  = "schwarz.mailqueue.cli:mq_sendmail_main"
 
 
-[tool.setuptools.dynamic]
-version = {file = "VERSION.txt"}
+[tool.hatch.version]
+path = "VERSION.txt"
+pattern = "(?P<version>.+)"
 
-[tool.setuptools.packages.find]
-include = ["schwarz*"]
+[tool.hatch.build.targets.wheel]
+packages = ["schwarz"]
+
+[tool.hatch.build.targets.sdist]
+# "pyproject.toml", "README.md" and "LICENSE.txt" are always included
+include = [
+    "/schwarz",
+    "/tests",
+    "/pytest.ini",
+    "/VERSION.txt",
+]
 
 
 [tool.ruff]
