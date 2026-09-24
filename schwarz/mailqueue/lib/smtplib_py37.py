@@ -702,8 +702,8 @@ class SMTP(object):
                                  "exclusive")
             if keyfile is not None or certfile is not None:
                 import warnings
-                warnings.warning("keyfile and certfile are deprecated, use a"
-                                 "custom context instead", DeprecationWarning, 2)
+                warnings.warn("keyfile and certfile are deprecated, use a"
+                              "custom context instead", DeprecationWarning, 2)
             if context is None:
                 context = ssl._create_stdlib_context(certfile=certfile,
                                                      keyfile=keyfile)
@@ -960,8 +960,8 @@ if _have_ssl:
                                  "exclusive")
             if keyfile is not None or certfile is not None:
                 import warnings
-                warnings.warning("keyfile and certfile are deprecated, use a"
-                                 "custom context instead", DeprecationWarning, 2)
+                warnings.warn("keyfile and certfile are deprecated, use a"
+                              "custom context instead", DeprecationWarning, 2)
             self.keyfile = keyfile
             self.certfile = certfile
             if context is None:
