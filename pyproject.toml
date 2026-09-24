@@ -72,6 +72,12 @@ mq-send-test = "schwarz.mailqueue.cli:send_test_message_main"
 mq-sendmail  = "schwarz.mailqueue.cli:mq_sendmail_main"
 
 
+[dependency-groups]
+build = [
+    "hatchling",
+]
+
+
 [tool.hatch.version]
 path = "VERSION.txt"
 pattern = "(?P<version>.+)"
@@ -87,6 +93,10 @@ include = [
     "/pytest.ini",
     "/VERSION.txt",
 ]
+
+
+[tool.uv]
+exclude-newer = "7 days"
 
 
 [tool.ruff]

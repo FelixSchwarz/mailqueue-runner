@@ -4,7 +4,13 @@ on:
   - workflow_dispatch
 
 jobs:
+  tests:
+    uses: ./.github/workflows/tests.yml
+    with:
+      use_locked_dependencies: true
+
   artifacts:
+    needs: tests
     runs-on: ubuntu-latest
     container:
       image: fedora:latest
