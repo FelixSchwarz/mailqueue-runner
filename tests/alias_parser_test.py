@@ -66,6 +66,7 @@ def test_lookup_address_mixed_aliases():
         'staff': ['staff@site.example'],
     }
     result = lookup_address('admins', _aliases=aliases)
+    assert result is not None
     assert set(result) == set(['monitor@site.example', 'staff@site.example'])
 
 
