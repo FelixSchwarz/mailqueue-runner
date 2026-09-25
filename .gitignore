@@ -4,9 +4,15 @@
 /dist
 /venv*
 /*.ini
+!/pytest.ini
 /*.log
 /*.sh
 /logging.conf
 /mailqueue
 /TODO.txt
 /verify-commits.py
+/.venv
+# e.g. ruff/pytest
+/.*cache
+/*.code-workspace
+/.vscode

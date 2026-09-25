@@ -1,3 +1,0 @@
-include pytest.ini
-include VERSION.txt
-recursive-include tests *.py
