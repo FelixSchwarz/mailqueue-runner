@@ -115,16 +115,13 @@ def create_fake_entry_points(plugin_id, plugin):
             return plugin
 
     # `importlib.metadata.entry_points()` returns an `EntryPoints` instance
-    # (or `dict` in older versions of Python).
-    # We'll mimic the modern API `entry_points().select(group='mailqueue.plugins')`
-    # while still maintaining some compatibility with older versions.
+    # (or `dict` in Python 3.9). PuzzlePluginSystem only uses the dict API if
+    # it gets a real `dict` so we just mimic the modern API:
+    # `entry_points().select(group='mailqueue.plugins')`
     fake_ep = FakeEntryPoint(plugin_id, 'dummy_module:DummyPlugin', 'mailqueue.plugins')
 
     class FakeEntryPoints:
         def select(self, group=None):
             return [fake_ep] if (group == 'mailqueue.plugins') else []
-
-        def get(self, name, default=None):
-            return fake_ep if name == plugin_id else default
 
     return FakeEntryPoints()
