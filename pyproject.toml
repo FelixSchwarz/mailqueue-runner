@@ -6,7 +6,8 @@ build-backend = "hatchling.build"
 [project]
 name            = "mailqueue-runner"
 readme          = "README.md"
-license         = {text = "MIT and Python"}
+license         = "MIT AND Python-2.0"
+license-files   = ["LICENSE.txt"]
 requires-python = ">= 3.6"
 dynamic         = ["version"]
 
