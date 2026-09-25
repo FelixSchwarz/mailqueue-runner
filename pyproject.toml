@@ -114,6 +114,9 @@ ignore = [
     # E731: "Do not assign a `lambda` expression, use a `def`"
     #    I think assigning to lambda expressions is ok.
     "E731",
+    # UP031: "Use format specifiers instead of percent format"
+    #    Style only, "%" formatting is not deprecated.
+    "UP031",
 ]
 
 select = [
@@ -124,6 +127,8 @@ select = [
     "W",
     # isort
     "I001",
+    # pyupgrade: syntax which is obsolete for the minimum Python version
+    "UP",
 
     # Special rule code to enforce that your noqa directives are "valid", in that
     # the violations they say they ignore are actually being triggered on that line
@@ -131,6 +136,11 @@ select = [
     # replaces basically "yesqa"
     "RUF100",
 ]
+
+[tool.ruff.lint.per-file-ignores]
+# standalone script (shared with other projects) which might be run with any
+# Python version so it needs its own version check
+"tools/update-workflow-actions.py" = ["UP036"]
 
 [tool.ruff.lint.isort]
 lines-after-imports = 2

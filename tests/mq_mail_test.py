@@ -138,10 +138,7 @@ def _mq_mail(mail_params, msg_body, *, ctx=None, config_path=None):
     cli_params = [f'--config={config_path}'] + mail_params
     cmd = [sys.executable, '-m', 'schwarz.mailqueue.mq_mail'] + cli_params
     msg_body = msg_body.encode('utf-8')
-    if sys.version_info >= (3, 7):
-        proc = subprocess.run(cmd, input=msg_body, capture_output=True)
-    else:
-        proc = subprocess.run(cmd, input=msg_body, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    proc = subprocess.run(cmd, input=msg_body, capture_output=True)
 
     if proc.returncode != 0:
         if proc.stdout:
