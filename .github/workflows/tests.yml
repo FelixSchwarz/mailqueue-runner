@@ -11,6 +11,28 @@ on:
 
 
 jobs:
+  quality:
+    runs-on: ubuntu-latest
+    container:
+      image: python:3.14
+
+    steps:
+    - uses: actions/checkout@v4
+
+    # This job runs inside a container, not directly on the runner: the
+    # checkout belongs to the runner user while the steps run as root, so git
+    # rejects the repository ("dubious ownership"). "actions/checkout" does not
+    # cover this, it sets "safe.directory" only in a temporary git config which
+    # applies to its own git commands.
+    - name: Allow git to use the checked out repository
+      run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+    - name: Run prek hooks
+      run: |
+        python -m pip install "prek >= 0.4.7"
+        prek run --all-files
+
+
   tests-cpython:
     runs-on: ubuntu-latest
     strategy:

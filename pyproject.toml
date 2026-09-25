@@ -69,6 +69,13 @@ mq-send-test = "schwarz.mailqueue.cli:send_test_message_main"
 mq-sendmail  = "schwarz.mailqueue.cli:mq_sendmail_main"
 
 
+[dependency-groups]
+quality = [
+    # >= 0.4.7 for "prek update --freeze --cooldown-days"
+    "prek >= 0.4.7",
+]
+
+
 [tool.hatch.version]
 path = "VERSION.txt"
 pattern = "(?P<version>.+)"
