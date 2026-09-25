@@ -24,3 +24,9 @@ build:
 
 update-prek-hooks:
     uv run --group quality prek update --freeze --cooldown-days=7
+
+# pin GitHub Actions in ".github/workflows" to the latest commit sha
+# (stays within the current major version unless "--allow-major-upgrades"
+# is used)
+update-workflow-actions *ARGS:
+    ./tools/update-workflow-actions.py --cooldown-days=7 {{ARGS}}
