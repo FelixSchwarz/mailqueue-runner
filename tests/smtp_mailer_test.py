@@ -1,7 +1,4 @@
-# -*- coding: utf-8 -*-
 # SPDX-License-Identifier: MIT
-
-import socket
 
 import pytest
 from pymta.api import IMTAPolicy
@@ -32,7 +29,7 @@ def test_can_send_message_via_smtpmailer():
     assert received_message.msg_data == expected_message
 
 def test_can_handle_connection_error():
-    exc = socket.error(101, 'Network is unreachable')
+    exc = OSError(101, 'Network is unreachable')
     overrides = _build_overrides(connect=exc)
     fake_client = fake_smtp_client(overrides=overrides)
     logger, logs = build_collecting_logger()

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # SPDX-License-Identifier: MIT
 
 
@@ -18,9 +17,9 @@ else:
     registry = SignalRegistry()
 
 
-class MQSignal(object):
+class MQSignal:
     delivery_successful = 'mq:delivery_successful'  # (msg, send_result)
     delivery_failed     = 'mq:delivery_failed'      # (msg, send_result)
 
-class MQAction(object):
+class MQAction:
     DISCARD = 'discard'

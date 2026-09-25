@@ -1,4 +1,3 @@
-# -*- coding: UTF-8 -*-
 # Copyright 2019 Felix Schwarz
 # SPDX-License-Identifier: MIT
 

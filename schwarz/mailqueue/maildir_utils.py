@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # SPDX-License-Identifier: MIT
 
 import os
@@ -12,7 +11,7 @@ from .compat import IS_WINDOWS
 __all__ = ['create_maildir_directories', 'lock_file', 'move_message']
 
 
-class LockedFile(object):
+class LockedFile:
     __slots__ = ('fp', 'lock', 'name')
     def __init__(self, fp, lock=None):
         self.fp = fp
@@ -172,6 +171,6 @@ def move_message(file_, target_folder, open_file=True):
             # Only close the file if we actually opened it.
             locked_file.close()
         return target_path
-    except (IOError, OSError):
+    except OSError:
         pass
     return None
