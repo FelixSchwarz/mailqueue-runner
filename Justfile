@@ -16,6 +16,9 @@ update-dependencies:
 setup-venv:
     uv sync --locked --all-extras --group=quality
 
+check-types:
+    uv run --locked --group quality --all-extras ty check schwarz tests
+
 test:
     uv run --locked --extra testing pytest
 

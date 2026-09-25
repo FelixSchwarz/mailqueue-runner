@@ -69,6 +69,9 @@ jobs:
     - name: Run prek hooks
       run: uv run --locked --python python --group quality prek run --all-files
 
+    - name: Run ty
+      run: uv run --locked --python python --group quality --all-extras ty check schwarz tests
+
 
   tests-cpython:
     runs-on: ubuntu-latest
