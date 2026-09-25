@@ -4,12 +4,13 @@ import calendar
 import email.policy
 import email.utils
 import re
+from collections.abc import Sequence
 from datetime import datetime as DateTime, timedelta as TimeDelta, timezone
 from email.header import decode_header
 from email.message import EmailMessage
 from email.parser import BytesFeedParser, BytesHeaderParser
 from io import BytesIO
-from typing import BinaryIO, NamedTuple, Optional, Sequence
+from typing import BinaryIO, NamedTuple, Optional
 
 from boltons.timeutils import ConstantTZInfo, LocalTZ
 
