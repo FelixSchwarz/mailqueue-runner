@@ -26,6 +26,9 @@ permissions:
 env:
   # query OSV for known malware before syncing
   UV_MALWARE_CHECK: "1"
+  # Passed via the environment instead of expanding "${{ inputs.* }}" in
+  # shell scripts to rule out any script injection.
+  USE_LOCKED_DEPENDENCIES: ${{ inputs.use_locked_dependencies }}
 
 
 jobs:
@@ -92,7 +95,7 @@ jobs:
 
     - name: Install dependencies and run tests
       run: |
-        if [ "${{ inputs.use_locked_dependencies }}" = "true" ]; then
+        if [ "$USE_LOCKED_DEPENDENCIES" = "true" ]; then
           uv run --locked --python python --extra testing pytest
         else
           # We deliberately disregard locked dependencies here so ordinary CI
@@ -125,7 +128,7 @@ jobs:
 
     - name: Install dependencies and run tests
       run: |
-        if [ "${{ inputs.use_locked_dependencies }}" = "true" ]; then
+        if [ "$USE_LOCKED_DEPENDENCIES" = "true" ]; then
           uv run --locked --python python --extra testing pytest
         else
           # We deliberately disregard locked dependencies here so ordinary CI
@@ -162,7 +165,7 @@ jobs:
     - name: Install dependencies and run tests
       shell: bash
       run: |
-        if [ "${{ inputs.use_locked_dependencies }}" = "true" ]; then
+        if [ "$USE_LOCKED_DEPENDENCIES" = "true" ]; then
           uv run --locked --extra testing pytest
         else
           # no locked dependencies here (see above)
