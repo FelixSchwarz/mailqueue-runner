@@ -10,6 +10,11 @@ on:
     - main
 
 
+env:
+  # query OSV for known malware before syncing
+  UV_MALWARE_CHECK: "1"
+
+
 jobs:
   quality:
     runs-on: ubuntu-latest
@@ -44,13 +49,16 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+    - uses: astral-sh/setup-uv@v10.1.0
+      with:
+        version: "latest-known"
 
     - name: Install dependencies and run tests
       run: |
-        python3 -m venv venv-test
+        uv venv --python python venv-test
         . venv-test/bin/activate
-        pip install -e .[testing]
-        pytest
+        uv pip install -e '.[testing]'
+        uv run --active --no-project pytest
 
 
   tests_pypy:
@@ -64,13 +72,16 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+    - uses: astral-sh/setup-uv@v10.1.0
+      with:
+        version: "latest-known"
 
     - name: Install dependencies and run tests
       run: |
-        python3 -m venv venv-test
+        uv venv --python python venv-test
         . venv-test/bin/activate
-        pip install -e .[testing]
-        pytest
+        uv pip install -e '.[testing]'
+        uv run --active --no-project pytest
 
 
   # --- testing on Windows ------------------------------------------
@@ -85,16 +96,16 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
+    - uses: astral-sh/setup-uv@v10.1.0
       with:
+        version: "latest-known"
         python-version: ${{ matrix.python-version }}
+        activate-environment: true
 
     - name: Install dependencies
       run: |
-        pip install --upgrade pip setuptools wheel
-        pip install -e .[testing]
+        uv pip install -e '.[testing]'
 
     - name: Run test suite
       run: |
-        pytest
+        uv run --active --no-project pytest
