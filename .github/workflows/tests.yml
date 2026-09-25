@@ -8,6 +8,14 @@ on:
   pull_request:
     branches:
     - main
+  # This is necessary so that "release.yml" can require a passing test suite
+  workflow_call:
+    inputs:
+      use_locked_dependencies:
+        description: "Run tests against the committed uv.lock instead of current PyPI releases."
+        required: false
+        default: false
+        type: boolean
 
 
 env:
@@ -20,9 +28,16 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: python:3.14
+    env:
+      # the uv cache and the workspace are on different filesystems in a
+      # container job, so uv can not hardlink and would warn about it
+      UV_LINK_MODE: copy
 
     steps:
     - uses: actions/checkout@v4
+    - uses: astral-sh/setup-uv@v10.1.0
+      with:
+        version: "latest-known"
 
     # This job runs inside a container, not directly on the runner: the
     # checkout belongs to the runner user while the steps run as root, so git
@@ -32,10 +47,11 @@ jobs:
     - name: Allow git to use the checked out repository
       run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
+    - name: Check that uv.lock is up to date
+      run: uv lock --check
+
     - name: Run prek hooks
-      run: |
-        python -m pip install "prek >= 0.4.7"
-        prek run --all-files
+      run: uv run --locked --python python --group quality prek run --all-files
 
 
   tests-cpython:
@@ -55,10 +71,18 @@ jobs:
 
     - name: Install dependencies and run tests
       run: |
-        uv venv --python python venv-test
-        . venv-test/bin/activate
-        uv pip install -e '.[testing]'
-        uv run --active --no-project pytest
+        if [ "${{ inputs.use_locked_dependencies }}" = "true" ]; then
+          uv run --locked --python python --extra testing pytest
+        else
+          # We deliberately disregard locked dependencies here so ordinary CI
+          # runs can detect breakage due to new versions published on pypi.
+          # We use locked dependencies only for release builds to avoid
+          # installing compromised packages when we build our own wheels.
+          uv venv --python python venv-test
+          . venv-test/bin/activate
+          uv pip install -e '.[testing]'
+          uv run --active --no-project pytest
+        fi
 
 
   tests_pypy:
@@ -78,10 +102,18 @@ jobs:
 
     - name: Install dependencies and run tests
       run: |
-        uv venv --python python venv-test
-        . venv-test/bin/activate
-        uv pip install -e '.[testing]'
-        uv run --active --no-project pytest
+        if [ "${{ inputs.use_locked_dependencies }}" = "true" ]; then
+          uv run --locked --python python --extra testing pytest
+        else
+          # We deliberately disregard locked dependencies here so ordinary CI
+          # runs can detect breakage due to new versions published on pypi.
+          # We use locked dependencies only for release builds to avoid
+          # installing compromised packages when we build our own wheels.
+          uv venv --python python venv-test
+          . venv-test/bin/activate
+          uv pip install -e '.[testing]'
+          uv run --active --no-project pytest
+        fi
 
 
   # --- testing on Windows ------------------------------------------
@@ -102,10 +134,13 @@ jobs:
         python-version: ${{ matrix.python-version }}
         activate-environment: true
 
-    - name: Install dependencies
+    - name: Install dependencies and run tests
+      shell: bash
       run: |
-        uv pip install -e '.[testing]'
-
-    - name: Run test suite
-      run: |
-        uv run --active --no-project pytest
+        if [ "${{ inputs.use_locked_dependencies }}" = "true" ]; then
+          uv run --locked --extra testing pytest
+        else
+          # no locked dependencies here (see above)
+          uv pip install -e '.[testing]'
+          uv run --active --no-project pytest
+        fi

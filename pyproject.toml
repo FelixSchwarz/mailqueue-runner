@@ -70,12 +70,13 @@ mq-sendmail  = "schwarz.mailqueue.cli:mq_sendmail_main"
 
 
 [dependency-groups]
+build = [
+    "hatchling",
+]
 quality = [
     # >= 0.4.7 for "prek update --freeze --cooldown-days"
     "prek >= 0.4.7",
 ]
-
-
 [tool.hatch.version]
 path = "VERSION.txt"
 pattern = "(?P<version>.+)"
@@ -91,6 +92,10 @@ include = [
     "/pytest.ini",
     "/VERSION.txt",
 ]
+
+
+[tool.uv]
+exclude-newer = "7 days"
 
 
 [tool.ruff]
