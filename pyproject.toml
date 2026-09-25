@@ -97,6 +97,8 @@ include = [
 line-length = 100
 src = ["schwarz", "tests"]
 
+
+[tool.ruff.lint]
 ignore = [
     # F405 "… may be undefined, or defined from star imports: …"
     #    Sometimes star imports are perfectly fine IMHO.
@@ -123,7 +125,7 @@ select = [
     "RUF100",
 ]
 
-[tool.ruff.isort]
+[tool.ruff.lint.isort]
 lines-after-imports = 2
 known-first-party = ["schwarz.mailqueue"]
 combine-as-imports = true
