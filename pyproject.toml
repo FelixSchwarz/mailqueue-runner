@@ -15,6 +15,20 @@ authors = [
     {name = "Felix Schwarz", email = "felix.schwarz@oss.schwarz.eu"},
 ]
 
+classifiers = [
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Intended Audience :: System Administrators",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Communications :: Email",
+    "Topic :: Communications :: Email :: Mail Transport Agents",
+]
+
 dependencies = [
     "boltons",
     "docopt",
@@ -44,7 +58,9 @@ testing = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/FelixSchwarz/mailqueue-runner"
+Homepage        = "https://github.com/FelixSchwarz/mailqueue-runner"
+Code            = "https://github.com/FelixSchwarz/mailqueue-runner"
+"Issue tracker" = "https://github.com/FelixSchwarz/mailqueue-runner/issues"
 
 [project.scripts]
 mq-mail      = "schwarz.mailqueue.cli:mq_mail_main"
