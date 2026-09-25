@@ -1,4 +1,3 @@
-#! /usr/bin/python3.6
 # SPDX-License-Identifier: Python-2.0
 '''SMTP/ESMTP client class.
 
