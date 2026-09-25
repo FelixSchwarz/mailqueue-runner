@@ -14,7 +14,7 @@ StrPath = Union[str, os.PathLike]
 def lookup_address(
         address: str,
         _aliases: Optional[Dict[str, List[str]]] = None,
-    ) -> Optional[Tuple[str]]:
+    ) -> Optional[Tuple[str, ...]]:
     if _is_email_address(address):
         return (address,)
     aliases = _load_aliases(_aliases)
@@ -27,7 +27,7 @@ def lookup_adresses(
         recipients: Sequence[str],
         aliases: Optional[dict],
         msg_recipients: Optional[Sequence[str]] = None,
-        ) -> Tuple[str]:
+        ) -> Tuple[str, ...]:
     email_addresses = []
     all_recipients = tuple(itertools.chain(recipients, (msg_recipients or [])))
     for recipient in all_recipients:
@@ -36,7 +36,7 @@ def lookup_adresses(
     return tuple(email_addresses)
 
 
-def _resolve_alias(address: str, aliases) -> Optional[Tuple[str]]:
+def _resolve_alias(address: str, aliases) -> Optional[Tuple[str, ...]]:
     if _is_email_address(address):
         return (address,)
 
@@ -54,7 +54,7 @@ def _resolve_alias(address: str, aliases) -> Optional[Tuple[str]]:
 
 
 def _is_email_address(address: Optional[str]) -> bool:
-    return address and ('@' in address)
+    return bool(address) and ('@' in address)
 
 
 def _extend(values, new_values):

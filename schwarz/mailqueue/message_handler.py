@@ -45,7 +45,7 @@ class MessageHandler(object):
         if not send_result:
             msg_wrapper.retries += 1
             msg_wrapper.last_delivery_attempt = dt_now()
-            discard_message = self._notify_plugins(MQSignal.delivery_failed, msg_wrapper, send_result)  # noqa: E501 (line too long)
+            discard_message = self._notify_plugins(MQSignal.delivery_failed, msg_wrapper, send_result)
             msg_wrapper.delivery_failed(discard=discard_message)
             send_result.discarded = discard_message
         return send_result

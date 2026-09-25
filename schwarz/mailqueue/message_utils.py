@@ -35,7 +35,7 @@ def parse_message_envelope(fp):
     }
 
     parser = BytesFeedParser()
-    parser._set_headersonly()
+    parser._set_headersonly()  # ty: ignore[unresolved-attribute]
     while True:
         line = fp.readline()
         if line == b'':
@@ -132,6 +132,8 @@ def strip_brackets(value):
     else:
         angle_regex = _re_angle_brackets_str
     match = angle_regex.search(value)
+    if match is None:
+        return value
     return match.group(1)
 
 def parse_envelope_addrs(header_str):
@@ -147,13 +149,16 @@ def parse_datetime(dt_str):
 
     utc_offset = TimeDelta(seconds=utc_offset_s)
     tz = ConstantTZInfo(offset=utc_offset)
-    dt = DateTime.utcfromtimestamp(ts).replace(tzinfo=tz)
+    dt = DateTime.fromtimestamp(ts, tz=timezone.utc).replace(tzinfo=tz)
     return dt
 
 def parse_number(number_str):
     if number_str is None:
         return None
-    return int(re.search(r'^(\d+)$', number_str).group(1))
+    match = re.search(r'^(\d+)$', number_str)
+    if match is None:
+        raise ValueError('not a valid number: %r' % number_str)
+    return int(match.group(1))
 
 def msg_as_bytes(msg) -> bytes:
     """

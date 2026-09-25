@@ -98,7 +98,7 @@ class SMTPClient(SMTP):
         if self.smtp_log:
             log_tmpl = 'connecting to %(host)s:%(port)s'
             optional = []
-            if timeout not in (None, socket._GLOBAL_DEFAULT_TIMEOUT):
+            if timeout not in (None, socket._GLOBAL_DEFAULT_TIMEOUT):  # ty: ignore[unresolved-attribute]
                 float_to_str = lambda f: ("%.4f" % f).rstrip('0').rstrip('.')
                 timeout_str = 'timeout=%ss' % float_to_str(timeout)
                 optional.append(timeout_str)

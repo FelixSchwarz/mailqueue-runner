@@ -21,6 +21,8 @@ Options:
 """
 
 import email
+import email.header
+import email.message
 import email.utils
 import sys
 import textwrap

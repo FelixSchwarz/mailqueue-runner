@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: MIT
 
 import email
+import email.header
 import email.utils
 import random
 import subprocess

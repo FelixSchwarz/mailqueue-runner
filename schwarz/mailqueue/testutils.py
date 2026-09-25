@@ -157,7 +157,7 @@ def fake_smtp_client(socket_mock=None, policy=None, overrides=None, **client_arg
         client = SMTPClient(host=remote_host, port=123, **client_args)
     if has_connect_override:
         client._host = hostname
-    client.server = socket_mock
+    client.server = socket_mock  # ty: ignore[unresolved-attribute]
     return client
 
 
@@ -213,11 +213,15 @@ class SocketMock(object):
 
     def readline(self, size):
         self._drain_responses()
+        if self.reply_data is None:
+            raise RuntimeError('socket has not been initialized with makefile()')
         return self.reply_data.readline(size)
 
     def sendall(self, data):
         if isinstance(data, bytes):
             data = data.decode('ASCII')
+        if self.command_parser is None:
+            raise RuntimeError('socket has not been initialized with makefile()')
         self.command_parser.process_new_data(data)
 
     def close(self):
@@ -225,6 +229,8 @@ class SocketMock(object):
 
     def _drain_responses(self):
         reply_bytes = self.channel.drain_responses()
+        if self.reply_data is None:
+            raise RuntimeError('socket has not been initialized with makefile()')
         previous_position = self.reply_data.tell()
         self.reply_data.seek(0, os.SEEK_END)
         self.reply_data.write(reply_bytes)

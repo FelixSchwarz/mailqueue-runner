@@ -9,6 +9,12 @@ import sys
 from pathlib import Path
 from typing import Optional
 
+
+if sys.version_info >= (3, 10):
+    from typing import TypeGuard
+else:
+    from typing_extensions import TypeGuard
+
 from .mailer import SMTPMailer
 from .plugins import PluginLoader, parse_list_str, registry
 
@@ -27,6 +33,8 @@ def init_app(config_path, options=None, settings=None):
 
     log = logging.getLogger('mailqueue')
     if registry is not None:
+        if (parse_list_str is None) or (PluginLoader is None):
+            raise RuntimeError('PuzzlePluginSystem is partially initialized')
         enabled_plugins = parse_list_str(settings.get('plugins', '*'))
         plugin_loader = PluginLoader('mailqueue.plugins', enabled_plugins=enabled_plugins, log=log)
         plugin_loader.initialize_plugins(registry)
@@ -57,16 +65,18 @@ def _subdict(d, prefix):
     return subdict
 
 
-def _no_section_headers(e):
-    return isinstance(e, configparser.MissingSectionHeaderError)
+def _no_section_headers(exc: configparser.Error) -> TypeGuard[configparser.MissingSectionHeaderError]:
+    return isinstance(exc, configparser.MissingSectionHeaderError)
 
-def _contains_duplicate_section(e):
-    return isinstance(e, configparser.DuplicateSectionError)
 
-def _contains_duplicate_option(e):
+def _contains_duplicate_section(exc: configparser.Error) -> TypeGuard[configparser.DuplicateSectionError]:
+    return isinstance(exc, configparser.DuplicateSectionError)
+
+
+def _contains_duplicate_option(exc: configparser.Error,) -> TypeGuard[configparser.DuplicateOptionError]:
     # ConfigParser in Python 2 raises an Exception for duplicate options so
     # we don't have to care about the missing "DuplicateOptionError".
-    return isinstance(e, configparser.DuplicateOptionError)
+    return isinstance(exc, configparser.DuplicateOptionError)
 
 
 def guess_config_path(cfg_path: str) -> Optional[Path]:
@@ -107,8 +117,10 @@ def parse_config(config_path, section_name=None):
         exc_msg = f'Unable to open config file "{config_path}" ({io_exc})'
     except configparser.Error as e:
         line_detail = ''
-        if hasattr(e, 'errors') and len(e.errors) > 0:
-            line_nr, line_str = e.errors[0]
+        # "MissingSectionHeaderError" is a "ParsingError" without "errors"
+        errors = getattr(e, 'errors', None)
+        if errors:
+            line_nr, line_str = errors[0]
             line_detail = ' (line %d: "%s")' % (line_nr, line_str)
         if _no_section_headers(e):
             exc_msg = 'no section headers found: "[section]"'
@@ -151,7 +163,7 @@ def configure_logging(settings, options):
         try:
             logging.config.fileConfig(path_logging_config)
         except Exception as e:
-            sys.stderr.write('Malformed logging configuration file "%s": %s\n' % (path_logging_config, e))  # noqa: E501 (line-too-long)
+            sys.stderr.write('Malformed logging configuration file "%s": %s\n' % (path_logging_config, e))
             sys.exit(26)
     elif basic_logging_configured:
         pass

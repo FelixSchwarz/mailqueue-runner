@@ -14,7 +14,7 @@ update-dependencies:
 
 # create/update the project virtualenv with the locked test and color extras
 setup-venv:
-    uv sync --locked --extra testing --extra colors
+    uv sync --locked --all-extras --group=quality
 
 test:
     uv run --locked --extra testing pytest

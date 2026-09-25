@@ -6,7 +6,7 @@ import logging
 import os
 import queue
 import time
-from mailbox import Maildir, _sync_close
+from mailbox import Maildir, _sync_close  # ty: ignore[unresolved-import]
 
 from .app_helpers import init_app, init_smtp_mailer
 from .compat import IS_WINDOWS
@@ -144,6 +144,8 @@ class MaildirBackedMsg(BaseMsg):
             last       = self.last_delivery_attempt,
             retries    = self.retries,
         )
+        if self.fp is None:
+            raise RuntimeError('message file is not open')
         self.fp.seek(0)
         self.fp.write(queue_bytes)
         self.fp.truncate()
@@ -225,6 +227,8 @@ class MaildirBackedMsg(BaseMsg):
         os.unlink(file_path)
 
     def _move_message_back_to_new(self):
+        if self.fp is None:
+            raise RuntimeError('message file is not open')
         if IS_WINDOWS:
             self.fp.close()
         move_message(self.fp, target_folder='new', open_file=False)
