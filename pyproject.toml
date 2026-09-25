@@ -8,7 +8,7 @@ name            = "mailqueue-runner"
 readme          = "README.md"
 license         = "MIT AND Python-2.0"
 license-files   = ["LICENSE.txt"]
-requires-python = ">= 3.6"
+requires-python = ">= 3.9"
 dynamic         = ["version"]
 
 authors = [
