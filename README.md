@@ -169,11 +169,10 @@ To learn more about plugin discovery/plugin development please head of to the [P
 CLI tools like `mq-run` will load your plugin if it is added to the
 extension point `mailqueue.plugins`, e.g.
 
-```
-# setup.cfg (of your custom app)
-[options.entry_points]
-mailqueue.plugins =
-    myplugin = example.app.mqplugin
+```toml
+# pyproject.toml (of your custom app)
+[project.entry-points."mailqueue.plugins"]
+myplugin = "example.app.mqplugin"
 ```
 
 Example plugin code:
