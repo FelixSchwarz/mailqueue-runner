@@ -54,7 +54,6 @@ testutils = [
 ]
 testing = [
     "mailqueue-runner[plugins,testutils]",
-    "dotmap",
     "time-machine; implementation_name != 'pypy'",
     "pytest",
     "testfixtures",

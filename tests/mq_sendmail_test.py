@@ -7,9 +7,9 @@ import subprocess
 import sys
 import textwrap
 from email.header import Header
+from types import SimpleNamespace
 
 import pytest
-from dotmap import DotMap
 from pymta.test_util import SMTPTestHelper
 from schwarz.log_utils import l_
 
@@ -34,7 +34,7 @@ def ctx(tmp_path):
         'tmp_path': tmp_path,
     }
     try:
-        yield DotMap(_dynamic=False, **ctx)
+        yield SimpleNamespace(**ctx)
     finally:
         mta_helper.stop_mta()
 
