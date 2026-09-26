@@ -10,7 +10,7 @@ update-dependencies:
     uv lock --upgrade
     # Build isolation deliberately does not use "uv.lock". Export the locked build
     # backend and pass the resulting, hashed constraints to "uv build" instead.
-    uv export --frozen --only-group build --output-file build-constraints.txt
+    uv export --frozen --only-group build --output-file build-constraints.txt > /dev/null
 
 # create/update the project virtualenv with the locked test and color extras
 setup-venv:
