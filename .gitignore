@@ -16,3 +16,4 @@
 /.*cache
 /*.code-workspace
 /.vscode
+/srpm
