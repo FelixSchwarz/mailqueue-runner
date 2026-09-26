@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: MIT
 
 import sys
+from argparse import ArgumentParser
 
 
 try:
@@ -8,7 +9,6 @@ try:
     has_colorama = True
 except ImportError:
     has_colorama = False
-import docopt
 
 from ..app_helpers import guess_config_path
 from ..mailflow_check import send_test_message
@@ -32,16 +32,16 @@ def send_test_message_main(argv=sys.argv, return_rc_code=False):
         --from=FROM     sender email address
         --verbose -v        more verbose program output
     """
-    arguments = docopt.docopt(send_test_message_main.__doc__, argv=argv[1:])
-    verbose = arguments['--verbose']
-    quiet = arguments['--quiet']
-    recipient = arguments['--to']
+    arguments = _parse_cli_parameters(argv)
+    verbose = arguments.verbose
+    quiet = arguments.quiet
+    recipient = arguments.to
 
-    config_path = guess_config_path(arguments['--config'])
+    config_path = guess_config_path(arguments.config)
     cli_options = {
         'verbose': verbose,
         'recipient': recipient,
-        'sender': arguments['--from'],
+        'sender': arguments.sender,
         'quiet': quiet,
     }
     was_sent = send_test_message(config_path, cli_options)
@@ -52,6 +52,22 @@ def send_test_message_main(argv=sys.argv, return_rc_code=False):
     if return_rc_code:
         return exit_code
     sys.exit(exit_code)
+
+
+def _parse_cli_parameters(argv):
+    # Remember to keep the argument specification in sync with the docstring
+    # of `send_test_message_main()`.
+    parser = ArgumentParser(
+        prog='mq-send-test',
+        description='Send a test message to ensure all SMTP credentials are correct.',
+    )
+    parser.add_argument('-C', '--config', metavar='CFG', help='Path to the config file')
+    parser.add_argument('--quiet', action='store_true', help='suppress (most) logging')
+    parser.add_argument('--from', dest='sender', metavar='FROM', help='sender email address')
+    parser.add_argument('--to', required=True, metavar='EMAIL', help='recipient email address')
+    parser.add_argument('--verbose', '-v', action='store_true', help='more verbose program output')
+    return parser.parse_args(args=argv[1:])
+
 
 def _status_message(was_sent, recipient) -> str:
     if has_colorama and sys.stdout.isatty():

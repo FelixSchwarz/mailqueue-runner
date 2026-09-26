@@ -31,7 +31,6 @@ classifiers = [
 
 dependencies = [
     "boltons",
-    "docopt",
     "portalocker",
     # >= 2.0: current API, we also rely on some internals of SMTPClientProtocol
     "smtpproto >= 2.0, < 3",

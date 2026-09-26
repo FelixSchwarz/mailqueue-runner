@@ -74,12 +74,6 @@ wheels = [
 ]
 
 [[package]]
-name = "docopt"
-version = "0.6.2"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/a2/55/8f8cab2afd404cf578136ef2cc5dfb50baa1761b68c9da1fb1e4eed343c9/docopt-0.6.2.tar.gz", hash = "sha256:49b3a825280bd66b3aa83585ef59c4a8c82f2c8a522dbe754a8bc8d08c85c491", size = 25901, upload-time = "2014-06-16T11:18:57.406Z" }
-
-[[package]]
 name = "dotmap"
 version = "1.3.30"
 source = { registry = "https://pypi.org/simple" }
@@ -179,7 +173,6 @@ name = "mailqueue-runner"
 source = { editable = "." }
 dependencies = [
     { name = "boltons" },
-    { name = "docopt" },
     { name = "portalocker", version = "3.2.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
     { name = "portalocker", version = "4.3.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
     { name = "smtpproto" },
@@ -224,7 +217,6 @@ quality = [
 requires-dist = [
     { name = "boltons" },
     { name = "colorama", marker = "extra == 'colors'" },
-    { name = "docopt" },
     { name = "dotmap", marker = "extra == 'testing'" },
     { name = "portalocker" },
     { name = "puzzlepluginsystem", marker = "extra == 'plugins'", specifier = ">=0.8.0" },

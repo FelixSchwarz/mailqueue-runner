@@ -28,8 +28,6 @@ import textwrap
 from argparse import ArgumentParser
 from collections.abc import Sequence
 
-from docopt import printable_usage
-
 from schwarz.mailqueue.aliases_parser import _parse_aliases, lookup_adresses
 from schwarz.mailqueue.app_helpers import guess_config_path, init_app, init_smtp_mailer
 from schwarz.mailqueue.message_handler import InMemoryMsg, MessageHandler
@@ -52,12 +50,6 @@ def mq_sendmail_main(argv=sys.argv, return_rc_code=False):
     set_msgid_header = arguments['--set-msgid-header']
     set_to_header = arguments['--set-to-header']
     read_recipients = arguments['--read-recipients']
-
-    if not recipient_params and not read_recipients:
-        usage_str = printable_usage(__doc__)
-        sys.stdout.write(usage_str + '\n')
-        sys.stderr.write('At least one recipient address is required.\n')
-        sys.exit(2)
 
     input_msg_bytes = sys.stdin.buffer.read()
     # It might seem wasteful to parse the full message (instead of just the
@@ -121,10 +113,8 @@ def mq_sendmail_main(argv=sys.argv, return_rc_code=False):
 
 
 def _parse_cli_parameters(argv):
-    # docopt (and docopt-ng) do not support long option names starting with
-    # a singe dash: https://github.com/jazzband/docopt-ng/issues/69
-    # arguments = docopt(__doc__, argv=argv[1:])
-
+    # The module docstring documents the CLI (usage) but it is not used for
+    # parsing. Remember to keep the argument specification in sync.
     tool_description = textwrap.dedent('''
         Command line tool to send an email message.
         The CLI parameters are a (extremly limited) subset of the Unix
@@ -133,8 +123,6 @@ def _parse_cli_parameters(argv):
     ''').strip()
     parser = ArgumentParser(description=tool_description)
 
-    # Remember to keep the argument specification in sync with the docstring.
-    # The docstring is only used in case neither a recipient nor "-t" was given.
     parser.add_argument('recipients', nargs='*', help='recipient address(es) of the message')
 
     parser.add_argument('--aliases', help='Path to aliases file')
@@ -178,6 +166,9 @@ def _parse_cli_parameters(argv):
         help='sendmail compatibility, no effect in mq-sendmail')
 
     arguments = parser.parse_args(args=argv[1:])
+    if not arguments.recipients and not arguments.read_recipients:
+        # exits with return code 2
+        parser.error('At least one recipient address is required.')
     return {
         '--aliases'         : arguments.aliases,
         '--config'          : arguments.config,
