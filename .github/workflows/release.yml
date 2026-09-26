@@ -111,20 +111,12 @@ jobs:
 
     - name: install rpmbuild
       run: |
-        dnf install -y /usr/bin/rpmbuild
+        dnf install -y just rpm-build
 
     # The src.rpm is built from the sdist which was uploaded above so the
     # rpm contains exactly the same sources as the pypi release.
     - name: create src.rpm
-      run: |
-        set -eux
-        cd rpm
-        mkdir SOURCES
-        cp -a ../dist/*.tar.gz SOURCES/
-        mv mailqueue-runner{.conf,.logrotate} ./SOURCES/
-        /usr/bin/rpmbuild --define "_topdir `pwd`" -bs *.spec
-        mkdir ../srpm
-        mv SRPMS/*.src.rpm ../srpm/
+      run: just build-srpm
 
     - name: Attest build provenance
       uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
@@ -138,8 +130,57 @@ jobs:
         path: srpm/*.src.rpm
         if-no-files-found: error
 
+  # Rebuild the exact src.rpm from above with mock like COPR would do, so a
+  # release is only published if COPR is likely to succeed as well.
+  rpm:
+    needs: srpm
+    runs-on: ubuntu-latest
+    container:
+      image: fedora@sha256:43b29f65a41eb9c35e1cd5323e3bdf3b655c2357a9f4f1ff2f9c2798e5045d80
+      # mock needs to create its chroots
+      options: --privileged
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        # should match the chroots configured in COPR
+        target: ["fedora", "epel-9"]
+
+    steps:
+    - name: checkout code
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
+
+    - name: download src.rpm
+      uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+      with:
+        name: "srpm"
+        path: srpm
+
+    - name: install mock
+      run: |
+        dnf install -y just mock
+        # mock is meant to be run by an unprivileged user in the "mock" group
+        useradd --groups mock builder
+
+    - name: build RPMs with mock
+      env:
+        TARGET: ${{ matrix.target }}
+      run: |
+        case "$TARGET" in
+          fedora) mock_root="fedora-$(rpm --eval '%{fedora}')-$(uname -m)" ;;
+          epel-*) mock_root="alma+${TARGET}-$(uname -m)" ;;
+        esac
+        # no systemd-nspawn/podman inside a container
+        runuser -u builder -- just build-rpm "$mock_root" --isolation=simple --no-bootstrap-image
+
+    - name: show mock build log
+      if: failure()
+      run: cat /var/lib/mock/*/result/build.log || true
+
   publish:
-    needs: [artifacts, srpm]
+    needs: [artifacts, srpm, rpm]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     # This single environment approval guards both pypi + GitHub releases.

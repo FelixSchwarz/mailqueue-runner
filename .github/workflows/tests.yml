@@ -76,6 +76,33 @@ jobs:
       run: uv run --locked --python python --group quality --all-extras ty check schwarz tests
 
 
+  # Only a quick check (no full RPM build, see "release.yml") so CI stays fast:
+  # The spec file must be usable to create a src.rpm from the current sdist and
+  # its version must match for release versions.
+  srpm:
+    runs-on: ubuntu-latest
+    container:
+      image: fedora@sha256:43b29f65a41eb9c35e1cd5323e3bdf3b655c2357a9f4f1ff2f9c2798e5045d80
+    timeout-minutes: 10
+    env:
+      UV_LINK_MODE: copy
+
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
+    - name: install build tools
+      run: dnf install -y just python3 rpm-build tar gzip
+    - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+      with:
+        version: "latest-known"
+
+    - name: create sdist and src.rpm
+      run: |
+        just build
+        just build-srpm
+
+
   tests-cpython:
     runs-on: ubuntu-latest
     strategy:
