@@ -14,7 +14,8 @@ hooks = [
     { id = "check-executables-have-shebangs" },
     { id = "check-shebang-scripts-are-executable" },
     { id = "check-vcs-permalinks" },
-    { id = "detect-private-key" },
+    # test-only key for a self-signed certificate
+    { id = "detect-private-key", exclude = "^tests/self-signed-localhost\\.pem$" },
 ]
 
 [[repos]]

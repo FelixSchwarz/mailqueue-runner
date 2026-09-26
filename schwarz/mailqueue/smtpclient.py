@@ -25,6 +25,7 @@ __all__ = [
     'SMTPResponseError',
     'SMTPSenderRefused',
     'SMTPServerDisconnected',
+    'create_ssl_context',
 ]
 
 CRLF = '\r\n'
@@ -243,11 +244,7 @@ class SMTPClient:
     def _wrap_socket(self, sock: socket.socket, context: ssl.SSLContext | None = None) -> ssl.SSLSocket:
         context = context or self.ssl_context
         if context is None:
-            # same (insecure) defaults as Python's smtplib: Many internal mail relays use
-            # self-signed certificates.
-            context = ssl.create_default_context()
-            context.check_hostname = False
-            context.verify_mode = ssl.CERT_NONE
+            context = create_ssl_context()
         return context.wrap_socket(sock, server_hostname=self._host)
 
     def _ehlo_if_needed(self) -> None:
@@ -329,6 +326,20 @@ class SMTPClient:
             return
         for line in re.split(b'\r?\n', data.rstrip(bCRLF)):
             self.smtp_log.debug('=> %s', _to_str(line))
+
+
+def create_ssl_context(verify: bool = True) -> ssl.SSLContext:
+    """Return an SSL context for SMTP connections.
+
+    By default the server certificate (and hostname) is verified against the
+    system's CA certificates. "verify=False" disables all checks (e.g. for
+    internal mail relays with self-signed certificates) so the connection is
+    only protected against passive eavesdropping."""
+    context = ssl.create_default_context()
+    if not verify:
+        context.check_hostname = False
+        context.verify_mode = ssl.CERT_NONE
+    return context
 
 
 def _fix_eols(data: bytes) -> bytes:

@@ -94,6 +94,10 @@ The configuration file uses the traditional "ini"-like format:
     #    otherwise send messages (and credentials) in plain text. A warning is
     #    shown if "smtp_tls" is not set and the server is not "localhost".
     # smtp_tls = yes
+    # optional: verify the server's TLS certificate. Default: "yes" if TLS is
+    # mandatory (see above) and the server is not "localhost", "no" otherwise.
+    # Use "no" for servers with self-signed certificates.
+    # smtp_tls_verify = yes
     # optional but the CLI scripts will not queue messages if this is not set
     queue_dir = /path/to/mailqueue
     # optional, SMTP envelope from (also used when "--set-from-header" is given)

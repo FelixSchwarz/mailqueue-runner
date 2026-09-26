@@ -2,14 +2,22 @@
 
 from __future__ import annotations
 
+import ipaddress
 from enum import Enum
 from io import BytesIO
 
 from .message_utils import MsgInfo, SendResult
-from .smtpclient import SMTPClient, SMTPException
+from .smtpclient import SMTPClient, SMTPException, create_ssl_context
 
 
-__all__ = ['DebugMailer', 'SMTPMailer', 'TLSMode', 'required_tls_mode']
+__all__ = [
+    'DebugMailer',
+    'SMTPMailer',
+    'TLSMode',
+    'default_tls_mode',
+    'default_tls_verify',
+    'required_tls_mode',
+]
 
 # Port 465 is reserved for implicit TLS (RFC 8314) so we never send anything in
 # plain text there.
@@ -31,6 +39,34 @@ def required_tls_mode(port: int) -> TLSMode:
     port (without falling back to plain text)."""
     return TLSMode.IMPLICIT if (port == SMTPS_PORT) else TLSMode.STARTTLS
 
+def default_tls_mode(port: int) -> TLSMode:
+    """Return the TLS mode used if no TLS mode was specified explicitly."""
+    return TLSMode.IMPLICIT if (port == SMTPS_PORT) else TLSMode.OPPORTUNISTIC
+
+def default_tls_verify(hostname: str, tls: TLSMode) -> bool:
+    """Return if the server's TLS certificate should be verified if this was
+    not specified explicitly.
+
+    Certificates are only verified if TLS is mandatory and the server is not
+    on the local host:
+    - Opportunistic TLS does not protect against an active attacker anyway (who
+      can just remove "STARTTLS" from the server's EHLO response) so verifying
+      the certificate would only prevent message delivery.
+    - Local mail servers often use self-signed certificates (not issued for
+      "localhost") and intercepting loopback traffic requires root privileges.
+    """
+    if tls == TLSMode.OPPORTUNISTIC:
+        return False
+    return not is_local_host(hostname)
+
+def is_local_host(hostname: str) -> bool:
+    if hostname.lower() == 'localhost':
+        return True
+    try:
+        return ipaddress.ip_address(hostname).is_loopback
+    except ValueError:
+        return False
+
 
 class SMTPMailer:
     def __init__(self, hostname: str | None = None, **kwargs):
@@ -40,11 +76,12 @@ class SMTPMailer:
         self.port = int(kwargs.pop('port', 25))
         is_smtps_port = (self.port == SMTPS_PORT)
         tls = kwargs.pop('tls', None)
-        if tls is None:
-            tls = TLSMode.IMPLICIT if is_smtps_port else TLSMode.OPPORTUNISTIC
-        self.tls = TLSMode(tls)
+        self.tls = TLSMode(tls) if (tls is not None) else default_tls_mode(self.port)
         if is_smtps_port and (self.tls != TLSMode.IMPLICIT):
             raise ValueError('port %d requires implicit TLS (tls=%r)' % (SMTPS_PORT, self.tls.value))
+        # verify the server's TLS certificate (irrelevant if no TLS is used),
+        # see "default_tls_verify()" for the heuristic used by "init_smtp_mailer()"
+        self.tls_verify = bool(kwargs.pop('tls_verify', True))
         self.username = kwargs.pop('username', None)
         self.password = kwargs.pop('password', None)
         self.connect_timeout = kwargs.pop('timeout', 10)
@@ -61,6 +98,7 @@ class SMTPMailer:
             timeout=self.connect_timeout,
             smtp_log=self.smtp_log,
             implicit_tls=(self.tls == TLSMode.IMPLICIT),
+            ssl_context=create_ssl_context(verify=self.tls_verify),
         )
         return smtp_client
 
