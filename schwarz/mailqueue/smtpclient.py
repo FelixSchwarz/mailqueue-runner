@@ -77,11 +77,17 @@ class SMTPRecipientRefused(SMTPResponseError):
 class _SMTPProtocol(SMTPClientProtocol):
     def raw_data(self, msg: bytes) -> None:
         # smtpproto's ".data()" only accepts "EmailMessage" instances which
-        # are serialized again. We must send the queued message unmodified
+        # are serialized again. We must not re-serialize the queued message
         # (e.g. to keep DKIM signatures intact) so we need to access some
         # internal attributes here.
         self._require_state(ClientState.send_data)
-        data = re.sub(br'(?m)^\.', b'..', msg)
+        # SMTP requires CRLF line endings. Also normalizing bare CR/LF prevents
+        # "SMTP smuggling" (e.g. CVE-2023-51764, CVE-2023-51766): Otherwise
+        # sequences like "\n.\r\n" in the message might be interpreted as
+        # "end of data" by some servers. Also, many servers reject messages
+        # with bare LF nowadays.
+        data = _fix_eols(msg)
+        data = re.sub(br'(?m)^\.', b'..', data)
         if not data.endswith(bCRLF):
             data += bCRLF
         self._out_buffer += data + b'.' + bCRLF
@@ -190,7 +196,7 @@ class SMTPClient:
                  msg: bytes | str) -> SMTPResponse:
         self._ehlo_if_needed()
         if isinstance(msg, str):
-            msg = re.sub(r'(?:\r\n|\n|\r(?!\n))', CRLF, msg).encode('ascii')
+            msg = msg.encode('ascii')
         if isinstance(to_addrs, str):
             to_addrs = [to_addrs]
 
@@ -323,6 +329,10 @@ class SMTPClient:
             return
         for line in re.split(b'\r?\n', data.rstrip(bCRLF)):
             self.smtp_log.debug('=> %s', _to_str(line))
+
+
+def _fix_eols(data: bytes) -> bytes:
+    return re.sub(br'(?:\r\n|\n|\r(?!\n))', bCRLF, data)
 
 
 def _to_str(line: bytes) -> str:
