@@ -200,8 +200,6 @@ testing = [
     { name = "pytest", version = "8.4.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
     { name = "pytest", version = "9.1.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
     { name = "schwarzlog" },
-    { name = "testfixtures", version = "8.3.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
-    { name = "testfixtures", version = "12.3.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "time-machine", version = "2.19.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10' and implementation_name != 'pypy'" },
     { name = "time-machine", version = "3.5.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10' and implementation_name != 'pypy'" },
 ]
@@ -235,7 +233,6 @@ requires-dist = [
     { name = "schwarzlog", marker = "extra == 'testing'" },
     { name = "schwarzlog", marker = "extra == 'testutils'" },
     { name = "smtpproto", specifier = ">=2.0,<3" },
-    { name = "testfixtures", marker = "extra == 'testing'" },
     { name = "time-machine", marker = "implementation_name != 'pypy' and extra == 'testing'" },
     { name = "typing-extensions", marker = "python_full_version < '3.10'" },
 ]
@@ -474,34 +471,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/01/ed/52b88238793bb50198196d95577c08ad88b3d91539a798344873a4207096/smtpproto-2.0.0.tar.gz", hash = "sha256:ac9fd36995a8a6f4dc000053abe25267a9a1f7d275b3a012ccb152e98aefd460", size = 24688, upload-time = "2024-04-01T13:08:45.552Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/57/54/6c31fd57b823a04b123348ee7c6fd6388893d9894dae13ab727843410f33/smtpproto-2.0.0-py3-none-any.whl", hash = "sha256:59e2af1f62376247bcd4d5af8096c160f4dacf966ea8e2870d1f532e10be9475", size = 13531, upload-time = "2024-04-01T13:08:43.922Z" },
-]
-
-[[package]]
-name = "testfixtures"
-version = "8.3.0"
-source = { registry = "https://pypi.org/simple" }
-resolution-markers = [
-    "python_full_version == '3.10.*'",
-    "python_full_version < '3.10'",
-]
-sdist = { url = "https://files.pythonhosted.org/packages/3b/25/d7e9d05f87e2ab84657a0dfb1f24fc295d542ac2eb221531d976ea4aa1ff/testfixtures-8.3.0.tar.gz", hash = "sha256:d4c0b84af2f267610f908009b50d6f983a4e58ade22c67bab6787b5a402d59c0", size = 137420, upload-time = "2024-06-07T18:12:27.484Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/1a/4e/699671ba484b94bda0959b281ff59b24f728263befd13e060fa038ce3bc8/testfixtures-8.3.0-py3-none-any.whl", hash = "sha256:3d1e0e0005c4d6ac2a2ab27916704c6471047f0d2f78f2e54adf20abdacc7b10", size = 105085, upload-time = "2024-06-07T18:12:23.298Z" },
-]
-
-[[package]]
-name = "testfixtures"
-version = "12.3.0"
-source = { registry = "https://pypi.org/simple" }
-resolution-markers = [
-    "python_full_version >= '3.11'",
-]
-dependencies = [
-    { name = "typing-extensions", marker = "python_full_version < '3.13'" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/11/4d/b1c5fae372cd46b7bc1ec1dbca6efecaef8fe1e4edad203cc6e36cd5eafd/testfixtures-12.3.0.tar.gz", hash = "sha256:d807ceb9bdd6ea7cc0663370dd5568339056b35dc15c26effd1ae267e323acf1", size = 201458, upload-time = "2026-07-08T21:32:04.42Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/1c/7c/cf6a4bd936b0d8377992a07fe94ae9f6844e728fcfaa006b7ff9e059a038/testfixtures-12.3.0-py3-none-any.whl", hash = "sha256:da013e07f1e850b4d92ea6045c4a71f49d6ddcaab11c8b29f65ea38ff678aee8", size = 69493, upload-time = "2026-07-08T21:32:03.252Z" },
 ]
 
 [[package]]
