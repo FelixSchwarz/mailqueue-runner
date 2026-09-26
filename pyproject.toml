@@ -56,7 +56,6 @@ testing = [
     "mailqueue-runner[plugins,testutils]",
     "time-machine; implementation_name != 'pypy'",
     "pytest",
-    "testfixtures",
 ]
 
 [project.urls]
