@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 [project]
 name            = "mailqueue-runner"
 readme          = "README.md"
-license         = "MIT AND Python-2.0"
+license         = "MIT"
 license-files   = ["LICENSE.txt"]
 requires-python = ">= 3.9"
 dynamic         = ["version"]
@@ -33,6 +33,8 @@ dependencies = [
     "boltons",
     "docopt",
     "portalocker",
+    # >= 2.0: current API, we also rely on some internals of SMTPClientProtocol
+    "smtpproto >= 2.0, < 3",
     "typing_extensions; python_version < '3.10'",
 ]
 
@@ -157,7 +159,3 @@ call-non-callable = "ignore"
 invalid-argument-type = "ignore"
 invalid-assignment = "ignore"
 unresolved-attribute = "ignore"
-
-[tool.ty.src]
-# Vendored from Python 3.7; not maintained as project code.
-exclude = ["schwarz/mailqueue/lib/smtplib_py37.py"]

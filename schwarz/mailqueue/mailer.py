@@ -1,16 +1,17 @@
 # SPDX-License-Identifier: MIT
 
+from __future__ import annotations
+
 from io import BytesIO
-from smtplib import SMTPException
 
 from .message_utils import MsgInfo, SendResult
-from .smtpclient import SMTPClient
+from .smtpclient import SMTPClient, SMTPException
 
 
 __all__ = ['DebugMailer', 'SMTPMailer']
 
 class SMTPMailer:
-    def __init__(self, hostname=None, **kwargs):
+    def __init__(self, hostname: str | None = None, **kwargs):
         if (hostname is None) and ('client' not in kwargs):
             raise TypeError('not enough parameters for __init__(): please specify at least "hostname" or "client"')  # noqa: E501 (line too long)
         self.hostname = hostname

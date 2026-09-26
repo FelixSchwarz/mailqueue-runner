@@ -1,229 +1,318 @@
-# SPDX-License-Identifier: Python-2.0
-# The code in this file heavily relies on Python's smtplib so I guess licensing
-# it under "Python License 2.0" is in order. However my own contributions
-# can also be used under the MIT license.
+# SPDX-License-Identifier: MIT
 
+from __future__ import annotations
+
+import base64
 import logging
 import re
 import socket
-from contextlib import contextmanager
+import ssl
+from collections.abc import Iterable
 
-from .lib.smtplib_py37 import (
-    CRLF,
-    SMTP,
-    SMTPDataError,
-    SMTPResponseException,
-    SMTPSenderRefused,
-    _fix_eols,
-    bCRLF,
+from smtpproto.protocol import (
+    ClientState,
+    SMTPClientProtocol,
+    SMTPException,
+    SMTPProtocolViolation,
+    SMTPResponse,
 )
 
 
-__all__ = ['SMTPClient', 'SMTPRecipientRefused']
+__all__ = [
+    'SMTPClient',
+    'SMTPException',
+    'SMTPRecipientRefused',
+    'SMTPResponseError',
+    'SMTPSenderRefused',
+    'SMTPServerDisconnected',
+]
 
-class SMTPRecipientRefused(SMTPResponseException):
-    def __init__(self, code, msg, recipient):
+CRLF = '\r\n'
+bCRLF = b'\r\n'
+# RFC 5321 limits the reply line length to 512 bytes but some servers send
+# longer lines. Use the same limit as Python's smtplib.
+_MAXLINE = 8192
+
+# "socket.create_connection()" uses a private sentinel to distinguish "no
+# timeout specified" (use "socket.getdefaulttimeout()") from an explicit "None"
+# (block forever). typeshed does not declare that sentinel and stubs the
+# parameter as "float | None", so we do the same.
+_GLOBAL_DEFAULT_TIMEOUT: float | None = socket._GLOBAL_DEFAULT_TIMEOUT  # ty: ignore[unresolved-attribute]
+
+
+class SMTPServerDisconnected(SMTPException):
+    pass
+
+
+class SMTPResponseError(SMTPException):
+    def __init__(self, code: int, msg: str):
         self.smtp_code = code
         self.smtp_error = msg
+        super().__init__(code, msg)
+
+    def __str__(self):
+        return '%d %s' % (self.smtp_code, self.smtp_error)
+
+
+class SMTPSenderRefused(SMTPResponseError):
+    def __init__(self, code: int, msg: str, sender: str):
+        super().__init__(code, msg)
+        self.sender = sender
+        self.args = (code, msg, sender)
+
+    def __str__(self):
+        return '%d %s (sender: %s)' % (self.smtp_code, self.smtp_error, self.sender)
+
+
+class SMTPRecipientRefused(SMTPResponseError):
+    def __init__(self, code: int, msg: str, recipient: str):
+        super().__init__(code, msg)
         self.recipient = recipient
         self.args = (code, msg, recipient)
 
+    def __str__(self):
+        return '%d %s (recipient: %s)' % (self.smtp_code, self.smtp_error, self.recipient)
 
-class SMTPClient(SMTP):
-    def __init__(self, *args, **kwargs):
-        self.smtp_log = kwargs.pop('smtp_log', None)
-        if self.smtp_log:
-            # ensure that "._print_debug()" is called whenever something interesting happens
-            self.debuglevel = 1
-        super().__init__(*args, **kwargs)
 
-    # ,------------------------------------------------------------------------
-    # copied from "smtplib" shipped with Python 3.7
-    # modified to raise SMTPRecipientRefused when ANY recipient was rejected
-    # License: Python-2.0 (my changes: public domain or CC-0 - your choice)
-    def sendmail(self, from_addr, to_addrs, msg, mail_options=(), rcpt_options=()):
-        self.ehlo_or_helo_if_needed()
-        esmtp_opts = []
+class _SMTPProtocol(SMTPClientProtocol):
+    def raw_data(self, msg: bytes) -> None:
+        # smtpproto's ".data()" only accepts "EmailMessage" instances which
+        # are serialized again. We must send the queued message unmodified
+        # (e.g. to keep DKIM signatures intact) so we need to access some
+        # internal attributes here.
+        self._require_state(ClientState.send_data)
+        data = re.sub(br'(?m)^\.', b'..', msg)
+        if not data.endswith(bCRLF):
+            data += bCRLF
+        self._out_buffer += data + b'.' + bCRLF
+        self._state = ClientState.data_sent
+
+
+class SMTPClient:
+    """
+    Blocking SMTP client built on top of smtpproto's sans-io state machine.
+
+    We do not use smtpproto's own (anyio-based) clients because
+    - we want to log the complete SMTP dialog (line by line, as it happens) and
+    - we don't want to deliver a message if *any* recipient was refused
+      (Python's smtplib as well as smtpproto's high-level client handle that
+      differently).
+    """
+
+    def __init__(
+            self,
+            host: str | None = None,
+            port: int = 0,
+            local_hostname: str | None = None,
+            timeout: float | None = _GLOBAL_DEFAULT_TIMEOUT,
+            source_address: tuple[str, int] | None = None,
+            smtp_log: logging.Logger | None = None,
+    ):
+        self._host = host
+        self._port = port
+        self.local_hostname = local_hostname or socket.getfqdn()
+        self.timeout = timeout
+        self.source_address = source_address
+        self.smtp_log = smtp_log
+        self.sock = None
+        self._file = None
+        self.protocol = _SMTPProtocol()
+        if host:
+            self.connect(host, port)
+
+    def connect(self, host: str | None = None, port: int | None = None) -> SMTPResponse:
+        if host:
+            self._host = host
+        if port:
+            self._port = port
+        host = self._host
+        if not host:
+            raise ValueError('no SMTP host specified')
+        port = self._port or 25
+        self._log_connect(host, port)
+        self.sock = socket.create_connection((host, port), self.timeout, self.source_address)
+        self._file = self.sock.makefile('rb')
+        self.protocol = _SMTPProtocol()
+        response = self._read_response()
+        if response.is_error():
+            self.close()
+            raise SMTPResponseError(response.code, response.message)
+        return response
+
+    def ehlo(self, name: str | None = None) -> SMTPResponse:
+        # smtpproto automatically falls back to "HELO" if the server does
+        # not understand "EHLO".
+        response = self._command(self.protocol.send_greeting, name or self.local_hostname)
+        if response.is_error():
+            raise SMTPResponseError(response.code, response.message)
+        return response
+
+    def has_extn(self, name: str) -> bool:
+        return name.upper() in self.protocol.extensions
+
+    def starttls(self, context: ssl.SSLContext | None = None) -> SMTPResponse:
+        self._ehlo_if_needed()
+        response = self._command(self.protocol.start_tls)
+        if context is None:
+            # same (insecure) defaults as Python's smtplib: Many internal mail relays use
+            # self-signed certificates.
+            context = ssl.create_default_context()
+            context.check_hostname = False
+            context.verify_mode = ssl.CERT_NONE
+        if self.sock is None:
+            raise SMTPServerDisconnected('please run connect() first')
+        self.sock = context.wrap_socket(self.sock, server_hostname=self._host)
+        self._file = self.sock.makefile('rb')
+        return response
+
+    def login(self, user: str, password: str) -> SMTPResponse:
+        self._ehlo_if_needed()
+        mechanisms = self.protocol.auth_mechanisms
+        _b64 = lambda s: base64.b64encode(s.encode('utf-8')).decode('ascii')
+        if 'PLAIN' in mechanisms:
+            secret = _b64('\0%s\0%s' % (user, password))
+            response = self._command(self.protocol.authenticate, 'PLAIN', secret)
+        elif 'LOGIN' in mechanisms:
+            response = self._command(self.protocol.authenticate, 'LOGIN')
+            for value in (user, password):
+                if response.code != 334:
+                    break
+                response = self._command(self.protocol.send_authentication_data, _b64(value))
+        else:
+            raise SMTPException('No suitable authentication method found.')
+
+        if response.code != 235:
+            raise SMTPResponseError(response.code, response.message)
+        return response
+
+    def sendmail(self, from_addr: str, to_addrs: str | Iterable[str],
+                 msg: bytes | str) -> SMTPResponse:
+        self._ehlo_if_needed()
         if isinstance(msg, str):
-            msg = _fix_eols(msg).encode('ascii')
-        if self.does_esmtp:
-            if self.has_extn('size'):
-                esmtp_opts.append("size=%d" % len(msg))
-            for option in mail_options:
-                esmtp_opts.append(option)
-        (code, resp) = self.mail(from_addr, esmtp_opts)
-        if code != 250:
-            if code == 421:
-                self.close()
-            else:
-                self._rset()
-            raise SMTPSenderRefused(code, resp, from_addr)
+            msg = re.sub(r'(?:\r\n|\n|\r(?!\n))', CRLF, msg).encode('ascii')
         if isinstance(to_addrs, str):
             to_addrs = [to_addrs]
-        for each in to_addrs:
-            (code, resp) = self.rcpt(each, rcpt_options)
-            if code == 421:
-                self.close()
-                raise SMTPRecipientRefused(code, resp, each)
-            elif (code != 250) and (code != 251):
+
+        response = self._command(self.protocol.mail, from_addr)
+        if response.is_error():
+            self._rset()
+            raise SMTPSenderRefused(response.code, response.message, from_addr)
+        # Python's smtplib only raises an exception if *all* recipients were refused.
+        # However we want to be able to retry delivery for the complete message without
+        # sending duplicate messages.
+        for recipient in to_addrs:
+            response = self._command(self.protocol.recipient, recipient)
+            if response.is_error():
                 self._rset()
-                raise SMTPRecipientRefused(code, resp, each)
-        (code, resp) = self.data(msg)
-        if code != 250:
-            if code == 421:
-                self.close()
-            else:
-                self._rset()
-            raise SMTPDataError(code, resp)
-        #if we got here then all recipients got our mail
-        return {}
-    # `------------------------------------------------------------------------
+                raise SMTPRecipientRefused(response.code, response.message, recipient)
+        response = self._command(self.protocol.start_data)
+        if response.is_error():
+            self._rset()
+            raise SMTPResponseError(response.code, response.message)
+        response = self._command(self.protocol.raw_data, msg)
+        if response.is_error():
+            raise SMTPResponseError(response.code, response.message)
+        return response
 
-    def connect(self, host='localhost', port=0, source_address=None):
-        # smtplib's ".connect()" does not log anything useful, "._get_socket()"
-        # gets all the interesting info anyway so we can just disable all
-        # logging here.
-        with disable_debug(self):
-            _super_instance = super()
-            return _super_instance.connect(host=host, port=port, source_address=source_address)
+    def quit(self) -> SMTPResponse | None:
+        response = None
+        if (self.sock is not None) and (self.protocol.state is not ClientState.finished):
+            response = self._command(self.protocol.quit)
+        self.close()
+        return response
 
-    def _get_socket(self, host, port, timeout):
-        # This wrapper method is big because it contains superior logging which
-        # completely blows Python's smtplib out of the water:
-        #  - timeout is never logged
-        #  - SMTP_SSL does not log "source_address", SMTP always logs it (even if None)
-        # I consider complete logging worth the price of a somewhat lengthy
-        # method.
-        if self.smtp_log:
-            log_tmpl = 'connecting to %(host)s:%(port)s'
-            optional = []
-            if timeout not in (None, socket._GLOBAL_DEFAULT_TIMEOUT):  # ty: ignore[unresolved-attribute]
-                float_to_str = lambda f: ("%.4f" % f).rstrip('0').rstrip('.')
-                timeout_str = 'timeout=%ss' % float_to_str(timeout)
-                optional.append(timeout_str)
-            if self.source_address:
-                source_host, source_port = self.source_address
-                shost_str = source_host or '<default>'
-                sport_str = source_port or '<default>'
-                source_str = 'source address=%s:%s' % (shost_str, sport_str)
-                optional.append(source_str)
-            if optional:
-                optional_str = ' (%s)' % (', '.join(optional))
-                log_tmpl += optional_str
-            self.smtp_log.debug(log_tmpl, {'host': host, 'port': port})
-        with disable_debug(self):
-            return super()._get_socket(host, port, timeout)
+    def close(self) -> None:
+        file_, sock = self._file, self.sock
+        self._file = None
+        self.sock = None
+        try:
+            if file_ is not None:
+                file_.close()
+        finally:
+            if sock is not None:
+                sock.close()
 
-    def data(self, msg):
-        filter_ = lambda r: r.msg.startswith('data:')
-        with filter_log_traces(self, filter_):
-            return super().data(msg)
+    # --- internal helpers ----------------------------------------------------
+    def _ehlo_if_needed(self) -> None:
+        if self.protocol.state is ClientState.greeting_received:
+            self.ehlo()
 
-    def send(self, s):
-        if self.smtp_log:
-            if isinstance(s, bytes):
-                for line_bytes in re.split(b'\r?\n', s.rstrip(bCRLF)):
-                    if line_bytes:
-                        line_bytes_repr = repr(line_bytes)
-                        cmd_str = _bytes_repr_to_str(line_bytes_repr)
-                        if cmd_str is None:
-                            cmd_str = line_bytes_repr
-                    else:
-                        cmd_str = ''
-                    self.smtp_log.debug('=> %s', cmd_str)
-            else:
-                cmd_str = s.rstrip(CRLF)
-                self.smtp_log.debug('=> %s', cmd_str)
-        with disable_debug(self):
-            return super().send(s)
-
-    def getreply(self):
-        # You might wonder why I'm not simply using "with disable_debug(...)"
-        # like ".send()" does. Well, turns out ".getreply()" is more complicated
-        # due to smtplib's multi-line response handling:
-        # smtplib's ".getreply()" logs each line immediately when it is
-        # received and string containing the complete (multi-line) reply at the
-        # end.
-        # I want to keep the immediate logging (so the log always contains the
-        # complete conversation even if the connection was terminated at some
-        # point) but get rid of the final log (which just duplicates the
-        # information and I don't think anyone needs to debug multi-line reply
-        # merging done by smtplib).
-        filter_ = lambda r: r.msg.startswith('reply: retcode ')
-        with filter_log_traces(self, filter_):
-            return super().getreply()
-
-
-    def _print_debug(self, *args):
-        if not self.smtp_log:
-            return super()._print_debug(*args)
-
-        cmd = args[0]
-        # no need to handle "send:" here as ".send()" disables debug printing
-        # and logs explicitly.
-        if cmd == 'reply:':
-            prefix = '<= '
-        else:
-            prefix = cmd
-
-        params = args[1:]
-        params_str = None
-        first_param = params[0] if (len(params) == 1) else None
-        if isinstance(first_param, str):
-            params_str = _bytes_repr_to_str(first_param)
-        if params_str is None:
-            # fallback, should be rarely used
-            params_str = ' '.join(map(str, args[1:]))
-
-        self.smtp_log.debug(prefix + params_str)
-
-
-def _bytes_repr_to_str(value):
-    # A common pattern in smtplib is
-    #   self._print_debug('reply:', repr(line))
-    #
-    # This means we get the "repr()" output of a bytes instance which
-    # does not look that nice:
-    #   b'220 server.example ESMTP ...\r\n'
-    # The regex below strips »b'« and »\r\n'« so the string (usually)
-    # looks much nicer.
-    #
-    # This was done so I could keep the code changes to our internal
-    # copy of "smtplib" as small as possible. Hopefully this eases
-    # upgrades of "smtplib".
-    match = _bytes_repr_regex.search(value)
-    params_str = None
-    if match:
-        params_str = match.group(1)
-    return params_str
-
-@contextmanager
-def disable_debug(smtp_instance):
-    previous = smtp_instance.debuglevel
-    smtp_instance.debuglevel = 0
-    yield
-    smtp_instance.debuglevel = previous
-
-@contextmanager
-def filter_log_traces(smtp_instance, filter_):
-    previous_logger = smtp_instance.smtp_log
-    if previous_logger:
-        smtp_instance.smtp_log = FilteringWrapper(filter_, previous_logger)
-    yield
-    smtp_instance.smtp_log = previous_logger
-
-
-_CRLF_STR = '\\\\r\\\\n'
-_bytes_repr_regex = re.compile("^b?'(.+?)(?:%s)?'" % _CRLF_STR)
-
-class FilteringWrapper(logging.Logger):
-    def __init__(self, filter_, proxied_logger):
-        logger_name = proxied_logger.name
-        super().__init__(logger_name)
-        self._filter = filter_
-        self._proxied_logger = proxied_logger
-
-    def callHandlers(self, record):
-        if self._filter(record):
+    def _rset(self) -> None:
+        resettable_states = (ClientState.mailtx, ClientState.recipient_sent, ClientState.send_data)
+        if self.protocol.state not in resettable_states:
             return
-        self._proxied_logger.callHandlers(record)
+        try:
+            self._command(self.protocol.reset)
+        except (SMTPException, OSError):
+            # The caller will raise a more specific exception anyway.
+            pass
+
+    def _command(self, command, *args) -> SMTPResponse:
+        if self.sock is None:
+            raise SMTPServerDisconnected('please run connect() first')
+        command(*args)
+        self._flush()
+        return self._read_response()
+
+    def _flush(self) -> None:
+        data = self.protocol.get_outgoing_data()
+        if not data:
+            return
+        if self.sock is None:
+            raise SMTPServerDisconnected('please run connect() first')
+        self._log_sent_data(data)
+        self.sock.sendall(data)
+
+    def _read_response(self) -> SMTPResponse:
+        if self._file is None:
+            raise SMTPServerDisconnected('please run connect() first')
+        while True:
+            line = self._file.readline(_MAXLINE + 1)
+            if not line:
+                self.close()
+                raise SMTPServerDisconnected('Connection unexpectedly closed')
+            if len(line) > _MAXLINE:
+                self.close()
+                raise SMTPProtocolViolation('Line too long.')
+            if self.smtp_log:
+                self.smtp_log.debug('<= %s', _to_str(line.rstrip(bCRLF)))
+            try:
+                response = self.protocol.feed_bytes(line)
+            except SMTPProtocolViolation:
+                # e.g. "421" (service not available) at any point in the dialog
+                self.close()
+                raise
+            if response is not None:
+                return response
+            # smtpproto might need to send a command on its own
+            # (e.g. "HELO" if the server rejected "EHLO").
+            self._flush()
+
+    def _log_connect(self, host: str, port: int) -> None:
+        if not self.smtp_log:
+            return
+        log_tmpl = 'connecting to %(host)s:%(port)s'
+        optional = []
+        if self.timeout not in (None, _GLOBAL_DEFAULT_TIMEOUT):
+            float_to_str = lambda f: ('%.4f' % f).rstrip('0').rstrip('.')
+            optional.append('timeout=%ss' % float_to_str(self.timeout))
+        if self.source_address:
+            source_host, source_port = self.source_address
+            shost_str = source_host or '<default>'
+            sport_str = source_port or '<default>'
+            optional.append('source address=%s:%s' % (shost_str, sport_str))
+        if optional:
+            log_tmpl += ' (%s)' % (', '.join(optional))
+        self.smtp_log.debug(log_tmpl, {'host': host, 'port': port})
+
+    def _log_sent_data(self, data: bytes) -> None:
+        if not self.smtp_log:
+            return
+        for line in re.split(b'\r?\n', data.rstrip(bCRLF)):
+            self.smtp_log.debug('=> %s', _to_str(line))
+
+
+def _to_str(line: bytes) -> str:
+    # The log should show exactly what was sent/received without failing on
+    # non-ASCII bytes.
+    return line.decode('ascii', errors='backslashreplace')
