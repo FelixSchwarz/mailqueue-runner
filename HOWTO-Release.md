@@ -3,7 +3,7 @@
 Releases are built by the `Create Release Artifacts` workflow, not locally. It
 runs the test suite against `uv.lock`, builds wheel and sdist with the
 hash-pinned build backend from `build-constraints.txt`, builds an SRPM from the
-sdist, attests the build provenance, attaches the artifacts to a GitHub release
+sdist, rebuilds that SRPM with mock (COPR repo enabled), attests the build provenance, attaches the artifacts to a GitHub release
 and uploads the wheel and sdist to PyPI via trusted publishing. The SRPM is
 attached only to the GitHub release.
 
@@ -30,7 +30,14 @@ attached only to the GitHub release.
 4. Approve the deployment to the `pypi` environment in the workflow run. This
    publishes the artifacts to PyPI and GitHub.
 
-5. Set the next development version in `VERSION.txt` and commit it.
+5. Build the SRPM attached to the GitHub release in COPR:
+
+   ```console
+   $ copr-cli build fschwarz/mailqueue-runner mailqueue-runner-*.src.rpm
+   ```
+
+6. Set the next development version in `VERSION.txt` and commit it.
 
 `just build` produces the same wheel and sdist locally, for example to test the
-packaging.
+packaging. `just build-srpm` and `just build-rpm <mock chroot>` build the RPM
+locally.
