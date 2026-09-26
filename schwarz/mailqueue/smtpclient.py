@@ -107,6 +107,8 @@ class SMTPClient:
             timeout: float | None = _GLOBAL_DEFAULT_TIMEOUT,
             source_address: tuple[str, int] | None = None,
             smtp_log: logging.Logger | None = None,
+            implicit_tls: bool = False,
+            ssl_context: ssl.SSLContext | None = None,
     ):
         self._host = host
         self._port = port
@@ -114,6 +116,10 @@ class SMTPClient:
         self.timeout = timeout
         self.source_address = source_address
         self.smtp_log = smtp_log
+        # "implicit TLS" (RFC 8314, usually port 465): TLS handshake right
+        # after the TCP connection was established (instead of "STARTTLS")
+        self.implicit_tls = implicit_tls
+        self.ssl_context = ssl_context
         self.sock = None
         self._file = None
         self.protocol = _SMTPProtocol()
@@ -130,7 +136,8 @@ class SMTPClient:
             raise ValueError('no SMTP host specified')
         port = self._port or 25
         self._log_connect(host, port)
-        self.sock = socket.create_connection((host, port), self.timeout, self.source_address)
+        sock = socket.create_connection((host, port), self.timeout, self.source_address)
+        self.sock = self._wrap_socket(sock) if self.implicit_tls else sock
         self._file = self.sock.makefile('rb')
         self.protocol = _SMTPProtocol()
         response = self._read_response()
@@ -153,15 +160,9 @@ class SMTPClient:
     def starttls(self, context: ssl.SSLContext | None = None) -> SMTPResponse:
         self._ehlo_if_needed()
         response = self._command(self.protocol.start_tls)
-        if context is None:
-            # same (insecure) defaults as Python's smtplib: Many internal mail relays use
-            # self-signed certificates.
-            context = ssl.create_default_context()
-            context.check_hostname = False
-            context.verify_mode = ssl.CERT_NONE
         if self.sock is None:
             raise SMTPServerDisconnected('please run connect() first')
-        self.sock = context.wrap_socket(self.sock, server_hostname=self._host)
+        self.sock = self._wrap_socket(self.sock, context)
         self._file = self.sock.makefile('rb')
         return response
 
@@ -233,6 +234,16 @@ class SMTPClient:
                 sock.close()
 
     # --- internal helpers ----------------------------------------------------
+    def _wrap_socket(self, sock: socket.socket, context: ssl.SSLContext | None = None) -> ssl.SSLSocket:
+        context = context or self.ssl_context
+        if context is None:
+            # same (insecure) defaults as Python's smtplib: Many internal mail relays use
+            # self-signed certificates.
+            context = ssl.create_default_context()
+            context.check_hostname = False
+            context.verify_mode = ssl.CERT_NONE
+        return context.wrap_socket(sock, server_hostname=self._host)
+
     def _ehlo_if_needed(self) -> None:
         if self.protocol.state is ClientState.greeting_received:
             self.ehlo()
@@ -293,6 +304,8 @@ class SMTPClient:
             return
         log_tmpl = 'connecting to %(host)s:%(port)s'
         optional = []
+        if self.implicit_tls:
+            optional.append('implicit TLS')
         if self.timeout not in (None, _GLOBAL_DEFAULT_TIMEOUT):
             float_to_str = lambda f: ('%.4f' % f).rstrip('0').rstrip('.')
             optional.append('timeout=%ss' % float_to_str(self.timeout))

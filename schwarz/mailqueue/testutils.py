@@ -21,6 +21,7 @@ __all__ = [
     'create_alias_file',
     'create_ini',
     'fake_smtp_client',
+    'FakeSSLContext',
     'info_logger',
     'inject_example_message',
     'retrieve_sent_message',
@@ -158,6 +159,17 @@ def fake_smtp_client(socket_mock=None, policy=None, overrides=None, **client_arg
         client._host = hostname
     client.server = socket_mock  # ty: ignore[unresolved-attribute]
     return client
+
+
+class FakeSSLContext:
+    def __init__(self):
+        self.wrapped = []
+
+    def wrap_socket(self, sock, server_hostname=None):
+        # "makefile()" was not called yet -> no data was read from the socket
+        is_pristine = (getattr(sock, 'command_parser', None) is None)
+        self.wrapped.append((sock, server_hostname, is_pristine))
+        return sock
 
 
 class FakeChannel:

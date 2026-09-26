@@ -3,7 +3,7 @@
 import logging
 import socket
 
-from schwarz.mailqueue.testutils import fake_smtp_client
+from schwarz.mailqueue.testutils import FakeSSLContext, fake_smtp_client
 
 
 DEBUG = logging.DEBUG
@@ -72,4 +72,14 @@ def test_can_log_complete_smtp_interaction(caplog):
         ('s', DEBUG, '<= 250 OK'),
         ('s', DEBUG, '=> QUIT'),
         ('s', DEBUG, '<= 221 %s closing connection' % server_name),
+    ]
+
+def test_can_log_connect_with_implicit_tls(caplog):
+    caplog.set_level(DEBUG, logger='s')
+    smtp_log = logging.getLogger('s')
+    _ = fake_smtp_client(smtp_log=smtp_log, implicit_tls=True, ssl_context=FakeSSLContext())
+    server_name = socket.getfqdn()
+    assert caplog.record_tuples == [
+        ('s', DEBUG, 'connecting to site.invalid:123 (implicit TLS)'),
+        ('s', DEBUG, '<= 220 %s Hello 127.0.0.1' % server_name),
     ]

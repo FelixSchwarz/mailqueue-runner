@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: MIT
 
 import configparser
+import ipaddress
 import logging
 import logging.config
 import os
@@ -14,7 +15,7 @@ if sys.version_info >= (3, 10):
 else:
     from typing_extensions import TypeGuard
 
-from .mailer import SMTPMailer
+from .mailer import SMTPMailer, TLSMode, required_tls_mode
 from .plugins import PluginLoader, parse_list_str, registry
 
 
@@ -46,14 +47,46 @@ def init_app(config_path, options=None, settings=None):
 
 
 def init_smtp_mailer(settings, smtp_log=None):
+    log = logging.getLogger('mailqueue')
     smtp_settings = _subdict(settings, prefix='smtp_')
     if 'hostname' not in smtp_settings:
-        log = logging.getLogger('mailqueue')
         log.error('No SMTP host configured ("smtp_hostname = ...")')
         sys.exit(30)
+    tls_str = smtp_settings.pop('tls', None)
     smtp_settings['smtp_log'] = smtp_log or logging.getLogger('mailqueue.smtp')
-    mailer = SMTPMailer(**smtp_settings)
+    try:
+        if tls_str:
+            port = int(smtp_settings.get('port', 25))
+            smtp_settings['tls'] = _parse_tls_setting(tls_str, port=port)
+        mailer = SMTPMailer(**smtp_settings)
+    except ValueError as e:
+        log.error('Invalid SMTP configuration: %s', e)
+        sys.exit(31)
+    is_opportunistic_by_default = (not tls_str) and (mailer.tls == TLSMode.OPPORTUNISTIC)
+    if is_opportunistic_by_default and not _is_local_host(smtp_settings['hostname']):
+        log.warning(
+            'No "smtp_tls" configured: messages (and credentials) are sent in plain text '
+            'if the SMTP server does not support STARTTLS. Please set "smtp_tls = yes" '
+            '(or "smtp_tls = opportunistic" to keep this behavior without a warning).'
+        )
     return mailer
+
+def _parse_tls_setting(tls_str: str, port: int) -> TLSMode:
+    if tls_str == 'yes':
+        return required_tls_mode(port)
+    elif tls_str == TLSMode.IMPLICIT.value:
+        return TLSMode.IMPLICIT
+    elif tls_str == TLSMode.OPPORTUNISTIC.value:
+        return TLSMode.OPPORTUNISTIC
+    raise ValueError('"smtp_tls = %s" (expected "yes", "implicit" or "opportunistic")' % tls_str)
+
+def _is_local_host(hostname: str) -> bool:
+    if hostname.lower() == 'localhost':
+        return True
+    try:
+        return ipaddress.ip_address(hostname).is_loopback
+    except ValueError:
+        return False
 
 def _subdict(d, prefix):
     subdict = {}

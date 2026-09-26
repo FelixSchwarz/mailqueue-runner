@@ -86,6 +86,14 @@ The configuration file uses the traditional "ini"-like format:
     smtp_port = 587
     smtp_username = someuser@site.example
     smtp_password = secret
+    # optional:
+    #  - "yes": always use TLS ("implicit TLS" for port 465, "STARTTLS" otherwise),
+    #    messages are not sent if the server does not support STARTTLS
+    #  - "implicit": TLS right after connecting (always used for port 465)
+    #  - "opportunistic" (default): use STARTTLS if the server supports it,
+    #    otherwise send messages (and credentials) in plain text. A warning is
+    #    shown if "smtp_tls" is not set and the server is not "localhost".
+    # smtp_tls = yes
     # optional but the CLI scripts will not queue messages if this is not set
     queue_dir = /path/to/mailqueue
     # optional, SMTP envelope from (also used when "--set-from-header" is given)
