@@ -6,6 +6,7 @@ import re
 import subprocess
 import sys
 import textwrap
+from datetime import datetime as DateTime, timedelta as TimeDelta
 from email.header import Header
 from types import SimpleNamespace
 
@@ -68,6 +69,9 @@ def test_mq_sendmail(ctx):
     path_delivery_log = ctx.tmp_path / 'mq_delivery.log'
     assert path_delivery_log.exists()
     log_line, = path_delivery_log.read_text().splitlines()
+    timestamp_str = re.search(r'^(\S+ \S+) ', log_line).group(1)
+    dt = DateTime.fromisoformat(timestamp_str)
+    assert dt == almost_now()
     assert 'testuser@host.example => foo@site.example' in log_line
 
 
@@ -104,7 +108,9 @@ def test_mq_sendmail_can_add_headers(ctx):
     assert msg['To'] == 'foo@site.example'
     assert _is_email_address(msg['From'])
     msg_date = email.utils.parsedate_to_datetime(msg['Date'])
-    assert almost_now(msg_date)
+    # The "Date" header is set before the message is delivered in a subprocess
+    # which can take several seconds on slow CI machines (e.g. Windows).
+    assert msg_date == almost_now(tolerance=TimeDelta(seconds=10))
     assert msg['Message-ID']
 
 

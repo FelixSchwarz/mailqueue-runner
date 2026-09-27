@@ -7,6 +7,7 @@ from email.message import Message
 from io import BytesIO
 from unittest import mock
 
+import pytest
 from pymta import SMTPCommandParser
 from pymta.test_util import BlackholeDeliverer
 from schwarz.log_utils import ForwardingLogger
@@ -28,8 +29,26 @@ __all__ = [
     'SocketMock',
 ]
 
-def almost_now(dt):
-    return dt - DateTime.now(timezone.utc) < TimeDelta(seconds=1)
+def almost_now(tolerance: TimeDelta = TimeDelta(seconds=2)):
+    now = DateTime.now(timezone.utc)
+    pytest_version = tuple(int(part) for part in pytest.__version__.split('.')[:2])
+    if pytest_version >= (9, 1):
+        return pytest.approx(now, abs=tolerance)
+    # pytest < 9.1 (e.g. on Python 3.9) compares datetimes strictly in `approx()`
+    return _ApproxDateTime(now, tolerance)
+
+
+class _ApproxDateTime:
+    def __init__(self, expected: DateTime, tolerance: TimeDelta):
+        self.expected = expected
+        self.tolerance = tolerance
+
+    def __eq__(self, actual) -> bool:
+        return abs(actual - self.expected) <= self.tolerance
+
+    def __repr__(self) -> str:
+        return f'{self.expected} ± {self.tolerance}'
+
 
 def message():
     msg = Message()

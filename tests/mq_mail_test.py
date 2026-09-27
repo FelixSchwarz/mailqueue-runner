@@ -6,6 +6,7 @@ import email.utils
 import random
 import subprocess
 import sys
+from datetime import timedelta as TimeDelta
 from types import SimpleNamespace
 
 import pytest
@@ -57,7 +58,9 @@ def test_mq_mail(ctx):
     assert _decode_header(subject_header) == 'Mail »Subject«'
     assert msg['From'] == 'dbuser@worker.example'
     msg_date = email.utils.parsedate_to_datetime(msg['Date'])
-    assert almost_now(msg_date)
+    # The "Date" header is set before the message is delivered in a subprocess
+    # which can take several seconds on slow CI machines (e.g. Windows).
+    assert msg_date == almost_now(tolerance=TimeDelta(seconds=10))
     assert msg['Message-ID']
     assert msg['MIME-Version'] == '1.0'
     assert msg['Content-Transfer-Encoding'] == '8bit'

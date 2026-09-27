@@ -5,6 +5,7 @@ import logging
 import logging.config
 import os
 import sys
+from datetime import datetime as DateTime
 from pathlib import Path
 from typing import Optional
 
@@ -236,6 +237,15 @@ def configure_logging(settings, options):
     add_ui_logger(ui_log_level)
 
 
+class LogFileFormatter(logging.Formatter):
+    """
+    Use local time with UTC offset (e.g. "2024-08-18 11:53:08+02:00").
+    """
+    def formatTime(self, record: logging.LogRecord, datefmt: Optional[str] = None) -> str:
+        dt = DateTime.fromtimestamp(record.created).astimezone()
+        return dt.isoformat(sep=' ', timespec='seconds')
+
+
 def _setup_file_logger(path_log_file, logger_key):
     log_dir = path_log_file.parent
     log_display_name = 'delivery log' if ('delivery' in logger_key) else 'queue log'
@@ -248,7 +258,7 @@ def _setup_file_logger(path_log_file, logger_key):
             sys.exit(27)
 
     _h_logfile = logging.FileHandler(path_log_file)
-    _h_logfile.setFormatter(logging.Formatter('%(asctime)s %(message)s'))
+    _h_logfile.setFormatter(LogFileFormatter('%(asctime)s %(message)s'))
     _logger = logging.getLogger(logger_key)
     _logger.addHandler(_h_logfile)
     _logger.setLevel(logging.INFO)
