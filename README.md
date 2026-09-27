@@ -322,9 +322,9 @@ solid piece of software. I wrote yet another library because I wanted
 
 ### Tested Python versions
 
-The project uses GitHub Actions to run the test suite. Hopefully this means all
-tested versions are suitable for production.
-At the moment I test Python 3.9-3.13 as well as pypy3 on Linux.
+The project uses a [workflow in GitHub Actions](https://github.com/FelixSchwarz/mailqueue-runner/blob/main/.github/workflows/tests.yml)
+to run the test suite. We are testing current versions of CPython on Python and
+Windows as well as some versions of pypy3 on Linux.
 Deployment on Windows is not recommended as all locking will be disabled on
 Windows (due to its inability to delete/move open files) but development on
 a Windows machine should be fine.
