@@ -105,6 +105,16 @@ src = ["schwarz", "tests"]
 
 
 [tool.ruff.lint]
+# F401 also reports unused submodule imports (e.g. `import email.utils` when only
+# `email.header` is used). By default, ruff (like pyflakes) treats every
+# `import email.*` as the same name `email` so any use of `email` hides the
+# unused ones.
+# "preview = true" enables more preview features for all of ruff's rules.
+# That includes also more thorough checking of unused imports (and a lot of
+# other changes which we reign in via "explicit-preview-rules").
+preview = true
+# Only use "preview" functionality for rules explicitly enabled below.
+explicit-preview-rules = true
 ignore = [
     # F405 "… may be undefined, or defined from star imports: …"
     #    Sometimes star imports are perfectly fine IMHO.

@@ -1,6 +1,5 @@
 # SPDX-License-Identifier: MIT
 
-import email
 import email.policy
 from datetime import datetime as DateTime
 from email.message import Message
