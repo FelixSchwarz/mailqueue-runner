@@ -138,6 +138,9 @@ select = [
     "I001",
     # pyupgrade: syntax which is obsolete for the minimum Python version
     "UP",
+    # flake8-type-checking: imports only needed for type annotations belong in
+    #    an "if TYPE_CHECKING:" block
+    "TC",
 
     # Special rule code to enforce that your noqa directives are "valid", in that
     # the violations they say they ignore are actually being triggered on that line

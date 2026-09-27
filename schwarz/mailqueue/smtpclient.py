@@ -3,11 +3,10 @@
 from __future__ import annotations
 
 import base64
-import logging
 import re
 import socket
 import ssl
-from collections.abc import Iterable
+from typing import TYPE_CHECKING
 
 from smtpproto.protocol import (
     ClientState,
@@ -16,6 +15,11 @@ from smtpproto.protocol import (
     SMTPProtocolViolation,
     SMTPResponse,
 )
+
+
+if TYPE_CHECKING:
+    import logging
+    from collections.abc import Iterable
 
 
 __all__ = [
