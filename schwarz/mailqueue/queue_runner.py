@@ -291,6 +291,8 @@ def send_all_queued_messages(queue_dir, mailer=None, plugins=None, mh=None):
         return
     log.debug('%d unsent messages in queue dir', message_queue.qsize())
     if mh is None:
+        if mailer is None:
+            raise ValueError('"mailer" is required if no "mh" is given')
         mh = MessageHandler([mailer], plugins=plugins)
     while True:
         try:

@@ -1,22 +1,37 @@
 # SPDX-License-Identifier: MIT
 
+from __future__ import annotations
+
 import logging
 from io import BytesIO
-from typing import Optional
+from typing import TYPE_CHECKING
 
 from .message_utils import MsgInfo, SendResult, dt_now, msg_as_bytes
 from .plugins import MQAction, MQSignal
 
 
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+
+    from schwarz.puzzle_plugins import SignalRegistry
+
+    from schwarz.mailqueue.message_utils import Transport
+
+
 __all__ = ['BaseMsg', 'InMemoryMsg', 'MessageHandler']
 
 class MessageHandler:
-    def __init__(self, transports, delivery_log=None, plugins=None):
+    def __init__(
+        self,
+        transports: Sequence[Transport],
+        delivery_log: logging.Logger | None = None,
+        plugins: SignalRegistry | None = None,
+    ):
         self.transports = transports
         self.delivery_log = delivery_log or logging.getLogger('mailqueue.delivery_log')
         self.plugins = plugins
 
-    def send_message(self, msg, **kwargs) -> Optional[SendResult]:
+    def send_message(self, msg, **kwargs) -> SendResult | None:
         msg_wrapper = self._wrap_msg(msg)
         result = msg_wrapper.start_delivery()
         if not result:
@@ -103,7 +118,7 @@ class MessageHandler:
 
 
 class BaseMsg:
-    def __init__(self, msg: Optional[MsgInfo]=None):
+    def __init__(self, msg: MsgInfo | None = None):
         self._msg = msg
         self._from = None
         self._to_addrs = None

@@ -11,7 +11,7 @@ from email.header import decode_header
 from email.message import EmailMessage
 from email.parser import BytesFeedParser, BytesHeaderParser
 from io import BytesIO
-from typing import TYPE_CHECKING, BinaryIO, NamedTuple
+from typing import TYPE_CHECKING, BinaryIO, NamedTuple, Protocol
 
 from boltons.timeutils import ConstantTZInfo, LocalTZ
 
@@ -24,7 +24,7 @@ if TYPE_CHECKING:
     from smtpproto.protocol import SMTPResponse
 
 
-__all__ = ['autogenerate_headers', 'dt_now', 'parse_message_envelope', 'MsgInfo', 'SendResult']
+__all__ = ['autogenerate_headers', 'dt_now', 'parse_message_envelope', 'MsgInfo', 'SendResult', 'Transport']
 
 class SendResult(Result):
     def __init__(
@@ -45,6 +45,11 @@ class SendResult(Result):
             smtp_response = smtp_response,
             error         = error,
         )
+
+
+class Transport(Protocol):
+    """Anything which can deliver a message, e.g. via SMTP or into a queue."""
+    def send(self, from_addr: str, to_addrs: Sequence[str], message: bytes, /) -> SendResult | bool: ...
 
 
 def parse_message_envelope(fp):

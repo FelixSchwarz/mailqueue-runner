@@ -29,7 +29,7 @@ from argparse import ArgumentParser
 from schwarz.mailqueue.aliases_parser import _parse_aliases, lookup_adresses
 from schwarz.mailqueue.app_helpers import guess_config_path, init_app, init_smtp_mailer
 from schwarz.mailqueue.message_handler import InMemoryMsg, MessageHandler
-from schwarz.mailqueue.message_utils import autogenerate_headers, msg_as_bytes
+from schwarz.mailqueue.message_utils import Transport, autogenerate_headers, msg_as_bytes
 from schwarz.mailqueue.queue_runner import MaildirBackend
 
 
@@ -105,7 +105,7 @@ def mq_mail_main(argv=sys.argv, return_rc_code=False):
     msg_bytes = extra_header_lines + msg_as_bytes(stub_msg)
     msg = InMemoryMsg(msg_sender, recipients, msg_bytes)
 
-    transports = [init_smtp_mailer(settings)]
+    transports: list[Transport] = [init_smtp_mailer(settings)]
     queue_dir = settings.get('queue_dir')
     if queue_dir:
         transports.append(MaildirBackend(queue_dir))
