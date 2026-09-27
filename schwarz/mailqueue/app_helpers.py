@@ -1,7 +1,6 @@
 # SPDX-License-Identifier: MIT
 
 import configparser
-import ipaddress
 import logging
 import logging.config
 import os
@@ -15,7 +14,14 @@ if sys.version_info >= (3, 10):
 else:
     from typing_extensions import TypeGuard
 
-from .mailer import SMTPMailer, TLSMode, required_tls_mode
+from .mailer import (
+    SMTPMailer,
+    TLSMode,
+    default_tls_mode,
+    default_tls_verify,
+    is_local_host,
+    required_tls_mode,
+)
 from .plugins import PluginLoader, parse_list_str, registry
 
 
@@ -53,17 +59,27 @@ def init_smtp_mailer(settings, smtp_log=None):
         log.error('No SMTP host configured ("smtp_hostname = ...")')
         sys.exit(30)
     tls_str = smtp_settings.pop('tls', None)
+    tls_verify_str = smtp_settings.pop('tls_verify', None)
     smtp_settings['smtp_log'] = smtp_log or logging.getLogger('mailqueue.smtp')
     try:
+        port = int(smtp_settings.get('port', 25))
         if tls_str:
-            port = int(smtp_settings.get('port', 25))
-            smtp_settings['tls'] = _parse_tls_setting(tls_str, port=port)
+            tls = _parse_tls_setting(tls_str, port=port)
+        else:
+            tls = default_tls_mode(port)
+        if tls_verify_str:
+            tls_verify = _parse_tls_verify_setting(tls_verify_str)
+        else:
+            tls_verify = default_tls_verify(smtp_settings['hostname'], tls)
+        smtp_settings.update({'tls': tls, 'tls_verify': tls_verify})
         mailer = SMTPMailer(**smtp_settings)
     except ValueError as e:
         log.error('Invalid SMTP configuration: %s', e)
         sys.exit(31)
+    if not mailer.tls_verify:
+        log.debug('TLS certificate verification disabled')
     is_opportunistic_by_default = (not tls_str) and (mailer.tls == TLSMode.OPPORTUNISTIC)
-    if is_opportunistic_by_default and not _is_local_host(smtp_settings['hostname']):
+    if is_opportunistic_by_default and not is_local_host(smtp_settings['hostname']):
         log.warning(
             'No "smtp_tls" configured: messages (and credentials) are sent in plain text '
             'if the SMTP server does not support STARTTLS. Please set "smtp_tls = yes" '
@@ -80,13 +96,15 @@ def _parse_tls_setting(tls_str: str, port: int) -> TLSMode:
         return TLSMode.OPPORTUNISTIC
     raise ValueError('"smtp_tls = %s" (expected "yes", "implicit" or "opportunistic")' % tls_str)
 
-def _is_local_host(hostname: str) -> bool:
-    if hostname.lower() == 'localhost':
+def _parse_tls_verify_setting(tls_verify_str) -> bool:
+    if isinstance(tls_verify_str, bool):
+        return tls_verify_str
+    value = tls_verify_str.strip().lower()
+    if value in ('yes', 'true'):
         return True
-    try:
-        return ipaddress.ip_address(hostname).is_loopback
-    except ValueError:
+    elif value in ('no', 'false'):
         return False
+    raise ValueError('"smtp_tls_verify = %s" (expected "yes" or "no")' % tls_verify_str)
 
 def _subdict(d, prefix):
     subdict = {}
