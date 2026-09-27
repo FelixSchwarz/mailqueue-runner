@@ -43,14 +43,18 @@ def test_mq_run_delivery_without_plugins(failed_sending, tmp_path):
     if failed_sending:
         assert len(mailer.sent_mails) == 0
         assert len(queued_messages) == 1, 'message should have been queued for later delivery'
-        assert path_delivery_log.read_text() == ''
-        assert path_queue_log.read_text() == ''
+        expected_status = 'deferred'
     else:
         assert len(mailer.sent_mails) == 1
         assert len(queued_messages) == 0
-        log_line, = path_delivery_log.read_text().splitlines()
-        assert 'foo@site.example => bar@site.example' in log_line
-        assert path_queue_log.read_text() == ''
+        expected_status = 'sent'
+    # The message was waiting in the queue so the queue log contains the
+    # same information as the delivery log.
+    log_line, = path_delivery_log.read_text().splitlines()
+    assert path_queue_log.read_text().splitlines() == [log_line]
+    assert (' status=%s to=bar@site.example ' % expected_status.ljust(9)) in log_line
+    assert ' attempts=1 ' in log_line
+    assert ' app=mq-run' in log_line
 
 
 

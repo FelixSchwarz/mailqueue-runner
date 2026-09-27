@@ -3,6 +3,7 @@
 import os
 import shutil
 import uuid
+from datetime import timedelta as TimeDelta
 from unittest.mock import MagicMock
 
 import pytest
@@ -17,11 +18,10 @@ except ImportError:
 from schwarz.mailqueue import DebugMailer, MessageHandler, create_maildir_directories, lock_file
 from schwarz.mailqueue.compat import IS_WINDOWS
 from schwarz.mailqueue.maildir_utils import find_messages
-from schwarz.mailqueue.message_utils import parse_message_envelope
+from schwarz.mailqueue.message_utils import dt_now, parse_message_envelope
 from schwarz.mailqueue.plugins import MQAction, MQSignal
 from schwarz.mailqueue.queue_runner import MaildirBackedMsg, MaildirBackend
 from schwarz.mailqueue.testutils import (
-    assert_did_log_message,
     info_logger,
     inject_example_message,
     message as example_message,
@@ -48,16 +48,21 @@ def test_can_send_message(path_maildir, with_msg_id, caplog):
         sender     = b'foo@site.example',
         recipient  = b'bar@site.example',
         msg_bytes  = msg_bytes,
+        # The queue date is stored without fractional seconds so a recent
+        # date would lead to an unstable delay ("0s" or "1s").
+        queue_date = dt_now() - TimeDelta(minutes=10),
     )
     assert os.path.exists(msg.path)
 
     mh = MessageHandler([mailer], info_logger(caplog))
     was_sent = mh.send_message(msg)
     assert bool(was_sent)
-    expected_log_msg = '%s => %s' % ('foo@site.example', 'bar@site.example')
+    log_record, = caplog.records
+    expected_log_msg = 'status=sent      to=bar@site.example '
     if with_msg_id:
-        expected_log_msg += ' <%s>' % msg_id
-    assert_did_log_message(caplog, expected_msg=expected_log_msg)
+        expected_log_msg += 'msgid=%s ' % msg_id
+    expected_log_msg += 'via=debug from=foo@site.example attempts=1 delay=10m'
+    assert log_record.msg == expected_log_msg
 
     assert len(mailer.sent_mails) == 1
     sent_msg, = mailer.sent_mails

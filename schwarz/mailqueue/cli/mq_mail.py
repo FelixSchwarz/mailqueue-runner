@@ -109,7 +109,7 @@ def mq_mail_main(argv=sys.argv, return_rc_code=False):
     queue_dir = settings.get('queue_dir')
     if queue_dir:
         transports.append(MaildirBackend(queue_dir))
-    mh = MessageHandler(transports=transports)
+    mh = MessageHandler(transports=transports, app='mq-mail')
     send_result = mh.send_message(msg)
 
     if verbose:

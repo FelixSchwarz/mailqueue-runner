@@ -151,10 +151,31 @@ the mail flow is set up correctly:
 ### Logging
 
 Logs can help you monitoring the mail processing. The library uses two separate
-loggers depending on the type of delivery:
+loggers:
 
-- `mailqueue.delivery_log`: message was delivered to the SMTP server
-- `mailqueue.queue_log`: message was queued and will be delivered later by `mq-run`
+- `mailqueue.delivery_log`: every delivery attempt
+- `mailqueue.queue_log`: history of all messages which could not be delivered
+  immediately (queued messages, failed delivery attempts from the queue and
+  their final result)
+
+Each log entry is a single line with `key=value` pairs:
+
+```
+2024-08-18 11:53:08+02:00 status=queued    to=bar@site.example msgid=db11d8aa@site.example via=maildir from=sender@foo.example app=mq-sendmail error="[Errno 111] Connection refused"
+2024-08-18 12:03:10+02:00 status=sent      to=bar@site.example msgid=db11d8aa@site.example via=smtp:mx.site.example:587 from=sender@foo.example attempts=1 delay=10m app=mq-run smtp="250 OK id=1sfcsD-0000000010w-2ABZ"
+```
+
+| status      | meaning                                                         |
+|-------------|-----------------------------------------------------------------|
+| `sent`      | message was delivered to the SMTP server                        |
+| `queued`    | message was queued and will be delivered later by `mq-run`      |
+| `deferred`  | delivery failed, the message stays in the queue                 |
+| `discarded` | delivery failed, a plugin removed the message from the queue    |
+| `failed`    | delivery failed and the message was not stored                  |
+
+The last field contains the SMTP server's response (`smtp=…`) or a
+description of the error (`error=…`). The logging record also contains all
+fields as a dict (`record.delivery`) for custom log formatters.
 
 For CLI applications (e.g. `mq-run`, `mq-sendmail`, `mq-mail`) you can set
 `delivery_log = /path/to/delivery.log` and `queue_log = ...` in the config file

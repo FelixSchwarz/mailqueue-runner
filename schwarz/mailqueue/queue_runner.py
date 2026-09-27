@@ -110,9 +110,8 @@ def _dt_to_str(dt):
 
 
 class MaildirBackend(Transport):
-    def __init__(self, queue_path, log=None):
+    def __init__(self, queue_path):
         self.queue_path = queue_path
-        self.log = log or logging.getLogger('mailqueue.queue_log')
 
     def send(
         self,
@@ -121,10 +120,6 @@ class MaildirBackend(Transport):
         message: bytes | Message | BinaryIO,
     ) -> SendResult:
         msg = enqueue_message(message, self.queue_path, from_addr, to_addrs, return_msg=True)
-        log_msg = '%s => %s' % (from_addr, ', '.join(to_addrs))
-        if msg.msg_id:
-            log_msg += ' <%s>' % msg.msg_id
-        self.log.info(log_msg)
         if msg.fp is not None:
             msg.fp.close()
         return SendResult(True, queued=True, transport='maildir')
@@ -137,8 +132,13 @@ class MaildirBackedMsg(BaseMsg):
         self.file_path = file_path
         self.fp = fp
         self._msg = None
+        self._waited_in_queue = False
 
     def start_delivery(self):
+        # Messages in "cur" were stored by the caller right before sending
+        # ("conservative message sending") so they did not wait in the queue.
+        path = getattr(self.fp, 'name', None) or self.file_path
+        self._waited_in_queue = (os.path.basename(os.path.dirname(path)) == 'new')
         self.fp = self._mark_message_as_in_progress()
         if self.fp is None:
             # e.g. invalid path
@@ -190,6 +190,14 @@ class MaildirBackedMsg(BaseMsg):
     @property
     def path(self):
         return self.file_path
+
+    @property
+    def is_in_queue(self):
+        return True
+
+    @property
+    def waited_in_queue(self):
+        return self._waited_in_queue
 
     @property
     def from_addr(self):
@@ -309,7 +317,7 @@ def send_all_queued_messages(queue_dir, mailer=None, plugins=None, mh=None):
     if mh is None:
         if mailer is None:
             raise ValueError('"mailer" is required if no "mh" is given')
-        mh = MessageHandler([mailer], plugins=plugins)
+        mh = MessageHandler([mailer], plugins=plugins, app='mq-run')
     while True:
         try:
             message_path = message_queue.get(block=False)

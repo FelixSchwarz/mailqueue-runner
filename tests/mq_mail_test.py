@@ -70,7 +70,8 @@ def test_mq_mail(ctx):
     path_delivery_log = ctx.tmp_path / 'mq_delivery.log'
     assert path_delivery_log.exists()
     log_line, = path_delivery_log.read_text().splitlines()
-    assert 'dbuser@worker.example => foo@site.example' in log_line
+    assert ' status=sent      to=foo@site.example ' in log_line
+    assert ' from=dbuser@worker.example ' in log_line
 
 def _decode_header(header_value):
     header_parts = email.header.decode_header(header_value)
@@ -127,9 +128,8 @@ def test_mq_mail_with_queuing(tmp_path):
     assert msg['From'] == 'dbuser@worker.example'
     assert msg['To'] == 'foo@site.example'
 
-    path_delivery_log = tmp_path / 'mq_delivery.log'
-    assert path_delivery_log.exists()
-    assert path_delivery_log.read_text() == ''
+    log_line, = (tmp_path / 'mq_delivery.log').read_text().splitlines()
+    assert ' status=queued    to=foo@site.example ' in log_line
 
 
 def _mq_mail(mail_params, msg_body, *, ctx=None, config_path=None):

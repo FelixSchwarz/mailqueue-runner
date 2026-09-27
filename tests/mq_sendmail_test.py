@@ -72,7 +72,9 @@ def test_mq_sendmail(ctx):
     timestamp_str = re.search(r'^(\S+ \S+) ', log_line).group(1)
     dt = DateTime.fromisoformat(timestamp_str)
     assert dt == almost_now()
-    assert 'testuser@host.example => foo@site.example' in log_line
+    assert ' status=sent      to=foo@site.example ' in log_line
+    assert ' from=testuser@host.example ' in log_line
+    assert ' smtp="250 OK' in log_line
 
 
 @pytest.mark.parametrize('set_via', ['config', 'cli-param'])
@@ -246,9 +248,15 @@ def test_mq_sendmail_with_queuing(ctx):
     # sent via SMTP without further modification.
     assert msg.msg_bytes == _to_crlf(rfc_msg)
 
-    path_delivery_log = ctx.tmp_path / 'mq_delivery.log'
-    assert path_delivery_log.exists()
-    assert path_delivery_log.read_text() == ''
+    # both logs show why the message was queued
+    for log_filename in ('mq_delivery.log', 'mq_queue.log'):
+        log_line, = (ctx.tmp_path / log_filename).read_text().splitlines()
+        assert ' status=queued    to=foo@site.example via=maildir ' in log_line
+        # The error message is platform-specific, e.g.:
+        # - Linux: "[Errno 111] Connection refused"
+        # - Windows: "[WinError 10061] No connection could be made because the target machine actively refused it".  # noqa: E501
+        error_pattern = r' error="\[(Errno|WinError) \d+\] [^"]*connection[^"]*refused[^"]*"$'
+        assert re.search(error_pattern, log_line, re.IGNORECASE)
 
 
 def _to_crlf(msg_str: str) -> bytes:
