@@ -21,6 +21,7 @@ def test_can_send_message_via_smtpmailer():
     toaddrs = ('bar@site.example', 'baz@site.example',)
     msg_was_sent = mailer.send(fromaddr, toaddrs, message)
     assert msg_was_sent
+    assert msg_was_sent.smtp_response.code == 250
 
     received_queue = fake_client.server.received_messages
     assert received_queue.qsize() == 1
@@ -51,6 +52,7 @@ def test_can_handle_connection_error():
         msg_was_sent = mailer.send('foo@site.example', 'bar@site.example', message)
 
     assert not msg_was_sent
+    assert msg_was_sent.error == str(exc)
     assert fake_client.server.received_messages.qsize() == 0
     assert len(logs.buffer) == 1
     expected_msg = '%s (%s)' % (str(exc), exc.__class__.__name__)
@@ -65,6 +67,7 @@ def test_can_handle_smtp_exception_after_from():
     msg_was_sent = mailer.send('foo@site.example', 'bar@site.example', message)
 
     assert not msg_was_sent
+    assert msg_was_sent.smtp_response.code == 550
     assert fake_client.server.received_messages.qsize() == 0
 
 

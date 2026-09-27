@@ -1,27 +1,50 @@
 # SPDX-License-Identifier: MIT
 
+from __future__ import annotations
+
 import calendar
 import email.policy
 import email.utils
 import re
-from collections.abc import Sequence
 from datetime import datetime as DateTime, timedelta as TimeDelta, timezone
 from email.header import decode_header
 from email.message import EmailMessage
 from email.parser import BytesFeedParser, BytesHeaderParser
 from io import BytesIO
-from typing import BinaryIO, NamedTuple, Optional
+from typing import TYPE_CHECKING, BinaryIO, NamedTuple
 
 from boltons.timeutils import ConstantTZInfo, LocalTZ
 
 from .lib import Result
 
 
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+
+    from smtpproto.protocol import SMTPResponse
+
+
 __all__ = ['autogenerate_headers', 'dt_now', 'parse_message_envelope', 'MsgInfo', 'SendResult']
 
 class SendResult(Result):
-    def __init__(self, was_sent, queued=None, transport=None):
-        super().__init__(was_sent, queued=queued, transport=transport, discarded=None)
+    def __init__(
+        self,
+        was_sent: bool,
+        queued: bool | None = None,
+        transport: str | None = None,
+        host: str | None = None,
+        smtp_response: SMTPResponse | None = None,
+        error: str | None = None,
+    ):
+        super().__init__(
+            was_sent,
+            queued        = queued,
+            transport     = transport,
+            discarded     = None,
+            host          = host,
+            smtp_response = smtp_response,
+            error         = error,
+        )
 
 
 def parse_message_envelope(fp):
@@ -72,8 +95,8 @@ class _MsgInfo(NamedTuple):
     from_addr  : str
     to_addrs   : Sequence
     msg_fp     : BinaryIO
-    queue_date : Optional[DateTime]
-    last       : Optional[DateTime]
+    queue_date : DateTime | None
+    last       : DateTime | None
     retries    : int = 0
 
 

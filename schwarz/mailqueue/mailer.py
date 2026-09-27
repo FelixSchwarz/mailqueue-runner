@@ -6,8 +6,10 @@ import ipaddress
 from enum import Enum
 from io import BytesIO
 
+from smtpproto.protocol import SMTPResponse
+
 from .message_utils import MsgInfo, SendResult
-from .smtpclient import SMTPClient, SMTPException, create_ssl_context
+from .smtpclient import SMTPClient, SMTPException, SMTPResponseError, create_ssl_context
 
 
 __all__ = [
@@ -102,7 +104,8 @@ class SMTPMailer:
         return smtp_client
 
     def send(self, fromaddr, toaddrs, message):
-        msg_was_sent = SendResult(False, queued=False, transport='smtp')
+        host = f'{self.hostname}:{self.port}' if self.hostname else None
+        msg_was_sent = SendResult(False, queued=False, transport='smtp', host=host)
         try:
             if self._client is None:
                 connection = self.init_smtp_client()
@@ -125,14 +128,22 @@ class SMTPMailer:
             if (self.username is not None) and (self.password is not None):
                 connection.login(self.username, self.password)
 
-            connection.sendmail(fromaddr, toaddrs, message)
+            msg_was_sent.smtp_response = connection.sendmail(fromaddr, toaddrs, message)
             msg_was_sent.value = True
             connection.quit()
+        except SMTPResponseError as e:
+            if not msg_was_sent:
+                msg_was_sent.smtp_response = SMTPResponse(e.smtp_code, e.smtp_error)
+            self._log_exception(e)
         except (SMTPException, OSError) as e:
-            if self.smtp_log:
-                log_msg = '%s (%s)' % (str(e), e.__class__.__name__)
-                self.smtp_log.warning(log_msg)
+            if not msg_was_sent:
+                msg_was_sent.error = str(e)
+            self._log_exception(e)
         return msg_was_sent
+
+    def _log_exception(self, e):
+        if self.smtp_log:
+            self.smtp_log.warning(f'{e} ({e.__class__.__name__})')
 
 
 class DebugMailer:
