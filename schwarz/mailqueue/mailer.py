@@ -5,11 +5,19 @@ from __future__ import annotations
 import ipaddress
 from enum import Enum
 from io import BytesIO
+from typing import TYPE_CHECKING
 
 from smtpproto.protocol import SMTPResponse
 
-from .message_utils import MsgInfo, SendResult
+from schwarz.mailqueue.message_utils import MsgInfo, SendResult, Transport, msg_as_bytes
+
 from .smtpclient import SMTPClient, SMTPException, SMTPResponseError, create_ssl_context
+
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+    from email.message import Message
+    from typing import BinaryIO
 
 
 __all__ = [
@@ -71,7 +79,7 @@ def is_local_host(hostname: str) -> bool:
         return False
 
 
-class SMTPMailer:
+class SMTPMailer(Transport):
     def __init__(self, hostname: str | None = None, **kwargs):
         if (hostname is None) and ('client' not in kwargs):
             raise TypeError('not enough parameters for __init__(): please specify at least "hostname" or "client"')  # noqa: E501 (line too long)
@@ -103,7 +111,7 @@ class SMTPMailer:
         )
         return smtp_client
 
-    def send(self, fromaddr, toaddrs, message):
+    def send(self, from_addr: str, to_addrs: Sequence[str], message: bytes | str) -> SendResult:
         host = f'{self.hostname}:{self.port}' if self.hostname else None
         msg_was_sent = SendResult(False, queued=False, transport='smtp', host=host)
         try:
@@ -128,7 +136,7 @@ class SMTPMailer:
             if (self.username is not None) and (self.password is not None):
                 connection.login(self.username, self.password)
 
-            msg_was_sent.smtp_response = connection.sendmail(fromaddr, toaddrs, message)
+            msg_was_sent.smtp_response = connection.sendmail(from_addr, to_addrs, message)
             msg_was_sent.value = True
             connection.quit()
         except SMTPResponseError as e:
@@ -146,19 +154,24 @@ class SMTPMailer:
             self.smtp_log.warning(f'{e} ({e.__class__.__name__})')
 
 
-class DebugMailer:
+class DebugMailer(Transport):
     def __init__(self, simulate_failed_sending=False, send_callback=None):
         self.simulate_failed_sending = simulate_failed_sending
         self.send_callback = send_callback
         self.sent_mails = []
 
-    def send(self, fromaddr, toaddrs, message):
+    def send(
+        self,
+        from_addr: str,
+        to_addrs: Sequence[str],
+        message: bytes | Message | BinaryIO,
+    ) -> SendResult:
         was_sent = SendResult(True, queued=False, transport='debug')
         if self.send_callback:
-            was_sent = self.send_callback(fromaddr, toaddrs, message)
+            was_sent = self.send_callback(from_addr, to_addrs, message)
         if self.simulate_failed_sending:
             was_sent.value = False
         if was_sent:
-            msg_info = MsgInfo(fromaddr, toaddrs, BytesIO(message))
+            msg_info = MsgInfo(from_addr, to_addrs, BytesIO(msg_as_bytes(message)))
             self.sent_mails.append(msg_info)
         return was_sent

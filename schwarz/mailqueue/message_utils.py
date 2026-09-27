@@ -49,7 +49,7 @@ class SendResult(Result):
 
 class Transport(Protocol):
     """Anything which can deliver a message, e.g. via SMTP or into a queue."""
-    def send(self, from_addr: str, to_addrs: Sequence[str], message: bytes, /) -> SendResult | bool: ...
+    def send(self, from_addr: str, to_addrs: Sequence[str], message: bytes) -> SendResult | bool: ...
 
 
 def parse_message_envelope(fp):

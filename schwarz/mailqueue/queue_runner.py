@@ -1,11 +1,16 @@
 # SPDX-License-Identifier: MIT
 
+from __future__ import annotations
+
 import email.utils
 import logging
 import os
 import queue
 import time
 from mailbox import Maildir, _sync_close  # ty: ignore[unresolved-import]
+from typing import TYPE_CHECKING
+
+from schwarz.mailqueue.message_utils import Transport
 
 from .app_helpers import init_app, init_smtp_mailer
 from .compat import IS_WINDOWS
@@ -13,6 +18,12 @@ from .maildir_utils import create_maildir_directories, find_messages, move_messa
 from .message_handler import BaseMsg, MessageHandler
 from .message_utils import SendResult, dt_now, msg_as_bytes, parse_message_envelope
 from .plugins import registry
+
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+    from email.message import Message
+    from typing import BinaryIO
 
 
 __all__ = [
@@ -98,13 +109,18 @@ def _dt_to_str(dt):
 
 
 
-class MaildirBackend:
+class MaildirBackend(Transport):
     def __init__(self, queue_path, log=None):
         self.queue_path = queue_path
         self.log = log or logging.getLogger('mailqueue.queue_log')
 
-    def send(self, from_addr, to_addrs, msg_bytes):
-        msg = enqueue_message(msg_bytes, self.queue_path, from_addr, to_addrs, return_msg=True)
+    def send(
+        self,
+        from_addr: str,
+        to_addrs: Sequence[str],
+        message: bytes | Message | BinaryIO,
+    ) -> SendResult:
+        msg = enqueue_message(message, self.queue_path, from_addr, to_addrs, return_msg=True)
         log_msg = '%s => %s' % (from_addr, ', '.join(to_addrs))
         if msg.msg_id:
             log_msg += ' <%s>' % msg.msg_id
