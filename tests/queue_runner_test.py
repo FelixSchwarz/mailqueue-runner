@@ -2,20 +2,16 @@
 
 import os
 from datetime import datetime as DateTime, timedelta as TimeDelta
+from unittest import mock
 
 import pytest
 from boltons.timeutils import UTC
-
-
-try:
-    import time_machine
-except ImportError:
-    time_machine = None
 
 from schwarz.mailqueue import (
     DebugMailer,
     create_maildir_directories,
     lock_file,
+    queue_runner,
     send_all_queued_messages,
 )
 from schwarz.mailqueue.queue_runner import MaildirBackedMsg
@@ -29,8 +25,6 @@ def path_maildir(tmp_path):
     return _path_maildir
 
 
-@pytest.mark.skipif(time_machine is None, reason='"time-machine" dependency not installed')
-# https://github.com/adamchainz/time-machine/issues/305
 def test_can_move_stale_messages_back_to_new(path_maildir):
     mailer = DebugMailer()
     inject_example_message(path_maildir, target_folder='cur')
@@ -40,8 +34,8 @@ def test_can_move_stale_messages_back_to_new(path_maildir):
     assert len(msg_files(path_maildir, folder='new')) == 0
     assert len(msg_files(path_maildir, folder='cur')) == 1
 
-    dt_stale = DateTime.now() + TimeDelta(hours=1)
-    with time_machine.travel(dt_stale):
+    # negative timeout means every message in "cur" is considered stale now
+    with mock.patch.object(queue_runner, 'STALE_TIMEOUT_s', -60):
         send_all_queued_messages(path_maildir, mailer)
     assert len(msg_files(path_maildir, folder='new')) == 0
     assert len(msg_files(path_maildir, folder='cur')) == 0

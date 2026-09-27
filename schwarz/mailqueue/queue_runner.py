@@ -254,6 +254,8 @@ class MaildirBackedMsg(BaseMsg):
 
 
 
+STALE_TIMEOUT_s = 30 * 60
+
 def is_stale_msg(msg_path):
     stat = os.stat(msg_path)
     # Unix:
@@ -263,7 +265,6 @@ def is_stale_msg(msg_path):
     #  - ctime: file creation
     timestamp = max([stat.st_mtime, stat.st_ctime])
     now = time.time()
-    STALE_TIMEOUT_s = 30 * 60
     is_stale = (timestamp + STALE_TIMEOUT_s < now)
     return is_stale
 

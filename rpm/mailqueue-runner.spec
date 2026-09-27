@@ -16,10 +16,6 @@ BuildRequires:  python3-devel
 # required to run the test suite
 BuildRequires:  python3dist(pytest)
 BuildRequires:  python3dist(pytest-xdist)
-%if 0%{?fedora}
-# only packaged for Fedora
-BuildRequires:  python3dist(time-machine)
-%endif
 Requires(post):    %{_sbindir}/alternatives
 Requires(postun):  %{_sbindir}/alternatives
 
@@ -79,10 +75,6 @@ rm -rf *.egg-info
 %check
 # not packaged at all
 pip install pymta schwarzlog
-%if 0%{?rhel}
-# not packaged in EPEL 9
-pip install time-machine
-%endif
 
 # tests requiring pymta just hang when run in mock (LATER: debug issue)
 %pytest -n auto -k "not test_mq_send_test and not test_mq_sendmail and not test_can_send_message and not test_mq_mail"
