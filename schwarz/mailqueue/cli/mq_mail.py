@@ -125,10 +125,7 @@ def mq_mail_main(argv=sys.argv, return_rc_code=False):
 
 
 def _parse_cli_parameters(argv):
-    # docopt (and docopt-ng) do not support long option names starting with
-    # a singe dash: https://github.com/jazzband/docopt-ng/issues/69
-    # arguments = docopt(__doc__, argv=argv[1:])
-
+    # keep in sync with docstring at the top of this module
     tool_description = textwrap.dedent('''
         Command line tool to send an email message.
         The CLI parameters are a (extremly limited) subset of the "mailx" command,
