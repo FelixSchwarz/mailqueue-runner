@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: MIT
 
 import os
+from types import SimpleNamespace
 from unittest import mock
 
-from dotmap import DotMap
 from schwarz.log_utils import l_
 
 
@@ -94,8 +94,7 @@ def create_fake_plugin(signal_map):
         _registry = context['registry']
         disconnect_signals(_connected_signals, _registry)
 
-    fake_plugin = DotMap(
-        _dynamic=False,
+    fake_plugin = SimpleNamespace(
         initialize=fake_initialize,
         terminate=fake_terminate,
     )

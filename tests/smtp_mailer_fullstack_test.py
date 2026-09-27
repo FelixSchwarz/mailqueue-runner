@@ -1,7 +1,8 @@
 # SPDX-License-Identifier: MIT
 
+from types import SimpleNamespace
+
 import pytest
-from dotmap import DotMap
 from pymta.test_util import SMTPTestHelper
 
 from schwarz.mailqueue import SMTPMailer
@@ -17,7 +18,7 @@ def ctx():
         'mta': mta_helper,
     }
     try:
-        yield DotMap(_dynamic=False, **ctx)
+        yield SimpleNamespace(**ctx)
     finally:
         mta_helper.stop_mta()
 
