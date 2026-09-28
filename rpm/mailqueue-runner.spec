@@ -43,6 +43,13 @@ external SMTP server.}
 %autosetup -p1 -n mailqueue_runner-%{pypi_version}
 rm -rf *.egg-info
 
+%if 0%{?rhel} == 9
+# hatchling 1.21.1 in EL9 only accepts a table for "license-files" (the list
+# form came with the final version of PEP 639). Without that key hatchling
+# still includes "LICENSE.txt" as it matches its default patterns.
+sed -i '/^license-files\s*=/d' pyproject.toml
+%endif
+
 %generate_buildrequires
 %pyproject_buildrequires
 
