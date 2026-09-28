@@ -26,6 +26,11 @@ setup-venv:
 build:
     uv build --wheel --sdist --build-constraint build-constraints.txt --require-hashes
 
+# create a src.rpm in "rpm/build/" from the sdist in "dist/" (see "just build")
+[group("rpm")]
+build-srpm:
+    rpm/build-srpm.sh
+
 # install the build backend pinned by the current lockfile
 [group("dependencies")]
 install-locked-dependencies:

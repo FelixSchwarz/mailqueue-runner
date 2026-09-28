@@ -16,3 +16,4 @@
 /.*cache
 /*.code-workspace
 /.vscode
+/rpm/build

@@ -86,7 +86,7 @@ jobs:
     needs: artifacts
     runs-on: ubuntu-latest
     container:
-      image: fedora@sha256:43b29f65a41eb9c35e1cd5323e3bdf3b655c2357a9f4f1ff2f9c2798e5045d80
+      image: fedora:latest  # zizmor: ignore[unpinned-images]
     timeout-minutes: 10
     permissions:
       contents: read
@@ -107,31 +107,23 @@ jobs:
 
     - name: install rpmbuild
       run: |
-        dnf install -y /usr/bin/rpmbuild
+        dnf install -y /usr/bin/rpmbuild just
 
     # The src.rpm is built from the sdist which was uploaded above so the
     # rpm contains exactly the same sources as the pypi release.
     - name: create src.rpm
-      run: |
-        set -eux
-        cd rpm
-        mkdir SOURCES
-        cp -a ../dist/*.tar.gz SOURCES/
-        mv mailqueue-runner{.conf,.logrotate} ./SOURCES/
-        /usr/bin/rpmbuild --define "_topdir `pwd`" -bs *.spec
-        mkdir ../srpm
-        mv SRPMS/*.src.rpm ../srpm/
+      run: just build-srpm
 
     - name: Attest build provenance
       uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
       with:
-        subject-path: "srpm/*.src.rpm"
+        subject-path: "rpm/build/*.src.rpm"
 
     - name: upload src.rpm
       uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
       with:
         name: "srpm"
-        path: srpm/*.src.rpm
+        path: rpm/build/*.src.rpm
         if-no-files-found: error
 
   publish:
