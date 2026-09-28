@@ -125,7 +125,7 @@ fi
 
 
 %changelog
-* Mon Jun 02 2025 Felix Schwarz <felix.schwarz@oss.schwarz.eu> - 0.13.0-2
+* Mon Jun 02 2025 Felix Schwarz <felix.schwarz@oss.schwarz.eu> - 0.13.1-1
 - update to 0.13.1
 
 * Fri Oct 18 2024 Felix Schwarz <felix.schwarz@oss.schwarz.eu> - 0.13.0-1
