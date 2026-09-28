@@ -1,11 +1,15 @@
+# "tools/check-rpm-version.py" ensures that "pypi_version" matches VERSION.txt
+# and "Version" is derived from it, e.g. "0.14.0.dev0" -> "0.14.0~dev0".
+%global pypi_version 0.13.2.dev0
+
 Name:           mailqueue-runner
-Version:        0.13.1
+Version:        0.13.2~dev0
 Release:        1%{?dist}
 Summary:        SMTP client for CLI scripts
 
 License:        MIT
 URL:            https://github.com/FelixSchwarz/mailqueue-runner
-Source:         %{pypi_source mailqueue_runner}
+Source:         %{pypi_source mailqueue_runner %{pypi_version}}
 Source1:        mailqueue-runner.conf
 Source2:        mailqueue-runner.logrotate
 
@@ -36,7 +40,7 @@ external SMTP server.}
 %description %_description
 
 %prep
-%autosetup -p1 -n mailqueue_runner-%{version}
+%autosetup -p1 -n mailqueue_runner-%{pypi_version}
 rm -rf *.egg-info
 
 %generate_buildrequires
@@ -125,6 +129,9 @@ fi
 
 
 %changelog
+* Mon Sep 28 2026 Felix Schwarz <felix.schwarz@oss.schwarz.eu> - 0.13.2~dev0-1
+- development version
+
 * Mon Jun 02 2025 Felix Schwarz <felix.schwarz@oss.schwarz.eu> - 0.13.1-1
 - update to 0.13.1
 

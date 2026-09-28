@@ -17,8 +17,10 @@ attached only to the GitHub release.
 
    `just update-dependencies` also regenerates `build-constraints.txt`.
 
-2. Set the release version in `VERSION.txt`, update `Version` and `%changelog`
-   in `rpm/mailqueue-runner.spec`, then commit both files.
+2. Set the release version in `VERSION.txt`, update `pypi_version`, `Version`
+   and `%changelog` in `rpm/mailqueue-runner.spec`, then commit both files.
+   `tools/check-rpm-version.py` (also run as a prek hook) verifies that they
+   match.
 
 3. Push the tag to trigger the release workflow:
 
@@ -30,7 +32,8 @@ attached only to the GitHub release.
 4. Approve the deployment to the `pypi` environment in the workflow run. This
    publishes the artifacts to PyPI and GitHub.
 
-5. Set the next development version in `VERSION.txt` and commit it.
+5. Set the next development version (e.g. `0.14.1.dev0`) in `VERSION.txt`,
+   update the spec file accordingly and commit both files.
 
 `just build` produces the same wheel and sdist locally, for example to test the
 packaging.

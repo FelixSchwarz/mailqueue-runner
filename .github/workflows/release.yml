@@ -55,11 +55,7 @@ jobs:
           echo "tag version $release_name does not match package version $package_version" >&2
           exit 1
         fi
-        rpm_version=$(sed -n 's/^Version: *//p' rpm/mailqueue-runner.spec)
-        if [ "$release_name" != "$rpm_version" ]; then
-          echo "tag version $release_name does not match rpm version $rpm_version" >&2
-          exit 1
-        fi
+        python3 tools/check-rpm-version.py
 
         is_prerelease=false
         if [[ "$release_name" =~ (^|[0-9._-])(a|alpha|b|beta|c|rc|pre|preview)[._-]?[0-9]+([.+-]|$)|\.dev[0-9]+([.+-]|$) ]]; then
