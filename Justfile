@@ -31,6 +31,12 @@ build:
 build-srpm:
     rpm/build-srpm.sh
 
+# build RPMs with mock from the src.rpm in "rpm/build/", e.g. "just build-rpm epel-9-x86_64"
+[group("rpm")]
+[positional-arguments]
+build-rpm chroot *MOCK_ARGS:
+    rpm/build-rpm.sh "$@"
+
 # install the build backend pinned by the current lockfile
 [group("dependencies")]
 install-locked-dependencies:
