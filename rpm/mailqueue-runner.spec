@@ -14,6 +14,7 @@ Recommends:     logrotate
 BuildArch:      noarch
 BuildRequires:  python3-devel
 # required to run the test suite
+BuildRequires:  python3dist(aiosmtpd)
 BuildRequires:  python3dist(pytest)
 BuildRequires:  python3dist(pytest-xdist)
 Requires(post):    %{_sbindir}/alternatives
@@ -74,9 +75,10 @@ rm -rf *.egg-info
 
 %check
 # not packaged at all
-pip install pymta schwarzlog
+pip install schwarzlog
 
-# tests requiring pymta just hang when run in mock (LATER: debug issue)
+# tests requiring a real SMTP server just hung when run in mock with pymta
+# (LATER: check if these tests work with aiosmtpd)
 %pytest -n auto -k "not test_mq_send_test and not test_mq_sendmail and not test_can_send_message and not test_mq_mail"
 
 

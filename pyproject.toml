@@ -49,8 +49,8 @@ colors = [
 ]
 # "testutils" provides helpers to simplify testing (also usable by 3rd party code)
 testutils = [
-    # >= 0.8: SMTPCommandParser
-    "pymta >= 0.8",
+    # >= 1.4: "server_hostname" parameter for "Controller"
+    "aiosmtpd >= 1.4",
     "schwarzlog",
 ]
 testing = [

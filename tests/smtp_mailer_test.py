@@ -4,13 +4,17 @@ import logging
 from unittest import mock
 
 import pytest
-from pymta.api import IMTAPolicy
-from pymta.test_util import DummyAuthenticator
 from schwarz.log_utils.testutils import build_collecting_logger
 
 from schwarz.mailqueue import SMTPMailer, TLSMode, init_smtp_mailer
 from schwarz.mailqueue.smtpclient import SMTPRecipientRefused
-from schwarz.mailqueue.testutils import SocketMock, fake_smtp_client, stub_socket_creation
+from schwarz.mailqueue.testutils import (
+    MessageCollector,
+    SocketMock,
+    accept_any_login,
+    fake_smtp_client,
+    stub_socket_creation,
+)
 
 
 def test_can_send_message_via_smtpmailer():
@@ -29,10 +33,8 @@ def test_can_send_message_via_smtpmailer():
     assert received_message.smtp_from == fromaddr
     assert tuple(received_message.smtp_to) == toaddrs
     assert received_message.username is None
-    # The message is sent with CRLF line endings. pymta converts line endings
-    # to "\n" and the final line break is part of the "end of data" marker.
-    expected_message = 'Header: value\n\nbody'
-    assert received_message.msg_data == expected_message
+    # The message is sent with CRLF line endings.
+    assert received_message.msg_bytes == b'Header: value\r\n\r\nbody\r\n'
 
 def test_can_handle_connection_error():
     exc = OSError(101, 'Network is unreachable')
@@ -60,8 +62,10 @@ def test_can_handle_connection_error():
     assert lr.msg == expected_msg
 
 def test_can_handle_smtp_exception_after_from():
-    reject_from = _build_policy(accept_from=False)
-    fake_client = fake_smtp_client(policy=reject_from)
+    class RejectSenderHandler(MessageCollector):
+        async def handle_MAIL(self, server, session, envelope, address, mail_options):
+            return '550 sender rejected'
+    fake_client = fake_smtp_client(handler=RejectSenderHandler())
     mailer = SMTPMailer(client=fake_client)
     message = b'Header: value\n\nbody\n'
     msg_was_sent = mailer.send('foo@site.example', 'bar@site.example', message)
@@ -72,10 +76,7 @@ def test_can_handle_smtp_exception_after_from():
 
 
 def test_does_not_send_message_if_any_recipient_was_refused():
-    class RejectRecipientPolicy(IMTAPolicy):
-        def accept_rcpt_to(self, new_recipient, message):
-            return (new_recipient != 'baz@site.example')
-    fake_client = fake_smtp_client(policy=RejectRecipientPolicy())
+    fake_client = fake_smtp_client(handler=RejectRecipientHandler('baz@site.example'))
     logger, logs = build_collecting_logger()
     mailer = SMTPMailer(client=fake_client, smtp_log=logger)
     message = b'Header: value\n\nbody\n'
@@ -90,10 +91,7 @@ def test_does_not_send_message_if_any_recipient_was_refused():
     assert fake_client.server.received_messages.qsize() == 0
 
 def test_client_raises_recipient_refused_if_any_recipient_was_refused():
-    class RejectRecipientPolicy(IMTAPolicy):
-        def accept_rcpt_to(self, new_recipient, message):
-            return (new_recipient != 'baz@site.example')
-    fake_client = fake_smtp_client(policy=RejectRecipientPolicy())
+    fake_client = fake_smtp_client(handler=RejectRecipientHandler('baz@site.example'))
     message = b'Header: value\n\nbody\n'
     toaddrs = ('bar@site.example', 'baz@site.example')
     with pytest.raises(SMTPRecipientRefused) as exc_info:
@@ -103,14 +101,13 @@ def test_client_raises_recipient_refused_if_any_recipient_was_refused():
     assert exc.recipient == 'baz@site.example'
     assert exc.smtp_code == 550
     assert fake_client.server.received_messages.qsize() == 0
+    fake_client.close()
 
 
 @pytest.mark.parametrize('auth_type', ['PLAIN', 'LOGIN'])
 def test_can_use_smtp_auth(auth_type):
-    class AuthPolicy(IMTAPolicy):
-        def auth_methods(self, peer):
-            return (auth_type,)
-    socket_mock = SocketMock(policy=AuthPolicy(), authenticator=DummyAuthenticator())
+    other_auth_types = {'PLAIN', 'LOGIN'} - {auth_type}
+    socket_mock = SocketMock(authenticator=accept_any_login, auth_exclude_mechanism=other_auth_types)
 
     fake_client = fake_smtp_client(socket_mock=socket_mock)
     mailer = SMTPMailer(client=fake_client, username='foo', password='foo')
@@ -120,6 +117,8 @@ def test_can_use_smtp_auth(auth_type):
     assert msg_was_sent
     received_queue = fake_client.server.received_messages
     assert received_queue.qsize() == 1
+    received_message = received_queue.get(block=False)
+    assert received_message.username == 'foo'
 
 @pytest.mark.parametrize('port, tls, expected_tls', [
     (25,  None,              TLSMode.OPPORTUNISTIC),
@@ -147,7 +146,7 @@ def test_smtpmailer_always_uses_implicit_tls_for_port_465(tls):
         SMTPMailer('site.invalid', port=465, tls=tls)
 
 def test_smtpmailer_does_not_send_message_if_starttls_is_required_but_unsupported():
-    # pymta does not support STARTTLS
+    # STARTTLS is not supported by the test server (no TLS context)
     fake_client = fake_smtp_client()
     logger, logs = build_collecting_logger()
     mailer = SMTPMailer(client=fake_client, tls=TLSMode.STARTTLS, smtp_log=logger)
@@ -203,14 +202,16 @@ def test_init_smtp_mailer_warns_about_missing_tls_setting(hostname, port, tls_st
     assert log_warning.called == expect_warning
 
 # --- internal helpers ----------------------------------------------------
-def _build_policy(**method_results):
-    class TempPolicy(IMTAPolicy):
-        pass
+class RejectRecipientHandler(MessageCollector):
+    def __init__(self, rejected_recipient):
+        super().__init__()
+        self.rejected_recipient = rejected_recipient
 
-    for method_name, method_result in method_results.items():
-        method = lambda policy, *args, **kwargs: method_result
-        setattr(TempPolicy, method_name, method)
-    return TempPolicy()
+    async def handle_RCPT(self, server, session, envelope, address, rcpt_options):
+        if address == self.rejected_recipient:
+            return '550 recipient rejected'
+        envelope.rcpt_tos.append(address)
+        return '250 OK'
 
 def _build_overrides(**overrides):
     _overrides = {}

@@ -37,6 +37,7 @@ def test_sends_message_with_crlf_line_endings(msg, expected_data):
     client = fake_smtp_client(socket_mock=socket_mock)
     client.sendmail('foo@site.example', 'bar@site.example', msg)
     assert socket_mock.sent_data.endswith(b'DATA\r\n' + expected_data)
+    client.close()
 
 @pytest.mark.parametrize('smuggling_sequence', [b'\n.\r\n', b'\r\n.\n', b'\n.\n', b'\r.\r\n'])
 def test_prevents_smtp_smuggling(smuggling_sequence):
@@ -53,6 +54,7 @@ def test_prevents_smtp_smuggling(smuggling_sequence):
     assert data.endswith(b'\r\n.\r\n')
     assert b'\r\n..\r\n' in data
     assert socket_mock.received_messages.qsize() == 1
+    client.close()
 
 # --- internal helpers ----------------------------------------------------
 class RecordingSocketMock(SocketMock):

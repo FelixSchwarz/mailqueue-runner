@@ -5,10 +5,9 @@ import re
 from types import SimpleNamespace
 
 import pytest
-from pymta.test_util import SMTPTestHelper
 
 from schwarz.mailqueue.cli import send_test_message_main
-from schwarz.mailqueue.testutils import create_ini
+from schwarz.mailqueue.testutils import SMTPTestServer, create_ini
 
 
 # prevent nosetests from running this imported function as "test"
@@ -17,17 +16,17 @@ send_test_message_main.__test__ = False
 
 @pytest.fixture
 def ctx():
-    mta_helper = SMTPTestHelper()
-    (hostname, listen_port) = mta_helper.start_mta()
+    mta = SMTPTestServer()
+    mta.start()
     ctx = {
-        'hostname': hostname,
-        'listen_port': listen_port,
-        'mta': mta_helper,
+        'hostname': mta.hostname,
+        'listen_port': mta.port,
+        'mta': mta,
     }
     try:
         yield SimpleNamespace(**ctx)
     finally:
-        mta_helper.stop_mta()
+        mta.stop()
 
 def test_mq_send_test_can_send_test_message(ctx, tmp_path):
     config_path = create_ini(ctx.hostname, ctx.listen_port, dir_path=str(tmp_path))
@@ -42,13 +41,13 @@ def test_mq_send_test_can_send_test_message(ctx, tmp_path):
     rc = send_test_message_main(argv=cmd, return_rc_code=True)
     assert rc == 0
 
-    received_queue = ctx.mta.get_received_messages()
+    received_queue = ctx.mta.received_messages
     assert received_queue.qsize() == 1
     smtp_msg = received_queue.get(block=False)
     assert smtp_msg.smtp_from == 'bar@site.example'
     assert tuple(smtp_msg.smtp_to) == ('foo@site.example',)
     assert smtp_msg.username is None
-    msg = email.message_from_string(smtp_msg.msg_data)
+    msg = email.message_from_bytes(smtp_msg.msg_bytes)
     assert msg['Subject'].startswith('Test message')
     assert_matches('^<[^@>]+@mqrunner.example>$', msg['Message-ID'],
         message='test message should use custom Msg-ID domain (with correct brackets)')

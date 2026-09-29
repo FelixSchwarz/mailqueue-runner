@@ -10,11 +10,11 @@ from datetime import timedelta as TimeDelta
 from types import SimpleNamespace
 
 import pytest
-from pymta.test_util import SMTPTestHelper
 from schwarz.log_utils import l_
 
 from schwarz.mailqueue.queue_runner import MaildirBackedMsg, assemble_queue_with_new_messages
 from schwarz.mailqueue.testutils import (
+    SMTPTestServer,
     almost_now,
     create_alias_file,
     create_ini,
@@ -24,18 +24,18 @@ from schwarz.mailqueue.testutils import (
 
 @pytest.fixture
 def ctx(tmp_path):
-    mta_helper = SMTPTestHelper()
-    (hostname, listen_port) = mta_helper.start_mta()
+    mta = SMTPTestServer()
+    mta.start()
     ctx = {
-        'hostname': hostname,
-        'listen_port': listen_port,
-        'mta': mta_helper,
+        'hostname': mta.hostname,
+        'listen_port': mta.port,
+        'mta': mta,
         'tmp_path': tmp_path,
     }
     try:
         yield SimpleNamespace(**ctx)
     finally:
-        mta_helper.stop_mta()
+        mta.stop()
 
 
 def test_mq_mail(ctx):
@@ -51,7 +51,7 @@ def test_mq_mail(ctx):
     assert tuple(smtp_msg.smtp_to) == ('foo@site.example',)
     assert smtp_msg.username is None  # no smtp user name set in config
 
-    msg = email.message_from_string(smtp_msg.msg_data)
+    msg = email.message_from_bytes(smtp_msg.msg_bytes)
     assert msg['To'] == 'foo@site.example'
     subject_header = msg['Subject']
     assert '=?utf-8?q?' in subject_header.lower()
@@ -65,7 +65,7 @@ def test_mq_mail(ctx):
     assert msg['MIME-Version'] == '1.0'
     assert msg['Content-Transfer-Encoding'] == '8bit'
     assert msg['Content-Type'] == 'text/plain; charset="UTF-8"'
-    assert msg.get_payload() == 'mail body'
+    assert msg.get_payload() == 'mail body\r\n'
 
     path_delivery_log = ctx.tmp_path / 'mq_delivery.log'
     assert path_delivery_log.exists()
@@ -95,7 +95,7 @@ def test_mq_mail_with_aliases(ctx):
     expected_recipient = aliases['root']
 
     assert tuple(smtp_msg.smtp_to) == (expected_recipient,)
-    msg = email.message_from_string(smtp_msg.msg_data)
+    msg = email.message_from_bytes(smtp_msg.msg_bytes)
     assert msg['To'] == expected_recipient
     assert msg['From'] == aliases['dbuser']
 
