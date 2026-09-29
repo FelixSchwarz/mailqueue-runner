@@ -76,6 +76,55 @@ jobs:
       run: uv run --locked --python python --group quality --all-extras ty check schwarz tests
 
 
+  # Build the RPMs with mock (as COPR would) so changes which break the rpm
+  # build are noticed before a release.
+  rpm:
+    runs-on: ubuntu-latest
+    container:
+      image: fedora:latest  # zizmor: ignore[unpinned-images]
+      # mock needs to mount file systems for its chroots
+      options: --privileged
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        # should match the chroots configured in COPR
+        chroot: ["fedora-44-x86_64", "epel-9-x86_64"]
+    env:
+      UV_LINK_MODE: copy
+
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
+    - name: install build tools
+      run: dnf install -y just mock python3 rpm-build
+    - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+      with:
+        version: "latest-known"
+
+    - name: create sdist and src.rpm
+      run: |
+        just build
+        just build-srpm
+
+    - name: build RPMs with mock
+      env:
+        CHROOT: ${{ matrix.chroot }}
+      run: |
+        # mock is meant to be run by an unprivileged user in the "mock" group
+        useradd --groups mock builder
+        chown -R builder rpm/build
+        # neither systemd-nspawn nor podman are available inside a container
+        runuser -u builder -- just build-rpm "$CHROOT" --isolation=simple --no-bootstrap-image
+
+    - name: show mock logs
+      if: failure()
+      env:
+        CHROOT: ${{ matrix.chroot }}
+      run: tail -n 100 "rpm/build/$CHROOT/root.log" "rpm/build/$CHROOT/build.log" || true
+
+
   tests-cpython:
     runs-on: ubuntu-latest
     strategy:
