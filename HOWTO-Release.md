@@ -1,11 +1,12 @@
 # Releases
 
 Releases are built by the `Create Release Artifacts` workflow, not locally. It
-runs the test suite against `uv.lock`, builds wheel and sdist with the
-hash-pinned build backend from `build-constraints.txt`, builds an SRPM from the
-sdist, attests the build provenance, attaches the artifacts to a GitHub release
-and uploads the wheel and sdist to PyPI via trusted publishing. The SRPM is
-attached only to the GitHub release.
+runs the test suite against `uv.lock` (including an RPM build with mock for the
+COPR chroots), builds wheel and sdist with the hash-pinned build backend from
+`build-constraints.txt`, builds an SRPM from the sdist, attests the build
+provenance, attaches the artifacts to a GitHub release and uploads the wheel and
+sdist to PyPI via trusted publishing. The SRPM is attached only to the GitHub
+release.
 
 1. Optionally refresh pinned dependencies and tooling:
 
@@ -32,8 +33,18 @@ attached only to the GitHub release.
 4. Approve the deployment to the `pypi` environment in the workflow run. This
    publishes the artifacts to PyPI and GitHub.
 
-5. Set the next development version (e.g. `0.14.1.dev0`) in `VERSION.txt`,
+5. Build the RPMs in COPR from the SRPM attached to the GitHub release. COPR is
+   a live repository just like PyPI, so only upload the verified release SRPM:
+
+   ```console
+   $ gh release download "v$(cat VERSION.txt)" --pattern '*.src.rpm'
+   $ gh attestation verify mailqueue-runner-*.src.rpm --repo FelixSchwarz/mailqueue-runner
+   $ copr-cli build --nowait fschwarz/mailqueue-runner mailqueue-runner-*.src.rpm
+   ```
+
+6. Set the next development version (e.g. `0.14.1.dev0`) in `VERSION.txt`,
    update the spec file accordingly and commit both files.
 
 `just build` produces the same wheel and sdist locally, for example to test the
-packaging.
+packaging. `just build-srpm` and `just build-rpm <COPR chroot>` (e.g.
+`epel-9-x86_64`) build the RPMs locally with mock.
