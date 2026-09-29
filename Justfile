@@ -37,6 +37,11 @@ build-srpm:
 build-rpm chroot *MOCK_ARGS:
     rpm/build-rpm.sh "$@"
 
+# build the RPMs locally with mock (including smtpproto), e.g. "just build-rpms-locally alma+epel-9-x86_64"
+[group("rpm")]
+build-rpms-locally mock_root: build build-srpm
+    rpm/build-rpms-locally.sh {{ quote(mock_root) }}
+
 # install the build backend pinned by the current lockfile
 [group("dependencies")]
 install-locked-dependencies:
