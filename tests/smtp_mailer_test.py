@@ -5,6 +5,7 @@ from unittest import mock
 
 import pytest
 from schwarz.log_utils.testutils import build_collecting_logger
+from smtpproto.protocol import ClientState
 
 from schwarz.mailqueue import SMTPMailer, TLSMode, init_smtp_mailer
 from schwarz.mailqueue.smtpclient import SMTPRecipientRefused
@@ -62,9 +63,6 @@ def test_can_handle_connection_error():
     assert lr.msg == expected_msg
 
 def test_can_handle_smtp_exception_after_from():
-    class RejectSenderHandler(MessageCollector):
-        async def handle_MAIL(self, server, session, envelope, address, mail_options):
-            return '550 sender rejected'
     fake_client = fake_smtp_client(handler=RejectSenderHandler())
     mailer = SMTPMailer(client=fake_client)
     message = b'Header: value\n\nbody\n'
@@ -89,6 +87,21 @@ def test_does_not_send_message_if_any_recipient_was_refused():
     # sending the message again to all recipients.
     assert not msg_was_sent
     assert fake_client.server.received_messages.qsize() == 0
+
+@pytest.mark.parametrize('rejected', ['sender', 'recipient'])
+def test_closes_connection_if_message_was_rejected(rejected):
+    if rejected == 'sender':
+        handler = RejectSenderHandler()
+    else:
+        handler = RejectRecipientHandler('bar@site.example')
+    fake_client = fake_smtp_client(handler=handler)
+    mailer = SMTPMailer(client=fake_client)
+    msg_was_sent = mailer.send('foo@site.example', 'bar@site.example', b'Header: value\n\nbody\n')
+
+    assert not msg_was_sent
+    # QUIT was sent (and acknowledged by the server)
+    assert fake_client.protocol.state is ClientState.finished
+    assert fake_client.sock is None
 
 def test_client_raises_recipient_refused_if_any_recipient_was_refused():
     fake_client = fake_smtp_client(handler=RejectRecipientHandler('baz@site.example'))
@@ -202,6 +215,10 @@ def test_init_smtp_mailer_warns_about_missing_tls_setting(hostname, port, tls_st
     assert log_warning.called == expect_warning
 
 # --- internal helpers ----------------------------------------------------
+class RejectSenderHandler(MessageCollector):
+    async def handle_MAIL(self, server, session, envelope, address, mail_options):
+        return '550 sender rejected'
+
 class RejectRecipientHandler(MessageCollector):
     def __init__(self, rejected_recipient):
         super().__init__()

@@ -114,6 +114,8 @@ class SMTPMailer(Transport):
     def send(self, from_addr: str, to_addrs: Sequence[str], message: bytes | str) -> SendResult:
         host = f'{self.hostname}:{self.port}' if self.hostname else None
         msg_was_sent = SendResult(False, queued=False, transport='smtp', host=host)
+        connection = None
+        is_connection_broken = False
         try:
             if self._client is None:
                 connection = self.init_smtp_client()
@@ -147,11 +149,29 @@ class SMTPMailer(Transport):
             if not msg_was_sent:
                 msg_was_sent.error = str(e)
             self._log_exception(e)
+            # e.g. timeout: do not wait for the server again
+            is_connection_broken = isinstance(e, OSError)
+        finally:
+            if connection is not None:
+                _disconnect(connection, graceful=not is_connection_broken)
         return msg_was_sent
 
     def _log_exception(self, e):
         if self.smtp_log:
             self.smtp_log.warning(f'{e} ({e.__class__.__name__})')
+
+
+def _disconnect(connection: SMTPClient, graceful: bool) -> None:
+    # The connection is still open if the server rejected the message (e.g.
+    # refused a recipient). Try to end the SMTP session gracefully but always
+    # close the socket.
+    if graceful:
+        try:
+            connection.quit()
+            return
+        except (SMTPException, OSError):
+            pass
+    connection.close()
 
 
 class DebugMailer(Transport):
