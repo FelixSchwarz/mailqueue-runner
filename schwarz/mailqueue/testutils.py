@@ -1,15 +1,22 @@
 # SPDX-License-Identifier: MIT
 
+from __future__ import annotations
+
+import asyncio
 import logging
 import os
+import queue
+import socket
+import threading
+from dataclasses import dataclass
 from datetime import datetime as DateTime, timedelta as TimeDelta, timezone
 from email.message import Message
-from io import BytesIO
+from typing import Any
 from unittest import mock
 
 import pytest
-from pymta import SMTPCommandParser
-from pymta.test_util import BlackholeDeliverer
+from aiosmtpd.controller import Controller
+from aiosmtpd.smtp import SMTP, AuthResult
 from schwarz.log_utils import ForwardingLogger
 
 from .maildir_utils import move_message
@@ -18,6 +25,7 @@ from .smtpclient import SMTPClient
 
 
 __all__ = [
+    'accept_any_login',
     'assert_did_log_message',
     'create_alias_file',
     'create_ini',
@@ -25,7 +33,10 @@ __all__ = [
     'FakeSSLContext',
     'info_logger',
     'inject_example_message',
+    'MessageCollector',
+    'ReceivedMessage',
     'retrieve_sent_message',
+    'SMTPTestServer',
     'SocketMock',
 ]
 
@@ -139,8 +150,89 @@ def assert_did_log_message(log_capture, expected_msg):
 
 # --- test helpers to simulate a SMTP server ----------------------------------
 
-def retrieve_sent_message(mta):
-    received_queue = mta.get_received_messages()
+@dataclass
+class ReceivedMessage:
+    smtp_from: str
+    smtp_to: tuple[str, ...]
+    # message as transmitted in the DATA command (CRLF line endings, without
+    # the final "." line)
+    msg_bytes: bytes
+    username: str | None = None
+
+
+class MessageCollector:
+    """
+    aiosmtpd handler which stores all received messages in `received_messages`.
+
+    Subclasses can override aiosmtpd's `handle_*()` hooks to reject senders or
+    recipients.
+    """
+    def __init__(self):
+        self.received_messages: queue.Queue[ReceivedMessage] = queue.Queue()
+
+    async def handle_DATA(self, server, session, envelope) -> str:
+        login = getattr(session.auth_data, 'login', None)
+        received_msg = ReceivedMessage(
+            smtp_from = envelope.mail_from,
+            smtp_to   = tuple(envelope.rcpt_tos),
+            msg_bytes = envelope.original_content,
+            username  = login.decode('utf-8') if login else None,
+        )
+        self.received_messages.put(received_msg)
+        return '250 OK'
+
+
+def accept_any_login(server, session, envelope, mechanism, auth_data) -> AuthResult:
+    """aiosmtpd authenticator which accepts all credentials"""
+    return AuthResult(success=True, auth_data=auth_data)
+
+
+def _smtp_server_args(server_args: dict[str, Any]) -> dict[str, Any]:
+    server_args = dict(server_args)
+    # fixed host name: predictable server responses (and no DNS lookup)
+    server_args.setdefault('hostname', 'mx.site.example')
+    server_args.setdefault('ident', 'ESMTP')
+    if server_args.get('authenticator'):
+        # tests use plain-text connections
+        server_args.setdefault('auth_require_tls', False)
+    return server_args
+
+
+class SMTPTestServer(Controller):
+    """
+    SMTP server (listening on a random port on 127.0.0.1) which runs in a
+    background thread. Received messages are available via
+    `.received_messages`.
+    """
+    def __init__(self, handler: MessageCollector | None = None, **server_args):
+        if handler is None:
+            handler = MessageCollector()
+        server_args = _smtp_server_args(server_args)
+        # Controller uses "hostname" for the listen address
+        server_hostname = server_args.pop('hostname')
+        super().__init__(
+            handler,
+            hostname        = '127.0.0.1',
+            port            = 0,
+            server_hostname = server_hostname,
+            **server_args,
+        )
+
+    def _trigger_server(self):
+        # "port=0" tells the OS to pick a free port. The Controller needs to
+        # know the actual port as it connects to the server to check that the
+        # server is running.
+        assert isinstance(self.server, asyncio.Server)
+        self.port = self.server.sockets[0].getsockname()[1]
+        super()._trigger_server()
+
+    @property
+    def received_messages(self) -> queue.Queue[ReceivedMessage]:
+        return self.handler.received_messages
+
+
+def retrieve_sent_message(mta) -> ReceivedMessage:
+    received_queue = mta.received_messages
     assert received_queue.qsize() == 1
     smtp_msg = received_queue.get(block=False)
     return smtp_msg
@@ -150,6 +242,7 @@ def stub_socket_creation(socket_mock):
     def mock_create_connection(host_port, timeout, source_address):
         if connect_override:
             return connect_override()
+        socket_mock.open_connection()
         return socket_mock
 
     socket_func = 'schwarz.mailqueue.smtpclient.socket.create_connection'
@@ -158,9 +251,9 @@ def stub_socket_creation(socket_mock):
     return mock.patch(socket_func, new=mock_create_connection)
 
 
-def fake_smtp_client(socket_mock=None, policy=None, overrides=None, **client_args):
+def fake_smtp_client(socket_mock=None, handler=None, overrides=None, **client_args):
     if socket_mock is None:
-        socket_mock = SocketMock(policy=policy, overrides=overrides)
+        socket_mock = SocketMock(handler=handler, overrides=overrides)
 
     hostname = 'site.invalid'
     has_connect_override = ('connect' in socket_mock._overrides)
@@ -186,82 +279,70 @@ class FakeSSLContext:
 
     def wrap_socket(self, sock, server_hostname=None):
         # "makefile()" was not called yet -> no data was read from the socket
-        is_pristine = (getattr(sock, 'command_parser', None) is None)
+        is_pristine = (getattr(sock, 'reader', None) is None)
         self.wrapped.append((sock, server_hostname, is_pristine))
         return sock
 
 
-class FakeChannel:
-    def __init__(self):
-        self._ignore_write_operations = False
-        self.server_responses = []
+_background_loop: asyncio.AbstractEventLoop | None = None
+_background_loop_lock = threading.Lock()
 
-    def write(self, data_bytes):
-        if self._ignore_write_operations:
-            return
-        self.server_responses.append(data_bytes)
-
-    def close(self):
-        pass
-
-    def drain_responses(self):
-        response = ''
-        while len(self.server_responses) > 0:
-            response += self.server_responses.pop(0)
-        return response.encode('ASCII')
+def _get_background_loop() -> asyncio.AbstractEventLoop:
+    global _background_loop
+    with _background_loop_lock:
+        if _background_loop is None:
+            loop = asyncio.new_event_loop()
+            thread = threading.Thread(target=loop.run_forever, name='SocketMock', daemon=True)
+            thread.start()
+            _background_loop = loop
+    return _background_loop
 
 
 class SocketMock:
-    def __init__(self, policy=None, overrides=None, authenticator=None):
-        self.command_parser = None
-        self.deliverer = BlackholeDeliverer()
-        self.channel = FakeChannel()
-        self.policy = policy
-        self.reply_data = None
+    """
+    Socket which is connected to an in-process aiosmtpd server without using
+    the network: The server side of a `socket.socketpair()` is handled by an
+    event loop in a background thread.
+    """
+    def __init__(self, handler: MessageCollector | None = None, overrides=None, **server_args):
+        self.handler = handler if (handler is not None) else MessageCollector()
+        self._server_args = _smtp_server_args(server_args)
+        self.sock: socket.socket | None = None
+        self.reader = None
         # This attribute is actually not used in the SocketMock itself but it
         # simplifies some test code where we need to store some information to
         # "override" default behaviors.
         # Instead of adding yet another "state" variable just keep it here.
         self._overrides = overrides or {}
-        self._authenticator = authenticator
 
     @property
-    def received_messages(self):
-        return self.deliverer.received_messages
+    def received_messages(self) -> queue.Queue[ReceivedMessage]:
+        return self.handler.received_messages
+
+    def open_connection(self) -> None:
+        client_sock, server_sock = socket.socketpair()
+        # tests should fail instead of hanging forever if the server does not respond
+        client_sock.settimeout(10)
+        loop = _get_background_loop()
+        protocol_factory = lambda: SMTP(self.handler, loop=loop, **self._server_args)
+        connect = loop.connect_accepted_socket(protocol_factory, server_sock)
+        asyncio.run_coroutine_threadsafe(connect, loop).result(timeout=10)
+        self.sock = client_sock
+        self.reader = None
 
     # --- "socket" API --------------------------------------------------------
-    def makefile(self, *args):
-        self.command_parser = SMTPCommandParser(
-            self.channel,
-            '127.0.0.1', 2525,
-            self.deliverer,
-            policy=self.policy,
-            authenticator=self._authenticator,
-        )
-        self.reply_data = BytesIO()
-        return self
+    def makefile(self, *args, **kwargs):
+        self.reader = self._connected_socket().makefile(*args, **kwargs)
+        return self.reader
 
-    def readline(self, size):
-        self._drain_responses()
-        if self.reply_data is None:
-            raise RuntimeError('socket has not been initialized with makefile()')
-        return self.reply_data.readline(size)
+    def sendall(self, data: bytes) -> None:
+        self._connected_socket().sendall(data)
 
-    def sendall(self, data):
-        if isinstance(data, bytes):
-            data = data.decode('ASCII')
-        if self.command_parser is None:
-            raise RuntimeError('socket has not been initialized with makefile()')
-        self.command_parser.process_new_data(data)
+    def close(self) -> None:
+        if self.sock is not None:
+            self.sock.close()
 
-    def close(self):
-        pass
-
-    def _drain_responses(self):
-        reply_bytes = self.channel.drain_responses()
-        if self.reply_data is None:
-            raise RuntimeError('socket has not been initialized with makefile()')
-        previous_position = self.reply_data.tell()
-        self.reply_data.seek(0, os.SEEK_END)
-        self.reply_data.write(reply_bytes)
-        self.reply_data.seek(previous_position, os.SEEK_SET)
+    def _connected_socket(self) -> socket.socket:
+        if self.sock is None:
+            raise RuntimeError('socket is not connected')
+        return self.sock
