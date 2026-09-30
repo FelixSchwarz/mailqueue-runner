@@ -37,7 +37,7 @@ build-srpm:
 build-rpm chroot *MOCK_ARGS:
     rpm/build-rpm.sh "$@"
 
-# build the RPMs locally with mock (including smtpproto), e.g. "just build-rpms-locally alma+epel-9-x86_64"
+# build the RPMs locally with mock (including smtpproto and schwarzlog), e.g. "just build-rpms-locally alma+epel-9-x86_64"
 [group("rpm")]
 build-rpms-locally mock_root: build build-srpm
     rpm/build-rpms-locally.sh {{ quote(mock_root) }}

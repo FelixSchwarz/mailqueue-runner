@@ -4,8 +4,8 @@
 # usage: build-rpm.sh <COPR chroot> [MOCK ARGS...]
 #        e.g. build-rpm.sh epel-9-x86_64
 #
-# Like in COPR, packages from the COPR project (e.g. smtpproto) are available as
-# dependencies. The RPMs end up in "rpm/build/<COPR chroot>/".
+# Like in COPR, packages from the COPR project (e.g. smtpproto, schwarzlog) are
+# available as dependencies. The RPMs end up in "rpm/build/<COPR chroot>/".
 
 set -eu
 
