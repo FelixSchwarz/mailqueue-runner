@@ -26,6 +26,18 @@ setup-venv:
 build:
     uv build --wheel --sdist --build-constraint build-constraints.txt --require-hashes
 
+# remove generated files ("build/", "dist/", "rpm/build/")
+[group("packaging")]
+clean:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    paths=(build dist rpm/build)
+    for path in "${paths[@]}"; do
+        if [ -e "$path" ]; then
+            trash "$path"
+        fi
+    done
+
 # create a src.rpm in "rpm/build/" from the sdist in "dist/" (see "just build")
 [group("rpm")]
 build-srpm:
