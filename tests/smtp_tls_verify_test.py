@@ -37,13 +37,16 @@ def tls_server() -> Iterator[ServerAddress]:
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
     context.load_cert_chain(SELF_SIGNED_CERT)
     listen_sock = socket.create_server(('127.0.0.1', 0))
-    listen_sock.settimeout(5)
 
     def serve():
+        # No timeout for "accept()": The client might connect only after a
+        # slow "socket.getfqdn()" (e.g. unresolvable hostname in a mock
+        # chroot). Returning early would leave the client's handshake unanswered.
         try:
             sock, _ = listen_sock.accept()
         except OSError:
             return
+        sock.settimeout(5)
         with sock:
             try:
                 with context.wrap_socket(sock, server_side=True) as tls_sock:
@@ -59,6 +62,12 @@ def tls_server() -> Iterator[ServerAddress]:
     try:
         yield ServerAddress(*listen_sock.getsockname())
     finally:
+        # "shutdown()" wakes up a thread blocked in "accept()" (just closing
+        # the socket does not on Linux).
+        try:
+            listen_sock.shutdown(socket.SHUT_RDWR)
+        except OSError:
+            pass
         listen_sock.close()
         thread.join(timeout=5)
 
