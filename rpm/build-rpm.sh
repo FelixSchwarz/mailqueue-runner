@@ -19,9 +19,7 @@ case "$chroot" in
     *)      mock_root="$chroot" ;;
 esac
 
-# "%check" installs some test dependencies via pip so network is needed
 mock --root="$mock_root" \
-    --enable-network \
     --addrepo="https://download.copr.fedorainfracloud.org/results/fschwarz/mailqueue-runner/$chroot/" \
     --resultdir="rpm/build/$chroot" \
     "$@" \

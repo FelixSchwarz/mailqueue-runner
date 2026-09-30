@@ -17,8 +17,10 @@ Recommends:     logrotate
 
 BuildArch:      noarch
 BuildRequires:  python3-devel
-# required to run the test suite
-BuildRequires:  python3dist(aiosmtpd)
+# The other test dependencies come from the "testutils" extra (see
+# "%%generate_buildrequires"). The "testing" extra can not be used as it
+# requires PuzzlePluginSystem which is not packaged for Fedora/EPEL (the plugin
+# tests are skipped without it).
 BuildRequires:  python3dist(pytest)
 BuildRequires:  python3dist(pytest-xdist)
 Requires(post):    %{_sbindir}/alternatives
@@ -51,7 +53,7 @@ sed -i '/^license-files\s*=/d' pyproject.toml
 %endif
 
 %generate_buildrequires
-%pyproject_buildrequires
+%pyproject_buildrequires -x testutils
 
 
 %build
@@ -85,12 +87,7 @@ sed -i '/^license-files\s*=/d' pyproject.toml
 
 
 %check
-# not packaged at all
-pip install schwarzlog
-
-# tests requiring a real SMTP server just hung when run in mock with pymta
-# (LATER: check if these tests work with aiosmtpd)
-%pytest -n auto -k "not test_mq_send_test and not test_mq_sendmail and not test_can_send_message and not test_mq_mail"
+%pytest -n auto
 
 
 %post

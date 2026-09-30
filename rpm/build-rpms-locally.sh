@@ -30,9 +30,7 @@ for name in smtpproto schwarzlog; do
         "$spec"
 done
 
-# "%check" of mailqueue-runner installs some test dependencies via pip
 mock --root="$mock_root" \
-    --enable-network \
     --chain --localrepo="$build_dir/repo-$mock_root" \
     "$build_dir"/python-smtpproto-*.src.rpm \
     "$build_dir"/python-schwarzlog-*.src.rpm \
