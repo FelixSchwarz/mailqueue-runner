@@ -89,7 +89,7 @@ jobs:
       fail-fast: false
       matrix:
         # should match the chroots configured in COPR
-        chroot: ["fedora-44-x86_64", "epel-9-x86_64"]
+        chroot: ["fedora-44-x86_64", "epel-9-x86_64", "epel-10-x86_64"]
     env:
       UV_LINK_MODE: copy
 
