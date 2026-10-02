@@ -48,6 +48,9 @@ jobs:
     - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
       with:
         version: "latest-known"
+        # "release.yml" runs these jobs too, so a cache written by any
+        # ordinary CI run must not be restored there
+        enable-cache: false
 
     # This job runs inside a container, not directly on the runner: the
     # checkout belongs to the runner user while the steps run as root, so git
@@ -102,6 +105,7 @@ jobs:
     - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
       with:
         version: "latest-known"
+        enable-cache: false
 
     - name: create sdist and src.rpm
       run: |
@@ -141,6 +145,7 @@ jobs:
     - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
       with:
         version: "latest-known"
+        enable-cache: false
 
     - name: Install dependencies and run tests
       run: |
@@ -174,6 +179,7 @@ jobs:
     - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
       with:
         version: "latest-known"
+        enable-cache: false
 
     - name: Install dependencies and run tests
       run: |
@@ -208,6 +214,7 @@ jobs:
     - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
       with:
         version: "latest-known"
+        enable-cache: false
         python-version: ${{ matrix.python-version }}
         activate-environment: true
 
