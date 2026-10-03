@@ -47,7 +47,18 @@ build-srpm:
 [group("rpm")]
 [positional-arguments]
 build-rpm chroot *MOCK_ARGS:
-    rpm/build-rpm.sh "$@"
+    #!/bin/sh
+    set -eu
+    chroot="$1"
+    shift
+    exec rpm/build-rpm.sh "$chroot" rpm/build/mailqueue-runner-*.src.rpm "$@"
+
+# rebuild any src.rpm with mock (dependencies from COPR), e.g. "just rebuild-srpm-locally epel-9-x86_64 mailqueue-runner-1.0.0-1.fc44.src.rpm"
+[group("rpm")]
+[positional-arguments]
+[no-cd]
+rebuild-srpm-locally chroot srpm *MOCK_ARGS:
+    {{ quote(justfile_directory() / "rpm/build-rpm.sh") }} "$@"
 
 # build the RPMs locally with mock (including smtpproto and schwarzlog), e.g. "just build-rpms-locally alma+epel-9-x86_64"
 [group("rpm")]
