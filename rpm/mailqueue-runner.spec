@@ -1,9 +1,9 @@
 # "tools/check-rpm-version.py" ensures that "pypi_version" matches VERSION.txt
 # and "Version" is derived from it, e.g. "0.14.0.dev0" -> "0.14.0~dev0".
-%global pypi_version 1.0.0b1
+%global pypi_version 1.0.0
 
 Name:           mailqueue-runner
-Version:        1.0.0~b1
+Version:        1.0.0
 Release:        1%{?dist}
 Summary:        SMTP client for CLI scripts
 
@@ -133,8 +133,8 @@ fi
 
 
 %changelog
-* Fri Oct 02 2026 Felix Schwarz <felix.schwarz@oss.schwarz.eu> - 1.0.0~b1-1
-- first beta for 1.0
+* Wed Oct 07 2026 Felix Schwarz <felix.schwarz@oss.schwarz.eu> - 1.0.0-1
+- update to 1.0.0
 
 * Mon Jun 02 2025 Felix Schwarz <felix.schwarz@oss.schwarz.eu> - 0.13.1-1
 - update to 0.13.1
